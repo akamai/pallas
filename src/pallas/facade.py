@@ -50,16 +50,44 @@ class AthenaQuery:
     def execution_id(self):
         return self._execution_id
 
-    def get_status(self):
+    def get_info(self):
         response = self._client.get_query_execution(QueryExecutionId=self.execution_id)
-        return response["QueryExecution"]
+        return QueryInfo(response["QueryExecution"])
 
     def kill(self):
         self._client.stop_query_execution(QueryExecutionId=self.execution_id)
 
     def join(self):
-        state = "RUNNING"
-        while state == "RUNNING":
-            info = self.get_status()
-            state = info["Status"]["State"]
-        return info
+        while True:
+            info = self.get_info()
+            if info.done:
+                return info
+
+
+class QueryInfo:
+    def __init__(self, data):
+        self._data = data
+
+    @property
+    def execution_id(self):
+        return self._data["QueryExecutionId"]
+
+    @property
+    def sql(self):
+        return self._data["Query"]
+
+    @property
+    def database(self):
+        return self._data["QueryExecutionContext"].get("Database")
+
+    @property
+    def done(self):
+        return self.state in ("SUCCEEDED", "FAILED", "CANCELLED")
+
+    @property
+    def succeeded(self):
+        return self.state == "SUCCEEDED"
+
+    @property
+    def state(self):
+        return self._data["Status"]["State"]
