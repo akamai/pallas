@@ -1,5 +1,3 @@
+__all__ = ["Athena"]
 
-import os
-
-REGION_NAME = os.environ.get("PALLAS_REGION_NAME")
-OUTPUT_LOCATION = os.environ["PALLAS_OUTPUT_LOCATION"]
+from .facade import Athena

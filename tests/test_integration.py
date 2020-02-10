@@ -1,19 +1,9 @@
-
-import boto3
-
-import pallas
+import os
 
 
-def test_athena():
-    client = boto3.client("athena", region_name=pallas.REGION_NAME)
-    response = client.start_query_execution(
-        QueryString="SELECT 1",
-        ResultConfiguration={"OutputLocation": pallas.OUTPUT_LOCATION},
+def test_athena(athena):
+    info = athena.execute("SELECT 1")
+    assert info["Status"]["State"] == "SUCCEEDED"
+    assert (
+        info["QueryExecutionContext"]["Database"] == os.environ["TEST_PALLAS_DATABASE"]
     )
-    execution_id = response["QueryExecutionId"]
-    state = "RUNNING"
-    while state == "RUNNING":
-        result = client.get_query_execution(QueryExecutionId=execution_id)
-        print(result)
-        state = result["QueryExecution"]['Status']['State']
-    assert state == "SUCCEEDED"
