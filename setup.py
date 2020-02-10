@@ -20,6 +20,9 @@ setup(
         "boto3",
     ],
     extras_require={
-        "dev": ["pytest"],
+        "dev": [
+            "flake8",
+            "pytest",
+        ],
     }
 )
