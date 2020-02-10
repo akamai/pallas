@@ -35,7 +35,10 @@ class Athena:
         if self._database is not None:
             params.update(QueryExecutionContext={"Database": self._database})
         response = self._client.start_query_execution(**params)
-        return AthenaQuery(self._client, response["QueryExecutionId"])
+        return self.get_query(response["QueryExecutionId"])
+
+    def get_query(self, execution_id):
+        return AthenaQuery(self._client, execution_id)
 
 
 class AthenaQuery:
@@ -47,13 +50,16 @@ class AthenaQuery:
     def execution_id(self):
         return self._execution_id
 
+    def get_status(self):
+        response = self._client.get_query_execution(QueryExecutionId=self.execution_id)
+        return response["QueryExecution"]
+
+    def kill(self):
+        self._client.stop_query_execution(QueryExecutionId=self.execution_id)
+
     def join(self):
         state = "RUNNING"
         while state == "RUNNING":
             info = self.get_status()
             state = info["Status"]["State"]
         return info
-
-    def get_status(self):
-        response = self._client.get_query_execution(QueryExecutionId=self.execution_id)
-        return response["QueryExecution"]
