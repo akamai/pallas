@@ -1,8 +1,8 @@
 import pytest
 
-import pallas
+from pallas.testing import AthenaFake
 
 
 @pytest.fixture
-def athena():
-    return pallas.from_environ(prefix="TEST_PALLAS")
+def fake_athena():
+    return AthenaFake()

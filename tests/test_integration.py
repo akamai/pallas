@@ -4,6 +4,13 @@ import textwrap
 
 import pytest
 
+import pallas
+
+
+@pytest.fixture
+def athena():
+    return pallas.from_environ(prefix="TEST_PALLAS")
+
 
 class TestAthena:
     def test_submit(self, athena):
