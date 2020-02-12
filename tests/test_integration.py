@@ -1,21 +1,23 @@
 import os
+import textwrap
 
 
 class TestAthena:
-    def test_execute(self, athena):
-        info = athena.execute("SELECT 1")
-        assert info.done
-        assert info.succeeded
-        assert info.state == "SUCCEEDED"
-        assert info.sql == "SELECT 1"
-        assert info.database == os.environ["TEST_PALLAS_DATABASE"]
-
     def test_submit(self, athena):
         query = athena.submit("SELECT 1")
         info = query.get_info()
         assert info.state == "RUNNING"
         assert not info.done
         assert not info.succeeded
+        assert info.sql == "SELECT 1"
+        assert info.database == os.environ["TEST_PALLAS_DATABASE"]
+
+    def test_execute(self, athena):
+        query = athena.submit("SELECT 1")
+        info = query.join()
+        assert info.done
+        assert info.succeeded
+        assert info.state == "SUCCEEDED"
         assert info.sql == "SELECT 1"
         assert info.database == os.environ["TEST_PALLAS_DATABASE"]
 
@@ -28,3 +30,47 @@ class TestAthena:
         assert info.state == "CANCELLED"
         assert info.sql == "SELECT 1"
         assert info.database == os.environ["TEST_PALLAS_DATABASE"]
+
+    def test_select_wo_column_name(self, athena):
+        sql = "SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c'))"
+        results = athena.execute(sql)
+        assert list(results) == [
+            {"_col0": "1", "_col1": "a"},
+            {"_col0": "2", "_col1": "b"},
+            {"_col0": "3", "_col1": "c"},
+        ]
+
+    def test_select_w_column_name(self, athena):
+        sql = "SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c')) AS t (id, name)"
+        results = athena.execute(sql)
+        assert list(results) == [
+            {"id": "1", "name": "a"},
+            {"id": "2", "name": "b"},
+            {"id": "3", "name": "c"},
+        ]
+
+    def test_select_types(self, athena):
+        sql = """\
+            SELECT
+                true true_value,
+                false false_value,
+                TINYINT '1' tinyint_value,
+                SMALLINT '2' smallint_value,
+                INTEGER '3' integer_value,
+                BIGINT '4' bigint_value,
+                REAL '0.1' real_value,
+                DOUBLE '0.2' double_value
+        """
+        results = athena.execute(textwrap.dedent(sql))
+        assert list(results) == [
+            {
+                "true_value": "true",
+                "false_value": "false",
+                "tinyint_value": "1",
+                "smallint_value": "2",
+                "integer_value": "3",
+                "bigint_value": "4",
+                "real_value": "0.1",
+                "double_value": "0.2",
+            }
+        ]

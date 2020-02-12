@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import os
 
 import boto3
@@ -25,7 +26,8 @@ class Athena:
 
     def execute(self, sql):
         query = self.submit(sql)
-        return query.join()
+        query.join()
+        return query.get_results()
 
     def submit(self, sql):
         params = dict(
@@ -63,6 +65,22 @@ class AthenaQuery:
             if info.done:
                 return info
 
+    def get_results(self):
+        params = dict(QueryExecutionId=self.execution_id)
+        response = self._client.get_query_results(**params)
+        column_info = response["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
+        column_names = tuple(column["Name"] for column in column_info)
+        column_types = tuple(column["Type"] for column in column_info)
+        print(column_types)
+        rows = response["ResultSet"]["Rows"]
+        data = [tuple(item["VarCharValue"] for item in row["Data"]) for row in rows]
+        if data and data[0] == column_names:
+            # Skip the first row iff it contains column names.
+            # Athena often returns column names in the first row but not always.
+            # (for example, SHOW PARTITIONS results do not have this header).
+            data = data[1:]
+        return QueryResultSet(column_names, column_types, data)
+
 
 class QueryInfo:
     def __init__(self, data):
@@ -91,3 +109,21 @@ class QueryInfo:
     @property
     def state(self):
         return self._data["Status"]["State"]
+
+
+class QueryResultSet(Sequence):
+    def __init__(self, column_names, column_types, data):
+        self._column_names = column_names
+        self._column_types = column_types
+        self._data = data
+
+    def __getitem__(self, index):
+        row = self._data[index]
+        info = zip(self._column_names, self._column_types, row)
+        return {cn: self._convert_value(ct, v) for cn, ct, v in info}
+
+    def __len__(self):
+        return len(self._data)
+
+    def _convert_value(self, ct, v):
+        return v
