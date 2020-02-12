@@ -62,12 +62,6 @@ class QueryProxy(Query):
     def kill(self) -> None:
         self._client.stop_query_execution(QueryExecutionId=self.execution_id)
 
-    def join(self) -> QueryInfo:
-        while True:
-            info = self.get_info()
-            if info.finished:
-                return info
-
     def get_results(self) -> QueryResults:
         params = dict(QueryExecutionId=self.execution_id)
         paginator = self._client.get_paginator("get_query_results")

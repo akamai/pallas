@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import time
 from abc import abstractmethod, ABCMeta
-
 from typing import cast, overload, Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
 from pallas.conversions import convert_value
@@ -41,9 +41,13 @@ class Query(metaclass=ABCMeta):
     def kill(self) -> None:
         """Kill this query execution."""
 
-    @abstractmethod
-    def join(self) -> QueryInfo:
+    def join(self, sleep: int = 5) -> QueryInfo:
         """Wait until this query execution finishes."""
+        while True:
+            info = self.get_info()
+            if info.finished:
+                return info
+            time.sleep(sleep)
 
 
 class QueryInfo:
@@ -79,15 +83,20 @@ QueryRecord = Dict[str, Any]
 
 
 class QueryResults(Sequence[QueryRecord]):
+
+    _column_names: Tuple[str, ...]
+    _column_types: Tuple[str, ...]
+    _data: Sequence[Tuple[str, ...]]
+
     def __init__(
         self,
         column_names: Sequence[str],
         column_types: Sequence[str],
-        data: Sequence[Tuple[str, ...]],
+        data: Sequence[Sequence[str]],
     ) -> None:
-        self._column_names = column_names
-        self._column_types = column_types
-        self._data = data
+        self._column_names = tuple(column_names)
+        self._column_types = tuple(column_types)
+        self._data = [tuple(row) for row in data]
 
     @overload
     def __getitem__(self, index: int) -> QueryRecord:
@@ -108,3 +117,15 @@ class QueryResults(Sequence[QueryRecord]):
 
     def __len__(self) -> int:
         return len(self._data)
+
+    @property
+    def column_names(self) -> Tuple[str, ...]:
+        return self._column_names
+
+    @property
+    def column_types(self) -> Tuple[str, ...]:
+        return self._column_types
+
+    @property
+    def data(self) -> Sequence[Tuple[str, ...]]:
+        return self._data
