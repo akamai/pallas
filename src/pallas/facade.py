@@ -3,6 +3,8 @@ import os
 
 import boto3
 
+from pallas.conversions import convert_value
+
 
 class Athena:
     def __init__(
@@ -71,9 +73,8 @@ class AthenaQuery:
         column_info = response["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
         column_names = tuple(column["Name"] for column in column_info)
         column_types = tuple(column["Type"] for column in column_info)
-        print(column_types)
         rows = response["ResultSet"]["Rows"]
-        data = [tuple(item["VarCharValue"] for item in row["Data"]) for row in rows]
+        data = [tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows]
         if data and data[0] == column_names:
             # Skip the first row iff it contains column names.
             # Athena often returns column names in the first row but not always.
@@ -125,5 +126,7 @@ class QueryResultSet(Sequence):
     def __len__(self):
         return len(self._data)
 
-    def _convert_value(self, ct, v):
-        return v
+    def _convert_value(self, column_type, value):
+        if value is None:
+            return None
+        return convert_value(column_type, value)
