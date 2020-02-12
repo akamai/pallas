@@ -1,3 +1,4 @@
-__all__ = ["Athena"]
+__all__ = ["from_environ", "Athena", "Query", "QueryInfo", "QueryResults"]
 
-from .facade import Athena
+from .facade import from_environ
+from .base import Athena, Query, QueryInfo, QueryResults

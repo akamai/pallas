@@ -10,7 +10,7 @@ class TestAthena:
         query = athena.submit("SELECT 1")
         info = query.get_info()
         assert info.state == "RUNNING"
-        assert not info.done
+        assert not info.finished
         assert not info.succeeded
         assert info.sql == "SELECT 1"
         assert info.database == os.environ["TEST_PALLAS_DATABASE"]
@@ -18,7 +18,7 @@ class TestAthena:
     def test_execute(self, athena):
         query = athena.submit("SELECT 1")
         info = query.join()
-        assert info.done
+        assert info.finished
         assert info.succeeded
         assert info.state == "SUCCEEDED"
         assert info.sql == "SELECT 1"
@@ -28,7 +28,7 @@ class TestAthena:
         query = athena.submit("SELECT 1")
         query.kill()
         info = query.get_info()
-        assert info.done
+        assert info.finished
         assert not info.succeeded
         assert info.state == "CANCELLED"
         assert info.sql == "SELECT 1"

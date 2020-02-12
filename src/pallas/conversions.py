@@ -22,6 +22,8 @@ CONVERTERS = {
 
 
 def convert_value(value_type, value):
+    if value is None:
+        return None
     converter = CONVERTERS.get(value_type)
     if not converter:
         return value
