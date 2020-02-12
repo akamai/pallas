@@ -1,5 +1,6 @@
-from collections.abc import Sequence
+import itertools
 import os
+from collections.abc import Sequence
 
 import boto3
 
@@ -69,12 +70,18 @@ class AthenaQuery:
 
     def get_results(self):
         params = dict(QueryExecutionId=self.execution_id)
-        response = self._client.get_query_results(**params)
-        column_info = response["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
+        paginator = self._client.get_paginator("get_query_results")
+        pages = iter(paginator.paginate(**params))
+        first_page = next(pages)
+        column_info = first_page["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
         column_names = tuple(column["Name"] for column in column_info)
         column_types = tuple(column["Type"] for column in column_info)
-        rows = response["ResultSet"]["Rows"]
-        data = [tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows]
+        data = []
+        for page in itertools.chain([first_page], pages):
+            rows = page["ResultSet"]["Rows"]
+            data += [
+                tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows
+            ]
         if data and data[0] == column_names:
             # Skip the first row iff it contains column names.
             # Athena often returns column names in the first row but not always.
