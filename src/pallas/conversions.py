@@ -1,12 +1,15 @@
-def convert_int(v):
+from typing import Any, Optional
+
+
+def convert_int(v: str) -> int:
     return int(v)
 
 
-def convert_float(v):
+def convert_float(v: str) -> float:
     return float(v)
 
 
-def convert_bool(v):
+def convert_bool(v: str) -> bool:
     return {"true": True, "false": False}[v]
 
 
@@ -21,7 +24,7 @@ CONVERTERS = {
 }
 
 
-def convert_value(value_type, value):
+def convert_value(value_type: str, value: Optional[str]) -> Any:
     if value is None:
         return None
     converter = CONVERTERS.get(value_type)

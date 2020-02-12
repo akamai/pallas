@@ -1,9 +1,13 @@
 import os
+from typing import Optional, Mapping
 
+from pallas.base import Athena
 from pallas.proxies import AthenaProxy
 
 
-def from_environ(environ=None, *, prefix="PALLAS"):
+def from_environ(
+    environ: Optional[Mapping[str, str]] = None, *, prefix: str = "PALLAS"
+) -> Athena:
     if environ is None:
         environ = os.environ
     return AthenaProxy(

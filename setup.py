@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     packages=find_packages("src"),
     package_dir={"": "src"},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "boto3",
     ],
@@ -23,6 +23,7 @@ setup(
         "dev": [
             "flake8",
             "pytest",
+            "mypy",
         ],
     }
 )
