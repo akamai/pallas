@@ -22,9 +22,10 @@ class TestAthena:
         assert info.sql == "SELECT 1"
         assert info.database == os.environ["TEST_PALLAS_DATABASE"]
 
-    def test_execute(self, athena):
+    def test_join(self, athena):
         query = athena.submit("SELECT 1")
-        info = query.join()
+        query.join()
+        info = query.get_info()
         assert info.finished
         assert info.succeeded
         assert info.state == "SUCCEEDED"

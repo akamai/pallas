@@ -41,12 +41,12 @@ class Query(metaclass=ABCMeta):
     def kill(self) -> None:
         """Kill this query execution."""
 
-    def join(self, sleep: int = 5) -> QueryInfo:
+    def join(self, sleep: int = 5) -> None:
         """Wait until this query execution finishes."""
         while True:
             info = self.get_info()
             if info.finished:
-                return info
+                break
             time.sleep(sleep)
 
 
