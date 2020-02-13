@@ -19,6 +19,19 @@ from pallas.conversions import convert_value
 from pallas.waiting import Fibonacci
 
 
+class AthenaQueryError(Exception):
+    """Athena query failed."""
+
+    def __init__(self, state: str, state_reason: Optional[str]):
+        self.state = state
+        self.state_reason = state_reason
+
+    def __str__(self) -> str:
+        if self.state_reason is not None:
+            return f"Athena query {self.state.lower()}: {self.state_reason}"
+        return f"Athena query {self.state.lower()}"
+
+
 class Athena(metaclass=ABCMeta):
     def execute(self, sql: str) -> QueryResults:
         """Submit query execution and wait for results."""
@@ -61,6 +74,7 @@ class Query(metaclass=ABCMeta):
         for delay in self._backoff:
             info = self.get_info()
             if info.finished:
+                info.check()
                 break
             time.sleep(delay)
 
@@ -92,6 +106,14 @@ class QueryInfo:
     @property
     def state(self) -> str:
         return cast(str, self._data["Status"]["State"])
+
+    @property
+    def state_reason(self) -> Optional[str]:
+        return cast(Optional[str], self._data["Status"].get("StateChangeReason"))
+
+    def check(self) -> None:
+        if self.finished and not self.succeeded:
+            raise AthenaQueryError(self.state, self.state_reason)
 
 
 QueryRecord = Dict[str, Any]
