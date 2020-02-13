@@ -33,7 +33,7 @@ class QueryCachingWrapper(Query):
     def kill(self) -> None:
         return self._inner_query.kill()
 
-    def join(self, sleep: int = 5) -> None:
+    def join(self) -> None:
         if self._has_results():
             # If we have results then we can assume that query has finished.
             # Avoiding unnecessary checks allows us to work

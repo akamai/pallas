@@ -2,9 +2,21 @@ from __future__ import annotations
 
 import time
 from abc import abstractmethod, ABCMeta
-from typing import cast, overload, Any, Dict, Mapping, Optional, Sequence, Tuple, Union
+from typing import (
+    cast,
+    overload,
+    Any,
+    Dict,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    Iterable,
+)
 
 from pallas.conversions import convert_value
+from pallas.waiting import Fibonacci
 
 
 class Athena(metaclass=ABCMeta):
@@ -24,6 +36,9 @@ class Athena(metaclass=ABCMeta):
 
 
 class Query(metaclass=ABCMeta):
+
+    _backoff: Iterable[int] = Fibonacci()
+
     @property
     @abstractmethod
     def execution_id(self) -> str:
@@ -41,13 +56,13 @@ class Query(metaclass=ABCMeta):
     def kill(self) -> None:
         """Kill this query execution."""
 
-    def join(self, sleep: int = 5) -> None:
+    def join(self) -> None:
         """Wait until this query execution finishes."""
-        while True:
+        for delay in self._backoff:
             info = self.get_info()
             if info.finished:
                 break
-            time.sleep(sleep)
+            time.sleep(delay)
 
 
 class QueryInfo:
