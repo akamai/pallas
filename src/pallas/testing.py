@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from pallas import QueryResults, QueryInfo
 from pallas.base import Athena, Query
@@ -8,23 +8,29 @@ class QueryFake(Query):
 
     _info: QueryInfo
     _results: QueryResults
+    _requests: List[str]
 
-    def __init__(self, info: QueryInfo, results: QueryResults) -> None:
+    def __init__(
+        self, info: QueryInfo, results: QueryResults, requests: List[str]
+    ) -> None:
         self._info = info
         self._results = results
+        self._requests = requests
 
     @property
     def execution_id(self) -> str:
         return self._info.execution_id
 
     def get_info(self) -> QueryInfo:
+        self._requests.append("GetQueryExecution")
         return self._info
 
     def get_results(self) -> QueryResults:
+        self._requests.append("GetQueryResults")
         return self._results
 
     def kill(self) -> None:
-        raise NotImplementedError
+        self._requests.append("StopQueryExecution")
 
 
 class AthenaFake(Athena):
@@ -34,19 +40,18 @@ class AthenaFake(Athena):
     data: Optional[Sequence[Sequence[str]]] = None
 
     _queries: Dict[str, Query]
+    _requests: List[str]
 
     def __init__(self) -> None:
         self._queries = {}
-
-    @property
-    def queries(self) -> Sequence[Query]:
-        return list(self._queries.values())
+        self._requests = []
 
     def submit(self, sql: str) -> Query:
-        execution_id = f"query-{len(self._queries)}"
+        execution_id = f"query-{len(self._queries)+1}"
+        self._requests.append("StartQueryExecution")
         info = self._get_info(execution_id, sql)
         results = self._get_results()
-        query = QueryFake(info, results)
+        query = QueryFake(info, results, self._requests)
         self._queries[execution_id] = query
         return query
 
@@ -75,7 +80,7 @@ class AthenaFake(Athena):
         }
         return QueryInfo(data)
 
-    def _get_results(self):
+    def _get_results(self) -> QueryResults:
         column_names = self.column_names
         column_types = self.column_types
         data = self.data
@@ -86,3 +91,6 @@ class AthenaFake(Athena):
         if data is None:
             data = []
         return QueryResults(column_names, column_types, data)
+
+    def get_call_count(self, method: str) -> int:
+        return self._requests.count(method)

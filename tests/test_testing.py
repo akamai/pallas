@@ -1,24 +1,34 @@
+import pytest
+
+from pallas.testing import AthenaFake
+
+
+@pytest.fixture(name="fake_athena")
+def fake_athena_fixture():
+    return AthenaFake()
+
+
 class TestQueryFake:
     def test_submit(self, fake_athena):
         query = fake_athena.submit("SELECT ...")
-        assert query.execution_id == "query-0"
-        assert fake_athena.queries == [query]
+        assert query.execution_id == "query-1"
+        assert fake_athena.get_call_count("StartQueryExecution") == 1
 
     def test_submit_multiple(self, fake_athena):
         query1 = fake_athena.submit("SELECT ...")
         query2 = fake_athena.submit("SELECT ...")
-        assert query1.execution_id == "query-0"
-        assert query2.execution_id == "query-1"
-        assert fake_athena.queries == [query1, query2]
+        assert query1.execution_id == "query-1"
+        assert query2.execution_id == "query-2"
+        assert fake_athena.get_call_count("StartQueryExecution") == 2
 
     def test_get_query(self, fake_athena):
         query = fake_athena.submit("SELECT ...")
-        assert fake_athena.get_query("query-0") is query
+        assert fake_athena.get_query("query-1") is query
 
     def test_query_info(self, fake_athena):
         query = fake_athena.submit("SELECT ...")
         info = query.get_info()
-        assert info.execution_id == "query-0"
+        assert info.execution_id == "query-1"
         assert info.sql == "SELECT ..."
         assert info.database is None
         assert info.finished
