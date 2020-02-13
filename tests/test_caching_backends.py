@@ -27,6 +27,13 @@ class TestCaches:
         cache.set("foo", "Hello Foo!")
         assert cache.get("foo") == "Hello Foo!"
 
+    def test_has_missing(self, cache):
+        assert not cache.has("foo")
+
+    def test_has_present(self, cache):
+        cache.set("foo", "Hello Foo!")
+        assert cache.has("foo")
+
     def test_read_missing(self, cache):
         with pytest.raises(CacheMiss):
             cache.reader("foo")
