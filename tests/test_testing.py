@@ -12,14 +12,14 @@ class TestQueryFake:
     def test_submit(self, fake_athena):
         query = fake_athena.submit("SELECT ...")
         assert query.execution_id == "query-1"
-        assert fake_athena.get_call_count("StartQueryExecution") == 1
+        assert fake_athena.request_log == ["StartQueryExecution"]
 
     def test_submit_multiple(self, fake_athena):
         query1 = fake_athena.submit("SELECT ...")
         query2 = fake_athena.submit("SELECT ...")
         assert query1.execution_id == "query-1"
         assert query2.execution_id == "query-2"
-        assert fake_athena.get_call_count("StartQueryExecution") == 2
+        assert fake_athena.request_log == ["StartQueryExecution", "StartQueryExecution"]
 
     def test_get_query(self, fake_athena):
         query = fake_athena.submit("SELECT ...")

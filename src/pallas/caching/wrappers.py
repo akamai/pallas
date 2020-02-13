@@ -33,6 +33,17 @@ class QueryCachingWrapper(Query):
     def kill(self) -> None:
         return self._inner_query.kill()
 
+    def join(self, sleep: int = 5) -> None:
+        if self._has_results():
+            # If we have results then we can assume that query has finished.
+            # Avoiding unnecessary checks allows us to work
+            # completely offline when cached results are available.
+            return
+        super().join()
+
+    def _has_results(self) -> bool:
+        return self._cache.has(self._get_results_cache_key())
+
     def _load_results(self) -> Optional[QueryResults]:
         try:
             stream = self._cache.reader(self._get_results_cache_key())
