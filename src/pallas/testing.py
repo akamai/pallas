@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List, Optional, Sequence
 
 from pallas.base import Athena, Query
@@ -5,36 +7,8 @@ from pallas.info import QueryInfo
 from pallas.results import QueryResults
 
 
-class QueryFake(Query):
-
-    _info: QueryInfo
-    _results: QueryResults
-    _request_log: List[str]
-
-    def __init__(
-        self, info: QueryInfo, results: QueryResults, request_log: List[str]
-    ) -> None:
-        self._info = info
-        self._results = results
-        self._request_log = request_log
-
-    @property
-    def execution_id(self) -> str:
-        return self._info.execution_id
-
-    def get_info(self) -> QueryInfo:
-        self._request_log.append("GetQueryExecution")
-        return self._info
-
-    def get_results(self) -> QueryResults:
-        self._request_log.append("GetQueryResults")
-        return self._results
-
-    def kill(self) -> None:
-        self._request_log.append("StopQueryExecution")
-
-
 class AthenaFake(Athena):
+    """Fake Athena implementation that can be used for testing."""
 
     database: Optional[str] = None
 
@@ -98,3 +72,33 @@ class AthenaFake(Athena):
         if data is None:
             data = []
         return QueryResults(column_names, column_types, data)
+
+
+class QueryFake(Query):
+    """Fake Query implementation that can be used for testing."""
+
+    _info: QueryInfo
+    _results: QueryResults
+    _request_log: List[str]
+
+    def __init__(
+        self, info: QueryInfo, results: QueryResults, request_log: List[str]
+    ) -> None:
+        self._info = info
+        self._results = results
+        self._request_log = request_log
+
+    @property
+    def execution_id(self) -> str:
+        return self._info.execution_id
+
+    def get_info(self) -> QueryInfo:
+        self._request_log.append("GetQueryExecution")
+        return self._info
+
+    def get_results(self) -> QueryResults:
+        self._request_log.append("GetQueryResults")
+        return self._results
+
+    def kill(self) -> None:
+        self._request_log.append("StopQueryExecution")

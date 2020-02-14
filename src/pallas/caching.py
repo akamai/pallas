@@ -11,69 +11,6 @@ from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
 
-class QueryCachingWrapper(Query):
-    """
-    Query wrapper that caches query results.
-    """
-
-    _inner_query: Query
-    _storage: Storage
-
-    def __init__(self, query: Query, storage: Storage) -> None:
-        self._inner_query = query
-        self._storage = storage
-
-    @property
-    def execution_id(self) -> str:
-        return self._inner_query.execution_id
-
-    def get_info(self) -> QueryInfo:
-        return self._inner_query.get_info()
-
-    def get_results(self) -> QueryResults:
-        results = self._load_results()
-        if results is not None:
-            return results
-        results = self._inner_query.get_results()
-        self._save_results(results)
-        return results
-
-    def kill(self) -> None:
-        return self._inner_query.kill()
-
-    def join(self) -> None:
-        if self._has_results():
-            # If we have results then we can assume that query has finished.
-            # Avoiding unnecessary checks allows us to work
-            # completely offline when cached results are available.
-            return
-        super().join()
-
-    def _has_results(self) -> bool:
-        return self._storage.has(self._get_cache_key())
-
-    def _load_results(self) -> Optional[QueryResults]:
-        try:
-            stream = self._storage.reader(self._get_cache_key())
-        except NotFoundError:
-            return None
-        reader = csv.reader(stream)
-        column_names = next(reader)
-        column_types = next(reader)
-        data = list(reader)
-        return QueryResults(column_names, column_types, data)
-
-    def _save_results(self, results: QueryResults) -> None:
-        stream = self._storage.writer(self._get_cache_key())
-        writer = csv.writer(stream)
-        writer.writerow(results.column_names)
-        writer.writerow(results.column_types)
-        writer.writerows(results.data)
-
-    def _get_cache_key(self) -> str:
-        return f"results-{self.execution_id}"
-
-
 class AthenaCachingWrapper(Athena):
     """
     Athena wrapper that caches query IDs and optionally results.
@@ -143,3 +80,66 @@ class AthenaCachingWrapper(Athena):
         encoded = urlencode(parts).encode("utf-8")
         hash = hashlib.sha256(encoded).hexdigest()
         return f"query-{hash}"
+
+
+class QueryCachingWrapper(Query):
+    """
+    Query wrapper that caches query results.
+    """
+
+    _inner_query: Query
+    _storage: Storage
+
+    def __init__(self, query: Query, storage: Storage) -> None:
+        self._inner_query = query
+        self._storage = storage
+
+    @property
+    def execution_id(self) -> str:
+        return self._inner_query.execution_id
+
+    def get_info(self) -> QueryInfo:
+        return self._inner_query.get_info()
+
+    def get_results(self) -> QueryResults:
+        results = self._load_results()
+        if results is not None:
+            return results
+        results = self._inner_query.get_results()
+        self._save_results(results)
+        return results
+
+    def kill(self) -> None:
+        return self._inner_query.kill()
+
+    def join(self) -> None:
+        if self._has_results():
+            # If we have results then we can assume that query has finished.
+            # Avoiding unnecessary checks allows us to work
+            # completely offline when cached results are available.
+            return
+        super().join()
+
+    def _has_results(self) -> bool:
+        return self._storage.has(self._get_cache_key())
+
+    def _load_results(self) -> Optional[QueryResults]:
+        try:
+            stream = self._storage.reader(self._get_cache_key())
+        except NotFoundError:
+            return None
+        reader = csv.reader(stream)
+        column_names = next(reader)
+        column_types = next(reader)
+        data = list(reader)
+        return QueryResults(column_names, column_types, data)
+
+    def _save_results(self, results: QueryResults) -> None:
+        stream = self._storage.writer(self._get_cache_key())
+        writer = csv.writer(stream)
+        writer.writerow(results.column_names)
+        writer.writerow(results.column_types)
+        writer.writerows(results.data)
+
+    def _get_cache_key(self) -> str:
+        return f"results-{self.execution_id}"
