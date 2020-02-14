@@ -83,7 +83,7 @@ class TestAthenaCachingWrapper:
         ]
         assert_query_results(results)
 
-    def test_local_execute_second_query_same_sql(self, local_athena, fake):
+    def test_local_execute_second_query(self, local_athena, fake):
         """Test execution of a query in cache."""
         local_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
         fake.request_log.clear()
@@ -103,6 +103,19 @@ class TestAthenaCachingWrapper:
             "GetQueryResults",
         ]
         assert_another_query_results(results)
+
+    def test_execute_second_query_different_database(self, athena, fake):
+        """Test that cache is unique to a database."""
+        athena.execute("SELECT 1 id, 'foo' name")  # fill cache
+        fake.request_log.clear()
+        fake.database = "other"
+        results = athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert_query_results(results)
 
     # Test athena.submit() method
 

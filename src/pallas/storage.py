@@ -160,7 +160,7 @@ class S3Storage(Storage):
     Storage implementation storing data in AWS S3.
     """
 
-    client: Any  # boto3 S3 client
+    _client: Any  # boto3 S3 client
 
     def __init__(
         self, bucket: str, prefix: str = "", *, client: Optional[Any] = None

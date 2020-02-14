@@ -9,12 +9,10 @@ from pallas.base import Athena, Query
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 
-AthenaClient = Any
-
 
 class AthenaProxy(Athena):
 
-    _client: AthenaClient
+    _client: Any  # boto3 Athena client
     _output_location: str
     _database: Optional[str]
 
@@ -22,7 +20,7 @@ class AthenaProxy(Athena):
         self,
         *,
         output_location: str,
-        client: Optional[AthenaClient] = None,
+        client: Optional[Any] = None,
         database: Optional[str] = None,
         region_name: Optional[str] = None,
     ) -> None:
@@ -31,6 +29,10 @@ class AthenaProxy(Athena):
         self._client = client
         self._output_location = output_location
         self._database = database
+
+    @property
+    def database(self) -> Optional[str]:
+        return self._database
 
     def submit(self, sql: str) -> Query:
         params = dict(
@@ -48,10 +50,10 @@ class AthenaProxy(Athena):
 
 class QueryProxy(Query):
 
-    _client: AthenaClient
+    _client: Any  # boto3 Athena client
     _execution_id: str
 
-    def __init__(self, client: AthenaClient, execution_id: str) -> None:
+    def __init__(self, client: Any, execution_id: str) -> None:
         self._client = client
         self._execution_id = execution_id
 

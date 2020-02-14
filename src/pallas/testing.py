@@ -36,6 +36,8 @@ class QueryFake(Query):
 
 class AthenaFake(Athena):
 
+    database: Optional[str] = None
+
     column_names: Optional[Sequence[str]] = None
     column_types: Optional[Sequence[str]] = None
     data: Optional[Sequence[Sequence[str]]] = None

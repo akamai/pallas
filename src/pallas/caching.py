@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 from typing import Optional
+from urllib.parse import urlencode
 
 from pallas.base import Athena, Query
 from pallas.info import QueryInfo
@@ -49,11 +50,11 @@ class QueryCachingWrapper(Query):
         super().join()
 
     def _has_results(self) -> bool:
-        return self._storage.has(self._get_results_cache_key())
+        return self._storage.has(self._get_cache_key())
 
     def _load_results(self) -> Optional[QueryResults]:
         try:
-            stream = self._storage.reader(self._get_results_cache_key())
+            stream = self._storage.reader(self._get_cache_key())
         except NotFoundError:
             return None
         reader = csv.reader(stream)
@@ -63,13 +64,13 @@ class QueryCachingWrapper(Query):
         return QueryResults(column_names, column_types, data)
 
     def _save_results(self, results: QueryResults) -> None:
-        stream = self._storage.writer(self._get_results_cache_key())
+        stream = self._storage.writer(self._get_cache_key())
         writer = csv.writer(stream)
         writer.writerow(results.column_names)
         writer.writerow(results.column_types)
         writer.writerows(results.data)
 
-    def _get_results_cache_key(self) -> str:
+    def _get_cache_key(self) -> str:
         return f"results-{self.execution_id}"
 
 
@@ -104,6 +105,10 @@ class AthenaCachingWrapper(Athena):
         self._storage = storage
         self._cache_results = cache_results
 
+    @property
+    def database(self) -> Optional[str]:
+        return self._inner_athena.database
+
     def submit(self, sql: str) -> Query:
         execution_id = self._load_execution_id(sql)
         if execution_id is not None:
@@ -123,14 +128,18 @@ class AthenaCachingWrapper(Athena):
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
         try:
-            return self._storage.get(self._get_execution_cache_key(sql))
+            return self._storage.get(self._get_cache_key(sql))
         except NotFoundError:
             return None
 
     def _save_execution_id(self, sql: str, execution_id: str) -> None:
-        self._storage.set(self._get_execution_cache_key(sql), execution_id)
+        self._storage.set(self._get_cache_key(sql), execution_id)
 
-    def _get_execution_cache_key(self, sql: str) -> str:
-        plain = sql
-        hash = hashlib.sha256(plain.encode("utf-8")).hexdigest()
+    def _get_cache_key(self, sql: str) -> str:
+        parts = {}
+        if self.database is not None:
+            parts["database"] = self.database
+        parts["sql"] = sql
+        encoded = urlencode(parts).encode("utf-8")
+        hash = hashlib.sha256(encoded).hexdigest()
         return f"query-{hash}"

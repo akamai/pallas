@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from abc import ABCMeta, abstractmethod
+from typing import Optional
 
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
@@ -9,11 +10,18 @@ from pallas.waiting import Fibonacci
 
 
 class Athena(metaclass=ABCMeta):
+    """Interface for querying Athena."""
+
     def execute(self, sql: str) -> QueryResults:
         """Submit query execution and wait for results."""
         query = self.submit(sql)
         query.join()
         return query.get_results()
+
+    @property
+    @abstractmethod
+    def database(self) -> Optional[str]:
+        """Name of Athena database"""
 
     @abstractmethod
     def submit(self, sql: str) -> Query:
