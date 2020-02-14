@@ -3,6 +3,7 @@ import textwrap
 
 import pytest
 
+from pallas.base import AthenaQueryError
 from pallas.proxies import AthenaProxy
 
 
@@ -16,52 +17,53 @@ def athena(region_name, athena_database, s3_tmp_uri):
 
 
 class TestAthenaProxy:
-    def test_submit(self, athena, athena_database):
+    def test_success(self, athena, athena_database):
         query = athena.submit("SELECT 1")
+        # Running
         info = query.get_info()
-        assert info.state == "RUNNING"
         assert not info.finished
         assert not info.succeeded
-        assert info.sql == "SELECT 1"
         assert info.database == athena_database
-
-    def test_join(self, athena):
-        query = athena.submit("SELECT 1")
+        assert info.sql == "SELECT 1"
+        assert info.state in ("QUEUED", "RUNNING")
+        # Finished
         query.join()
         info = query.get_info()
         assert info.finished
         assert info.succeeded
+        assert info.database == athena_database
+        assert info.sql == "SELECT 1"
         assert info.state == "SUCCEEDED"
 
-    def test_kill(self, athena):
+    def test_fail(self, athena, athena_database):
+        query = athena.submit("SELECT x")
+        with pytest.raises(AthenaQueryError) as excinfo:
+            query.join()
+        assert str(excinfo.value).startswith("Athena query failed: SYNTAX_ERROR: ")
+        info = query.get_info()
+        assert info.finished
+        assert not info.succeeded
+        assert info.state == "FAILED"
+        assert info.database == athena_database
+        assert info.sql == "SELECT x"
+
+    def test_kill(self, athena, athena_database):
         query = athena.submit("SELECT 1")
         query.kill()
+        with pytest.raises(AthenaQueryError) as excinfo:
+            query.join()
+        assert str(excinfo.value) == "Athena query cancelled: Query cancelled by user"
         info = query.get_info()
         assert info.finished
         assert not info.succeeded
         assert info.state == "CANCELLED"
+        assert info.database == athena_database
+        assert info.sql == "SELECT 1"
 
-    def test_select_wo_column_name(self, athena):
-        sql = "SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c'))"
-        results = athena.execute(sql)
-        assert list(results) == [
-            {"_col0": 1, "_col1": "a"},
-            {"_col0": 2, "_col1": "b"},
-            {"_col0": 3, "_col1": "c"},
-        ]
-
-    def test_select_w_column_name(self, athena):
-        sql = "SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c')) AS t (id, name)"
-        results = athena.execute(sql)
-        assert list(results) == [
-            {"id": 1, "name": "a"},
-            {"id": 2, "name": "b"},
-            {"id": 3, "name": "c"},
-        ]
-
-    def test_conversions(self, athena):
+    def test_variaous_results(self, athena):
         sql = """\
             SELECT
+                'anonymous',
                 null unknown_null,
                 true boolean_true,
                 false boolean_false,
@@ -85,6 +87,7 @@ class TestAthenaProxy:
         results = athena.execute(textwrap.dedent(sql))
         assert list(results) == [
             {
+                "_col0": "anonymous",
                 "unknown_null": None,
                 "boolean_true": True,
                 "boolean_false": False,
