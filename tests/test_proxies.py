@@ -1,26 +1,29 @@
 import itertools
-import os
 import textwrap
 
 import pytest
 
-import pallas
+from pallas.proxies import AthenaProxy
 
 
 @pytest.fixture
-def athena():
-    return pallas.from_environ(prefix="TEST_PALLAS")
+def athena(region_name, athena_database, s3_tmp_uri):
+    return AthenaProxy(
+        region_name=region_name,
+        database=athena_database,
+        output_location=f"{s3_tmp_uri}/output",
+    )
 
 
-class TestAthena:
-    def test_submit(self, athena):
+class TestAthenaProxy:
+    def test_submit(self, athena, athena_database):
         query = athena.submit("SELECT 1")
         info = query.get_info()
         assert info.state == "RUNNING"
         assert not info.finished
         assert not info.succeeded
         assert info.sql == "SELECT 1"
-        assert info.database == os.environ["TEST_PALLAS_DATABASE"]
+        assert info.database == athena_database
 
     def test_join(self, athena):
         query = athena.submit("SELECT 1")
@@ -29,8 +32,6 @@ class TestAthena:
         assert info.finished
         assert info.succeeded
         assert info.state == "SUCCEEDED"
-        assert info.sql == "SELECT 1"
-        assert info.database == os.environ["TEST_PALLAS_DATABASE"]
 
     def test_kill(self, athena):
         query = athena.submit("SELECT 1")
@@ -39,8 +40,6 @@ class TestAthena:
         assert info.finished
         assert not info.succeeded
         assert info.state == "CANCELLED"
-        assert info.sql == "SELECT 1"
-        assert info.database == os.environ["TEST_PALLAS_DATABASE"]
 
     def test_select_wo_column_name(self, athena):
         sql = "SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c'))"

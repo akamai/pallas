@@ -7,9 +7,10 @@ Development
 
 The following environment variables has to be defined: ::
 
-    export TEST_PALLAS_OUTPUT_LOCATION=...
-    export TEST_PALLAS_DATABASE=...
-    export TEST_PALLAS_REGION=...
+    export PALLAS_TEST_REGION=...           # AWS region
+    export PALLAS_TEST_ATHENA_DATABASE=...  # Name of Athena database
+    export PALLAS_TEST_S3_TMP=...           # s3:// URI
+
 
 
 Tests can be run using tox_: ::
