@@ -1,21 +1,21 @@
 import pytest
 
-from pallas.caching.backends import CacheMiss, MemoryCache, FileCache, S3Cache
+from pallas.storage import NotFoundError, MemoryStorage, FileStorage, S3Storage
 
 
 @pytest.fixture(name="memory_cache")
 def memory_cache_fixture(tmp_path):
-    return MemoryCache()
+    return MemoryStorage()
 
 
 @pytest.fixture(name="file_cache")
 def file_cache_fixture(tmp_path):
-    return FileCache(tmp_path)
+    return FileStorage(tmp_path)
 
 
 @pytest.fixture(name="s3_cache")
 def s3_cache_fixture(s3_tmp_uri):
-    return S3Cache.from_uri(s3_tmp_uri)
+    return S3Storage.from_uri(s3_tmp_uri)
 
 
 @pytest.fixture(name="cache", params=["memory", "file", "s3"])
@@ -25,7 +25,7 @@ def cache_fixture(request):
 
 class TestCaches:
     def test_get_missing(self, cache):
-        with pytest.raises(CacheMiss):
+        with pytest.raises(NotFoundError):
             cache.get("foo")
 
     def test_set_get(self, cache):
@@ -40,7 +40,7 @@ class TestCaches:
         assert cache.has("foo")
 
     def test_read_missing(self, cache):
-        with pytest.raises(CacheMiss):
+        with pytest.raises(NotFoundError):
             cache.reader("foo")
 
     def test_read(self, cache):

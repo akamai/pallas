@@ -10,52 +10,67 @@ import boto3
 import botocore
 
 
-class CacheMiss(KeyError):
-    """Item not found in cache."""
+class NotFoundError(KeyError):
+    """
+    Storage item not found.
+
+    Raised when trying to read a non-existent item.
+    """
 
 
-class _CacheWriter(io.StringIO):
-    def __init__(self, cache: Cache, key: str) -> None:
+class StorageWriter(io.StringIO):
+    """
+    Writable stream that saves content to :class:`.Storage` on close.
+
+    Used by the default implementation of the :meth:`.Storage.writer` method.
+    """
+
+    def __init__(self, storage: Storage, key: str) -> None:
         super().__init__()
-        self._cache = cache
+        self._storage = storage
         self._key = key
 
     def close(self) -> None:
-        self._cache.set(self._key, self.getvalue())
+        self._storage.set(self._key, self.getvalue())
         super().close()
 
 
-class Cache(metaclass=ABCMeta):
+class Storage(metaclass=ABCMeta):
     """
-    Cache interface.
+    Interface for a simple key-value storage.
+
+    Implementations of are used primarily as cache backends,
+    but other use cases are possible.
+    For example, the :class:`.S3Storage` class can be used
+    for downloading query results form S3.
     """
 
     @abstractmethod
     def get(self, key: str) -> str:
         """
-        Get value of the given cache key.
+        Get value of the given key.
 
         Provides a simple method for retrieving short values.
         For longer content, the :meth:`.reader` can be better.
 
-        Raises `CacheMiss` if the key is not in the cache.
+        Raises :exception:`.NotFoundError` if the key is not found.
         """
 
     @abstractmethod
     def set(self, key: str, value: str) -> None:
         """
-        Set value of the given cache key.
+        Set value of the given key.
 
         Provides a simple method for storing short values.
-        For longer content, the :meth:`.writer` can be better.
+        For longer content, use the :meth:`.writer` method.
         """
 
     @abstractmethod
     def has(self, key: str) -> bool:
         """
-        Test presence of the given cache key.
+        Test presence of the given key.
 
-        It is more efficient to try to retrieve a value
+        In most cases, it is more efficient to try to retrieve a value
         and catch possible exception than to check presence first.
         """
 
@@ -63,8 +78,11 @@ class Cache(metaclass=ABCMeta):
         """
         Return a file-like object opened for reading.
 
-        Raises `CacheMiss` if the key is not in the cache.
-        Content will be read from the cache.
+        The default implementation returns a in-memory stream
+        with the whole content read from storage,
+        but subclasses can provide a more efficient method.
+
+        Raises :exception:`.NotFoundError` if the key is not found.
         """
         return io.StringIO(self.get(key))
 
@@ -72,14 +90,18 @@ class Cache(metaclass=ABCMeta):
         """
         Return a file-like object opened for writing.
 
-        Written content will be stored in the cache.
+        The default implementation buffers written content in memory
+        and stores it at once on close,
+        but subclasses can provide a more efficient method.
         """
-        return _CacheWriter(self, key)
+        return StorageWriter(self, key)
 
 
-class MemoryCache(Cache):
+class MemoryStorage(Storage):
     """
-    Cache implementation storing data in memory.
+    Storage implementation storing data in memory.
+
+    Useful mainly for testing.
     """
 
     _data: Dict[str, str]
@@ -91,7 +113,7 @@ class MemoryCache(Cache):
         try:
             return self._data[key]
         except KeyError:
-            raise CacheMiss(key) from None
+            raise NotFoundError(key) from None
 
     def set(self, key: str, value: str) -> None:
         self._data[key] = value
@@ -100,9 +122,9 @@ class MemoryCache(Cache):
         return key in self._data
 
 
-class FileCache(Cache):
+class FileStorage(Storage):
     """
-    Cache implementation storing data on a local filesystem.
+    Storage implementation storing data on a local filesystem.
     """
 
     def __init__(self, base_dir: str) -> None:
@@ -110,30 +132,41 @@ class FileCache(Cache):
 
     def get(self, key: str) -> str:
         try:
-            return self._get_cache_file(key).read_text(encoding="utf-8")
+            return self._get_file(key).read_text(encoding="utf-8")
         except FileNotFoundError:
-            raise CacheMiss(key) from None
+            raise NotFoundError(key) from None
 
     def set(self, key: str, value: str) -> None:
-        self._get_cache_file(key).write_text(value, encoding="utf-8")
+        self._get_file(key).write_text(value, encoding="utf-8")
 
     def has(self, key: str) -> bool:
-        return self._get_cache_file(key).exists()
+        return self._get_file(key).exists()
 
     def reader(self, key: str) -> TextIO:
         try:
-            return self._get_cache_file(key).open("r", encoding="utf-8", newline="")
+            return self._get_file(key).open("r", encoding="utf-8", newline="")
         except FileNotFoundError:
-            raise CacheMiss(key) from None
+            raise NotFoundError(key) from None
 
     def writer(self, key: str) -> TextIO:
-        return self._get_cache_file(key).open("w", encoding="utf-8", newline="")
+        return self._get_file(key).open("w", encoding="utf-8", newline="")
 
-    def _get_cache_file(self, key: str) -> pathlib.Path:
+    def _get_file(self, key: str) -> pathlib.Path:
         return self.base_dir / key
 
 
-class S3Cache(Cache):
+class S3Storage(Storage):
+    """
+    Storage implementation storing data in AWS S3.
+
+    Athena results are always stored in S3,
+    so it would not be very useful to cache them there manually.
+    But it can be useful to store mapping from query
+    hashes to query execution IDs.
+
+    S3 has advantage over other AWS services that id does
+    not introduce addition dependency.
+    """
 
     client: Any  # boto3 S3 client
 
@@ -149,7 +182,7 @@ class S3Cache(Cache):
         self._prefix = prefix
 
     @classmethod
-    def from_uri(cls, uri: str) -> S3Cache:
+    def from_uri(cls, uri: str) -> S3Storage:
         scheme, netloc, path, query, fragment = urlsplit(uri, scheme="s3")
         if scheme != "s3" or query or fragment:
             raise ValueError("Unsupported URI.")
@@ -179,7 +212,7 @@ class S3Cache(Cache):
         try:
             response = self._client.get_object(**params)
         except self._client.exceptions.NoSuchKey:
-            raise CacheMiss(key) from None
+            raise NotFoundError(key) from None
         # Use _raw_stream (urllib3.response.HTTPResponse) because
         # boto3 wrapper does not implement full Binary I/O interface.
         raw = response["Body"]._raw_stream

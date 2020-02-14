@@ -3,15 +3,15 @@ import hashlib
 from typing import Optional
 
 from pallas.base import Athena, Query, QueryInfo, QueryResults
-from pallas.caching.backends import Cache, CacheMiss
+from pallas.storage import Storage, NotFoundError
 
 
 class QueryCachingWrapper(Query):
 
     _inner_query: Query
-    _cache: Cache
+    _cache: Storage
 
-    def __init__(self, query: Query, cache: Cache):
+    def __init__(self, query: Query, cache: Storage):
         self._inner_query = query
         self._cache = cache
 
@@ -47,7 +47,7 @@ class QueryCachingWrapper(Query):
     def _load_results(self) -> Optional[QueryResults]:
         try:
             stream = self._cache.reader(self._get_results_cache_key())
-        except CacheMiss:
+        except NotFoundError:
             return None
         reader = csv.reader(stream)
         column_names = next(reader)
@@ -69,9 +69,9 @@ class QueryCachingWrapper(Query):
 class AthenaCachingWrapper(Athena):
 
     _inner_athena: Athena
-    _cache: Cache
+    _cache: Storage
 
-    def __init__(self, athena: Athena, *, cache: Cache) -> None:
+    def __init__(self, athena: Athena, *, cache: Storage) -> None:
         self._inner_athena = athena
         self._cache = cache
 
@@ -93,7 +93,7 @@ class AthenaCachingWrapper(Athena):
     def _load_execution_id(self, sql: str) -> Optional[str]:
         try:
             return self._cache.get(self._get_execution_cache_key(sql))
-        except CacheMiss:
+        except NotFoundError:
             return None
 
     def _save_execution_id(self, sql: str, execution_id: str) -> None:

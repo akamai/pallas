@@ -1,7 +1,7 @@
 import pytest
 
-from pallas.caching.backends import MemoryCache
-from pallas.caching.wrappers import AthenaCachingWrapper
+from pallas.caching import AthenaCachingWrapper
+from pallas.storage import MemoryStorage
 from pallas.testing import AthenaFake
 
 
@@ -20,7 +20,7 @@ def fake_athena_fixture():
 
 @pytest.fixture(name="athena")
 def caching_athena_fixture(fake):
-    cache = MemoryCache()
+    cache = MemoryStorage()
     return AthenaCachingWrapper(fake, cache=cache)
 
 
