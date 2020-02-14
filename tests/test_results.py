@@ -20,8 +20,8 @@ class TestQueryResults:
         assert repr(sample_results) == (
             "<QueryResults:"
             " 2 results,"
-            " column_names=('id', 'name'),"
-            " column_types=('integer', 'varchar')"
+            " column_names=['id', 'name'],"
+            " column_types=['integer', 'varchar']"
             ">"
         )
 

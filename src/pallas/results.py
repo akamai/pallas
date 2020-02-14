@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence, Tuple, Union, overload
+from typing import Any, Dict, Sequence, Union, overload
 
 from pallas.conversions import convert_value
 
@@ -20,9 +20,9 @@ class QueryResults(Sequence[QueryRecord]):
     Implements list-like interface.
     """
 
-    _column_names: Tuple[str, ...]
-    _column_types: Tuple[str, ...]
-    _data: Sequence[Tuple[str, ...]]
+    _column_names: Sequence[str]
+    _column_types: Sequence[str]
+    _data: Sequence[Sequence[str]]
 
     def __init__(
         self,
@@ -30,9 +30,9 @@ class QueryResults(Sequence[QueryRecord]):
         column_types: Sequence[str],
         data: Sequence[Sequence[str]],
     ) -> None:
-        self._column_names = tuple(column_names)
-        self._column_types = tuple(column_types)
-        self._data = [tuple(row) for row in data]
+        self._column_names = column_names
+        self._column_types = column_types
+        self._data = data
 
     def __repr__(self) -> str:
         parts = [
@@ -63,15 +63,15 @@ class QueryResults(Sequence[QueryRecord]):
         return len(self._data)
 
     @property
-    def column_names(self) -> Tuple[str, ...]:
-        return self._column_names
+    def column_names(self) -> Sequence[str]:
+        return list(self._column_names)
 
     @property
-    def column_types(self) -> Tuple[str, ...]:
-        return self._column_types
+    def column_types(self) -> Sequence[str]:
+        return list(self._column_types)
 
     @property
-    def data(self) -> Sequence[Tuple[str, ...]]:
+    def data(self) -> Sequence[Sequence[str]]:
         return self._data
 
     def to_df(self) -> pd.DataFrame:
