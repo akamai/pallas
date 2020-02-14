@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import itertools
 from typing import Any, List, Optional, Tuple
 
 import boto3
 
-from pallas.base import Athena, Query, QueryResults
+from pallas.base import Athena, Query
 from pallas.info import QueryInfo
+from pallas.results import QueryResults
 
 AthenaClient = Any
 
