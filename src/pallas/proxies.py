@@ -3,7 +3,8 @@ from typing import Any, List, Optional, Tuple
 
 import boto3
 
-from pallas.base import Athena, Query, QueryInfo, QueryResults
+from pallas.base import Athena, Query, QueryResults
+from pallas.info import QueryInfo
 
 AthenaClient = Any
 

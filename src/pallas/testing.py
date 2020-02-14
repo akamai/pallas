@@ -1,7 +1,8 @@
 from typing import Dict, List, Optional, Sequence
 
-from pallas import QueryResults, QueryInfo
+from pallas.base import QueryResults
 from pallas.base import Athena, Query
+from pallas.info import QueryInfo
 
 
 class QueryFake(Query):

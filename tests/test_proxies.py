@@ -3,7 +3,7 @@ import textwrap
 
 import pytest
 
-from pallas.base import AthenaQueryError
+from pallas.exceptions import AthenaQueryError
 from pallas.proxies import AthenaProxy
 
 

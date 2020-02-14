@@ -4,7 +4,8 @@ import csv
 import hashlib
 from typing import Optional
 
-from pallas.base import Athena, Query, QueryInfo, QueryResults
+from pallas.base import Athena, Query, QueryResults
+from pallas.info import QueryInfo
 from pallas.storage import Storage, NotFoundError
 
 
