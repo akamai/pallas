@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Mapping
+from typing import Mapping, Optional
 
 from pallas.base import Athena
 from pallas.proxies import AthenaProxy

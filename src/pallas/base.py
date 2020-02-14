@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import time
-from abc import abstractmethod, ABCMeta
-from typing import overload, Any, Dict, Sequence, Tuple, Union, Iterable
+from abc import ABCMeta, abstractmethod
+from typing import Any, Dict, Iterable, Sequence, Tuple, Union, overload
 
 from pallas.conversions import convert_value
 from pallas.info import QueryInfo

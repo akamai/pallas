@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Sequence
 
-from pallas.base import QueryResults
-from pallas.base import Athena, Query
+from pallas.base import Athena, Query, QueryResults
 from pallas.info import QueryInfo
 
 

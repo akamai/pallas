@@ -4,7 +4,7 @@ import datetime as dt
 import pytest
 
 from pallas.exceptions import AthenaQueryError
-from pallas.info import format_size, format_price, format_time, QueryInfo
+from pallas.info import QueryInfo, format_price, format_size, format_time
 
 
 def test_format_price():

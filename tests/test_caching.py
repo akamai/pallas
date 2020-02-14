@@ -4,7 +4,6 @@ from pallas.caching import AthenaCachingWrapper
 from pallas.storage import MemoryStorage
 from pallas.testing import AthenaFake
 
-
 FAKE_DATA = [("1", "foo")]
 ANOTHER_FAKE_DATA = [("2", "bar")]
 

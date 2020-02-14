@@ -6,7 +6,7 @@ from typing import Optional
 
 from pallas.base import Athena, Query, QueryResults
 from pallas.info import QueryInfo
-from pallas.storage import Storage, NotFoundError
+from pallas.storage import NotFoundError, Storage
 
 
 class QueryCachingWrapper(Query):

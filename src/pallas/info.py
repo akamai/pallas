@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import cast, Any, Mapping, Optional
+from typing import Any, Mapping, Optional, cast
 
 from pallas.exceptions import AthenaQueryError
-
 
 unit_prefixes = ["k", "M", "G", "T"]
 
@@ -40,10 +39,10 @@ class QueryInfo:
     Provides access to data returned by Athena GetQueryExecution API method.
     """
 
-    def __init__(self, data: Mapping[str, Any]):
+    def __init__(self, data: Mapping[str, Any]) -> None:
         self._data = data
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{type(self).__name__}: {str(self)!r}>"
 
     def __str__(self) -> str:

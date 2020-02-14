@@ -1,6 +1,6 @@
 import pytest
 
-from pallas.storage import NotFoundError, MemoryStorage, FileStorage, S3Storage
+from pallas.storage import FileStorage, MemoryStorage, NotFoundError, S3Storage
 
 
 @pytest.fixture(name="memory_storage")
