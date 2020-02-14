@@ -8,6 +8,11 @@ QueryRecord = Dict[str, Any]
 
 
 class QueryResults(Sequence[QueryRecord]):
+    """
+    Collection of Athena query results.
+
+    Implements list-like interface.
+    """
 
     _column_names: Tuple[str, ...]
     _column_types: Tuple[str, ...]
@@ -23,6 +28,14 @@ class QueryResults(Sequence[QueryRecord]):
         self._column_types = tuple(column_types)
         self._data = [tuple(row) for row in data]
 
+    def __repr__(self) -> str:
+        parts = [
+            f"{len(self)} results",
+            f"column_names={self.column_names!r}",
+            f"column_types={self.column_types!r}",
+        ]
+        return f"<{type(self).__name__}: {', '.join(parts)}>"
+
     @overload
     def __getitem__(self, index: int) -> QueryRecord:
         ...
@@ -35,7 +48,7 @@ class QueryResults(Sequence[QueryRecord]):
         self, index: Union[int, slice]
     ) -> Union[QueryRecord, Sequence[QueryRecord]]:
         if isinstance(index, slice):
-            raise NotImplementedError
+            return QueryResults(self.column_names, self.column_types, self.data[index])
         row = self._data[index]
         info = zip(self._column_names, self._column_types, row)
         return {cn: convert_value(ct, v) for cn, ct, v in info}
