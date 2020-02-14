@@ -1,0 +1,4 @@
+This package supports type checking.
+
+https://www.python.org/dev/peps/pep-0561/
+https://mypy.readthedocs.io/en/latest/installed_packages.html#making-pep-561-compatible-packages
