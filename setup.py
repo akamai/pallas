@@ -25,5 +25,8 @@ setup(
             "pytest",
             "mypy",
         ],
+        "pandas": [
+            "pandas",
+        ],
     }
 )

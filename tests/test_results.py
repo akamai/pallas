@@ -1,3 +1,6 @@
+import pandas as pd
+from pandas.testing import assert_frame_equal
+
 from pallas.results import QueryResults
 
 sample_column_names = "id", "name"
@@ -39,3 +42,10 @@ class TestQueryResults:
 
     def test_get_slice_from_end(self):
         assert list(sample_results[-1:]) == [{"id": 2, "name": "bar"}]
+
+    def test_to_df(self):
+        actual = sample_results.to_df()
+        expected = pd.DataFrame(
+            {"id": pd.Series([1, 2]), "name": pd.Series(["foo", "bar"])}
+        )
+        assert_frame_equal(actual, expected)
