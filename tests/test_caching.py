@@ -62,6 +62,19 @@ class TestAthenaCachingWrapper:
 
     # Test execute method
 
+    def test_repr(self, athena):
+        assert repr(athena) == "<AthenaCachingWrapper: <AthenaFake>>"
+
+    def test_remote_query_repr(self, remote_athena):
+        query = remote_athena.submit("SELECT 1")
+        assert repr(query) == "<QueryFake: execution_id='query-1'>"
+
+    def test_local_query_repr(self, local_athena):
+        query = local_athena.submit("SELECT 1")
+        assert repr(query) == (
+            "<QueryCachingWrapper: <QueryFake: execution_id='query-1'>>"
+        )
+
     def test_execute_one_query(self, athena, fake):
         """Test execution of a query not in cache."""
         results = athena.execute("SELECT 1 id, 'foo' name")

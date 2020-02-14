@@ -54,6 +54,13 @@ def athena_fixture():
 
 
 class TestAthenaNormalizationWrapper:
+    def test_repr(self, athena):
+        assert repr(athena) == "<AthenaNormalizationWrapper: <AthenaFake>>"
+
+    def test_query_repr(self, athena):
+        query = athena.submit("SELECT 1")
+        assert repr(query) == "<QueryFake: execution_id='query-1'>"
+
     def test_database(self, athena):
         assert athena.database == "test_database"
 

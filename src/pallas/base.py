@@ -12,6 +12,9 @@ from pallas.waiting import Fibonacci
 class Athena(metaclass=ABCMeta):
     """Interface for querying Athena."""
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}>"
+
     def execute(self, sql: str) -> QueryResults:
         """Submit query execution and wait for results."""
         query = self.submit(sql)
@@ -33,6 +36,9 @@ class Athena(metaclass=ABCMeta):
 
 
 class Query(metaclass=ABCMeta):
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: execution_id={self.execution_id!r}>"
+
     @property
     @abstractmethod
     def execution_id(self) -> str:

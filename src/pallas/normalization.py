@@ -32,6 +32,9 @@ class AthenaNormalizationWrapper:
     def __init__(self, athena: Athena) -> None:
         self._inner_athena = athena
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self._inner_athena!r}>"
+
     @property
     def database(self) -> Optional[str]:
         return self._inner_athena.database

@@ -30,9 +30,21 @@ class AthenaProxy(Athena):
         self._output_location = output_location
         self._database = database
 
+    def __repr__(self) -> str:
+        parts = []
+        if self.database is not None:
+            parts.append(f"database={self.database!r}")
+        if self.output_location is not None:
+            parts.append(f"output_location={self.output_location!r}")
+        return f"<{type(self).__name__}: {', '.join(parts)}>"
+
     @property
     def database(self) -> Optional[str]:
         return self._database
+
+    @property
+    def output_location(self) -> Optional[str]:
+        return self._output_location
 
     def submit(self, sql: str) -> Query:
         params = dict(

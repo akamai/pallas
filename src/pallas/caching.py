@@ -42,6 +42,9 @@ class AthenaCachingWrapper(Athena):
         self._storage = storage
         self._cache_results = cache_results
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self._inner_athena!r}>"
+
     @property
     def database(self) -> Optional[str]:
         return self._inner_athena.database
@@ -93,6 +96,9 @@ class QueryCachingWrapper(Query):
     def __init__(self, query: Query, storage: Storage) -> None:
         self._inner_query = query
         self._storage = storage
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self._inner_query!r}>"
 
     @property
     def execution_id(self) -> str:

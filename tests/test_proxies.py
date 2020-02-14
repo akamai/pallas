@@ -17,13 +17,24 @@ def athena(region_name, athena_database, s3_tmp_uri):
 
 
 class TestAthenaProxy:
-    def test_success(self, athena, athena_database):
+    def test_properties(self, athena, athena_database, s3_tmp_uri):
+        assert athena.database == athena_database
+        assert athena.output_location == f"{s3_tmp_uri}/output"
+
+    def test_repr(self, athena):
+        assert repr(athena) == (
+            f"<AthenaProxy:"
+            f" database={athena.database!r},"
+            f" output_location={athena.output_location!r}>"
+        )
+
+    def test_success(self, athena):
         query = athena.submit("SELECT 1")
         # Running
         info = query.get_info()
         assert not info.finished
         assert not info.succeeded
-        assert info.database == athena_database
+        assert info.database == athena.database
         assert info.sql == "SELECT 1"
         assert info.state in ("QUEUED", "RUNNING")
         # Finished
@@ -31,11 +42,11 @@ class TestAthenaProxy:
         info = query.get_info()
         assert info.finished
         assert info.succeeded
-        assert info.database == athena_database
+        assert info.database == athena.database
         assert info.sql == "SELECT 1"
         assert info.state == "SUCCEEDED"
 
-    def test_fail(self, athena, athena_database):
+    def test_fail(self, athena):
         query = athena.submit("SELECT x")
         with pytest.raises(AthenaQueryError) as excinfo:
             query.join()
@@ -44,10 +55,10 @@ class TestAthenaProxy:
         assert info.finished
         assert not info.succeeded
         assert info.state == "FAILED"
-        assert info.database == athena_database
+        assert info.database == athena.database
         assert info.sql == "SELECT x"
 
-    def test_kill(self, athena, athena_database):
+    def test_kill(self, athena):
         query = athena.submit("SELECT 1")
         query.kill()
         with pytest.raises(AthenaQueryError) as excinfo:
@@ -57,7 +68,7 @@ class TestAthenaProxy:
         assert info.finished
         assert not info.succeeded
         assert info.state == "CANCELLED"
-        assert info.database == athena_database
+        assert info.database == athena.database
         assert info.sql == "SELECT 1"
 
     def test_variaous_results(self, athena):

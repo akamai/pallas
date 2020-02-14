@@ -9,6 +9,13 @@ def fake_athena_fixture():
 
 
 class TestQueryFake:
+    def test_repr(self, fake_athena):
+        assert repr(fake_athena) == "<AthenaFake>"
+
+    def test_query_repr(self, fake_athena):
+        query = fake_athena.submit("SELECT 1")
+        assert repr(query) == "<QueryFake: execution_id='query-1'>"
+
     def test_submit(self, fake_athena):
         query = fake_athena.submit("SELECT ...")
         assert query.execution_id == "query-1"
