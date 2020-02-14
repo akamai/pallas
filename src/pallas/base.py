@@ -50,7 +50,7 @@ class Athena(metaclass=ABCMeta):
 
 class Query(metaclass=ABCMeta):
 
-    _backoff: Iterable[int] = Fibonacci()
+    _backoff: Iterable[int] = Fibonacci(max_value=60)
 
     @property
     @abstractmethod
