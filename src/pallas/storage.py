@@ -158,14 +158,6 @@ class FileStorage(Storage):
 class S3Storage(Storage):
     """
     Storage implementation storing data in AWS S3.
-
-    Athena results are always stored in S3,
-    so it would not be very useful to cache them there manually.
-    But it can be useful to store mapping from query
-    hashes to query execution IDs.
-
-    S3 has advantage over other AWS services that id does
-    not introduce addition dependency.
     """
 
     client: Any  # boto3 S3 client
