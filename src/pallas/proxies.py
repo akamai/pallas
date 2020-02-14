@@ -52,6 +52,7 @@ class QueryProxy(Query):
 
     _client: Any  # boto3 Athena client
     _execution_id: str
+    _finished_info: Optional[QueryInfo] = None
 
     def __init__(self, client: Any, execution_id: str) -> None:
         self._client = client
@@ -62,8 +63,14 @@ class QueryProxy(Query):
         return self._execution_id
 
     def get_info(self) -> QueryInfo:
+        # Query info is cached if the query finished so it cannot change.
+        if self._finished_info is not None:
+            return self._finished_info
         response = self._client.get_query_execution(QueryExecutionId=self.execution_id)
-        return QueryInfo(response["QueryExecution"])
+        info = QueryInfo(response["QueryExecution"])
+        if info.finished:
+            self._finished_info = info
+        return info
 
     def kill(self) -> None:
         self._client.stop_query_execution(QueryExecutionId=self.execution_id)
