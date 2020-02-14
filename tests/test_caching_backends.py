@@ -1,6 +1,6 @@
 import pytest
 
-from pallas.caching.backends import CacheMiss, MemoryCache, FileCache
+from pallas.caching.backends import CacheMiss, MemoryCache, FileCache, S3Cache
 
 
 @pytest.fixture(name="memory_cache")
@@ -13,7 +13,12 @@ def file_cache_fixture(tmp_path):
     return FileCache(tmp_path)
 
 
-@pytest.fixture(name="cache", params=["memory", "file"])
+@pytest.fixture(name="s3_cache")
+def s3_cache_fixture(s3_tmp_uri):
+    return S3Cache.from_uri(s3_tmp_uri)
+
+
+@pytest.fixture(name="cache", params=["memory", "file", "s3"])
 def cache_fixture(request):
     yield request.getfixturevalue(f"{request.param}_cache")
 

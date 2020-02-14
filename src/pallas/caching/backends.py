@@ -3,7 +3,11 @@ from __future__ import annotations
 import io
 import pathlib
 from abc import ABCMeta, abstractmethod
-from typing import Dict, TextIO
+from typing import Any, Dict, Optional, TextIO
+from urllib.parse import urlsplit
+
+import boto3
+import botocore
 
 
 class CacheMiss(KeyError):
@@ -31,6 +35,9 @@ class Cache(metaclass=ABCMeta):
         """
         Get value of the given cache key.
 
+        Provides a simple method for retrieving short values.
+        For longer content, the :meth:`.reader` can be better.
+
         Raises `CacheMiss` if the key is not in the cache.
         """
 
@@ -38,20 +45,19 @@ class Cache(metaclass=ABCMeta):
     def set(self, key: str, value: str) -> None:
         """
         Set value of the given cache key.
+
+        Provides a simple method for storing short values.
+        For longer content, the :meth:`.writer` can be better.
         """
 
+    @abstractmethod
     def has(self, key: str) -> bool:
         """
         Test presence of the given cache key.
 
-        It is more efficient to try to retrieve a value and catch
-        possible exception than to test its presence first.
+        It is more efficient to try to retrieve a value
+        and catch possible exception than to check presence first.
         """
-        try:
-            self.get(key)
-        except CacheMiss:
-            return False
-        return True
 
     def reader(self, key: str) -> TextIO:
         """
@@ -125,3 +131,62 @@ class FileCache(Cache):
 
     def _get_cache_file(self, key: str) -> pathlib.Path:
         return self.base_dir / key
+
+
+class S3Cache(Cache):
+
+    client: Any  # boto3 S3 client
+
+    def __init__(
+        self, bucket: str, prefix: str = "", *, client: Optional[Any] = None
+    ) -> None:
+        if client is None:
+            client = boto3.client("s3")
+        if prefix and not prefix.endswith("/"):
+            prefix += "/"
+        self._client = client
+        self._bucket = bucket
+        self._prefix = prefix
+
+    @classmethod
+    def from_uri(cls, uri: str) -> S3Cache:
+        scheme, netloc, path, query, fragment = urlsplit(uri, scheme="s3")
+        if scheme != "s3" or query or fragment:
+            raise ValueError("Unsupported URI.")
+        return cls(netloc, path)
+
+    def get(self, key: str) -> str:
+        with self.reader(key) as stream:
+            return stream.read()
+
+    def set(self, key: str, value: str) -> None:
+        params = self._get_params(key)
+        params["Body"] = value.encode("utf-8")
+        self._client.put_object(**params)
+
+    def has(self, key: str) -> bool:
+        params = self._get_params(key)
+        try:
+            self._client.head_object(**params)
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return False
+            raise
+        return True
+
+    def reader(self, key: str) -> TextIO:
+        params = self._get_params(key)
+        try:
+            response = self._client.get_object(**params)
+        except self._client.exceptions.NoSuchKey:
+            raise CacheMiss(key) from None
+        # Use _raw_stream (urllib3.response.HTTPResponse) because
+        # boto3 wrapper does not implement full Binary I/O interface.
+        raw = response["Body"]._raw_stream
+        # TextIOWrapper does not work with auto_close
+        # https://urllib3.readthedocs.io/en/latest/user-guide.html#using-io-wrappers-with-response-content
+        raw.auto_close = False
+        return io.TextIOWrapper(raw, encoding="utf-8", newline="")
+
+    def _get_params(self, key: str) -> Dict[str, Any]:
+        return dict(Bucket=self._bucket, Key=self._prefix + key)
