@@ -1,6 +1,14 @@
+import os
+
 import pytest
 
-from pallas.storage import FileStorage, MemoryStorage, NotFoundError, S3Storage
+from pallas.storage import (
+    FileStorage,
+    MemoryStorage,
+    NotFoundError,
+    S3Storage,
+    from_uri,
+)
 
 
 @pytest.fixture(name="memory_storage")
@@ -57,3 +65,86 @@ class TestStorage:
             stream.write("Hello Foo,\n")
             stream.write("Hope you are doing well.")
         assert storage.get("foo") == "Hello Foo,\nHope you are doing well."
+
+
+class TestFromURI:
+    def test_invalid_scheme(self):
+        with pytest.raises(ValueError):
+            from_uri("unknown://")
+
+    @pytest.mark.parametrize("uri", ["memory:", "memory://"])
+    def test_memory_from_uri(self, uri):
+        storage = from_uri(uri)
+        assert isinstance(storage, MemoryStorage)
+
+    @pytest.mark.parametrize(
+        "uri",
+        ["memory://netloc", "memory:path", "memory:?query=1", "memory:#fragment"],
+    )
+    def test_invalid_memory_from_uri(self, uri):
+        with pytest.raises(ValueError):
+            from_uri(uri)
+
+    @pytest.mark.parametrize(
+        "uri,base_dir",
+        [
+            ("/path", "/path"),
+            ("path", os.path.abspath("./path")),
+            ("./path", os.path.abspath("./path")),
+            ("~/path", os.path.expanduser("~/path")),
+            ("file:/path", "/path"),
+            ("file:path", os.path.abspath("./path")),
+            ("file:./path", os.path.abspath("./path")),
+            ("file:~/path", os.path.expanduser("~/path")),
+            ("file:///path", "/path"),
+        ],
+    )
+    def test_file_from_uri(self, uri, base_dir):
+        storage = from_uri(uri)
+        assert isinstance(storage, FileStorage)
+        assert str(storage.base_dir) == base_dir
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "file:",
+            "file://",
+            "file://netloc",
+            "file:/path?query=1",
+            "file:/path#fragment",
+        ],
+    )
+    def test_invalid_file_from_uri(self, uri):
+        with pytest.raises(ValueError):
+            from_uri(uri)
+
+    @pytest.mark.parametrize(
+        "uri,bucket,prefix",
+        [
+            ("s3://bucket", "bucket", ""),
+            ("s3://bucket/", "bucket", ""),
+            ("s3://bucket/path", "bucket", "path/"),
+            ("s3://bucket/path/", "bucket", "path/"),
+        ],
+    )
+    def test_s3_from_uri(self, uri, bucket, prefix):
+        storage = from_uri(uri)
+        assert isinstance(storage, S3Storage)
+        assert str(storage.bucket) == bucket
+        assert str(storage.prefix) == prefix
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "s3:",
+            "s3://",
+            "s3:path",
+            "s3:/path",
+            "s3:///path",
+            "s3://bucket?query=1",
+            "s3://bucket#fragment",
+        ],
+    )
+    def test_invalid_s3_from_uri(self, uri):
+        with pytest.raises(ValueError):
+            from_uri(uri)

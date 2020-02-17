@@ -3,11 +3,17 @@ from __future__ import annotations
 import io
 import pathlib
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Optional, TextIO
+from typing import Any, Dict, Optional, TextIO, Type
 from urllib.parse import urlsplit
 
 import boto3
 import botocore
+
+
+class UnsupportedURIError(ValueError):
+    """
+    Storage URI not supported.
+    """
 
 
 class NotFoundError(KeyError):
@@ -44,6 +50,13 @@ class Storage(metaclass=ABCMeta):
     For example, the :class:`.S3Storage` class can be used
     for downloading query results form S3.
     """
+
+    @classmethod
+    @abstractmethod
+    def from_uri(cls, uri: str) -> Storage:
+        """
+        Construct an instance from a string URI.
+        """
 
     @abstractmethod
     def get(self, key: str) -> str:
@@ -109,6 +122,15 @@ class MemoryStorage(Storage):
     def __init__(self) -> None:
         self._data = {}
 
+    @classmethod
+    def from_uri(cls, uri: str) -> MemoryStorage:
+        scheme, netloc, path, query, fragment = urlsplit(uri, scheme="memory")
+        if scheme != "memory":
+            raise UnsupportedURIError("Not a memory scheme.")
+        if netloc or path or query or fragment:
+            raise UnsupportedURIError("Superfluous component.")
+        return cls()
+
     def get(self, key: str) -> str:
         try:
             return self._data[key]
@@ -127,8 +149,27 @@ class FileStorage(Storage):
     Storage implementation storing data on a local filesystem.
     """
 
+    _base_dir: pathlib.Path
+
     def __init__(self, base_dir: str) -> None:
-        self.base_dir = pathlib.Path(base_dir)
+        self._base_dir = pathlib.Path(base_dir).expanduser().absolute()
+
+    @classmethod
+    def from_uri(cls, uri: str) -> FileStorage:
+        scheme, netloc, path, query, fragment = urlsplit(uri, scheme="file")
+        if scheme != "file":
+            raise UnsupportedURIError("Not a file scheme.")
+        if netloc:
+            raise UnsupportedURIError("The scheme does not support hostname.")
+        if query or fragment:
+            raise UnsupportedURIError("The scheme does not support query or fragment.")
+        if not path:
+            raise UnsupportedURIError("Path is empty.")
+        return cls(path)
+
+    @property
+    def base_dir(self) -> pathlib.Path:
+        return self._base_dir
 
     def get(self, key: str) -> str:
         try:
@@ -167,8 +208,6 @@ class S3Storage(Storage):
     ) -> None:
         if client is None:
             client = boto3.client("s3")
-        if prefix and not prefix.endswith("/"):
-            prefix += "/"
         self._client = client
         self._bucket = bucket
         self._prefix = prefix
@@ -176,9 +215,24 @@ class S3Storage(Storage):
     @classmethod
     def from_uri(cls, uri: str) -> S3Storage:
         scheme, netloc, path, query, fragment = urlsplit(uri, scheme="s3")
-        if scheme != "s3" or query or fragment:
-            raise ValueError("Unsupported URI.")
-        return cls(netloc, path)
+        if scheme != "s3":
+            raise UnsupportedURIError("Not a s3 scheme.")
+        if query or fragment:
+            raise UnsupportedURIError("The scheme does not support query or fragment.")
+        if not netloc:
+            raise UnsupportedURIError("Bucket is empty.")
+        prefix = path.strip("/")
+        if prefix and not prefix.endswith("/"):
+            prefix += "/"
+        return cls(netloc, prefix)
+
+    @property
+    def bucket(self) -> str:
+        return self._bucket
+
+    @property
+    def prefix(self) -> str:
+        return self._prefix
 
     def get(self, key: str) -> str:
         with self.reader(key) as stream:
@@ -214,4 +268,20 @@ class S3Storage(Storage):
         return io.TextIOWrapper(raw, encoding="utf-8", newline="")
 
     def _get_params(self, key: str) -> Dict[str, Any]:
-        return dict(Bucket=self._bucket, Key=self._prefix + key)
+        return dict(Bucket=self.bucket, Key=self.prefix + key)
+
+
+STORAGE_REGISTRY: Dict[str, Type[Storage]] = {
+    "memory": MemoryStorage,
+    "file": FileStorage,
+    "s3": S3Storage,
+}
+
+
+def from_uri(uri: str, default_scheme: str = "file") -> Storage:
+    scheme, *rest = urlsplit(uri, scheme=default_scheme)
+    try:
+        cls = STORAGE_REGISTRY[scheme]
+    except KeyError:
+        raise UnsupportedURIError(f"Unknown scheme: {scheme}.") from None
+    return cls.from_uri(uri)
