@@ -14,7 +14,7 @@ def normalize_sql(sql: str) -> str:
     return textwrap.dedent(joined)
 
 
-class AthenaNormalizationWrapper:
+class AthenaNormalizationWrapper(Athena):
     """
     Athena wrapper that normalizes executed queries.
 
