@@ -26,10 +26,25 @@ CONVERTERS = {
 }
 
 
-def convert_value(value_type: str, value: Optional[str]) -> Any:
+def convert_value(column_type: str, value: Optional[str]) -> Any:
     if value is None:
         return None
-    converter = CONVERTERS.get(value_type)
+    converter = CONVERTERS.get(column_type)
     if not converter:
         return value
     return converter(value)
+
+
+DTYPES = {
+    "boolean": "bool",
+    "tinyint": "Int8",
+    "smallint": "Int16",
+    "integer": "Int32",
+    "bigint": "Int64",
+    "float": "float32",
+    "double": "Float64",
+}
+
+
+def get_dtype(column_type: str) -> str:
+    return DTYPES.get(column_type, "str")

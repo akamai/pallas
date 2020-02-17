@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence, Union, overload
+from typing import Any, Dict, Mapping, Optional, Sequence, Union, overload
 
-from pallas.conversions import convert_value
+from pallas.conversions import convert_value, get_dtype
 
 try:
     import pandas as pd
@@ -74,16 +74,16 @@ class QueryResults(Sequence[QueryRecord]):
     def data(self) -> Sequence[Sequence[str]]:
         return self._data
 
-    def to_df(self) -> pd.DataFrame:
-        return results_to_df(self)
-
-
-def results_to_df(results: QueryResults) -> pd.DataFrame:
-    if pd is None:
-        raise RuntimeError("Pandas cannot be imported.")
-    column_info = zip(results.column_names, results.column_types)
-    data = results.data
-    series = {}
-    for i, (column_name, column_type) in enumerate(column_info):
-        series[column_name] = pd.Series((row[i] for row in data))
-    return pd.DataFrame(series)
+    def to_df(self, dtypes: Optional[Mapping[str, Any]] = None) -> pd.DataFrame:
+        if pd is None:
+            raise RuntimeError("Pandas cannot be imported.")
+        frame_data = {}
+        column_info = zip(self.column_names, self.column_types)
+        for i, (column_name, column_type) in enumerate(column_info):
+            dtype = get_dtype(column_type)
+            if dtypes is not None:
+                dtype = dtypes.get(column_name, dtype)
+            values = [convert_value(column_type, row[i]) for row in self.data]
+            array = pd.array(values, dtype=dtype, copy=False)
+            frame_data[column_name] = array
+        return pd.DataFrame(frame_data, copy=False)

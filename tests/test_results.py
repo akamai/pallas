@@ -7,8 +7,8 @@ sample_column_names = "id", "name"
 sample_column_types = "integer", "varchar"
 
 sample_data = [
-    (1, "foo"),
-    (2, "bar"),
+    ("1", "foo"),
+    ("2", "bar"),
 ]
 
 
@@ -46,6 +46,20 @@ class TestQueryResults:
     def test_to_df(self):
         actual = sample_results.to_df()
         expected = pd.DataFrame(
-            {"id": pd.Series([1, 2]), "name": pd.Series(["foo", "bar"])}
+            {
+                "id": pd.Series([1, 2], dtype="Int32"),
+                "name": pd.Series(["foo", "bar"], dtype="str"),
+            }
+        )
+        assert_frame_equal(actual, expected)
+
+    def test_to_df_custom_dtypes(self):
+        name_dtype = pd.CategoricalDtype(["foo", "bar"])
+        actual = sample_results.to_df(dtypes={"id": "int64", "name": name_dtype})
+        expected = pd.DataFrame(
+            {
+                "id": pd.Series([1, 2], dtype="int64"),
+                "name": pd.Series(["foo", "bar"], dtype=name_dtype),
+            }
         )
         assert_frame_equal(actual, expected)
