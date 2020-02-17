@@ -7,7 +7,7 @@ from pallas.storage import (
     MemoryStorage,
     NotFoundError,
     S3Storage,
-    from_uri,
+    storage_from_uri,
 )
 
 
@@ -70,12 +70,13 @@ class TestStorage:
 class TestFromURI:
     def test_invalid_scheme(self):
         with pytest.raises(ValueError):
-            from_uri("unknown://")
+            storage_from_uri("unknown://")
 
     @pytest.mark.parametrize("uri", ["memory:", "memory://"])
     def test_memory_from_uri(self, uri):
-        storage = from_uri(uri)
+        storage = storage_from_uri(uri)
         assert isinstance(storage, MemoryStorage)
+        assert storage.uri == "memory:"
 
     @pytest.mark.parametrize(
         "uri",
@@ -83,7 +84,7 @@ class TestFromURI:
     )
     def test_invalid_memory_from_uri(self, uri):
         with pytest.raises(ValueError):
-            from_uri(uri)
+            storage_from_uri(uri)
 
     @pytest.mark.parametrize(
         "uri,base_dir",
@@ -100,8 +101,9 @@ class TestFromURI:
         ],
     )
     def test_file_from_uri(self, uri, base_dir):
-        storage = from_uri(uri)
+        storage = storage_from_uri(uri)
         assert isinstance(storage, FileStorage)
+        assert storage.uri == f"file:{base_dir}"
         assert str(storage.base_dir) == base_dir
 
     @pytest.mark.parametrize(
@@ -116,7 +118,7 @@ class TestFromURI:
     )
     def test_invalid_file_from_uri(self, uri):
         with pytest.raises(ValueError):
-            from_uri(uri)
+            storage_from_uri(uri)
 
     @pytest.mark.parametrize(
         "uri,bucket,prefix",
@@ -128,8 +130,9 @@ class TestFromURI:
         ],
     )
     def test_s3_from_uri(self, uri, bucket, prefix):
-        storage = from_uri(uri)
+        storage = storage_from_uri(uri)
         assert isinstance(storage, S3Storage)
+        assert storage.uri == f"s3://{bucket}/{prefix}"
         assert str(storage.bucket) == bucket
         assert str(storage.prefix) == prefix
 
@@ -147,4 +150,4 @@ class TestFromURI:
     )
     def test_invalid_s3_from_uri(self, uri):
         with pytest.raises(ValueError):
-            from_uri(uri)
+            storage_from_uri(uri)

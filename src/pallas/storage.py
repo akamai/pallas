@@ -58,6 +58,13 @@ class Storage(metaclass=ABCMeta):
         Construct an instance from a string URI.
         """
 
+    @property
+    @abstractmethod
+    def uri(self) -> str:
+        """
+        Return a string URI describing this storage instance.
+        """
+
     @abstractmethod
     def get(self, key: str) -> str:
         """
@@ -131,6 +138,10 @@ class MemoryStorage(Storage):
             raise UnsupportedURIError("Superfluous component.")
         return cls()
 
+    @property
+    def uri(self) -> str:
+        return "memory:"
+
     def get(self, key: str) -> str:
         try:
             return self._data[key]
@@ -166,6 +177,10 @@ class FileStorage(Storage):
         if not path:
             raise UnsupportedURIError("Path is empty.")
         return cls(path)
+
+    @property
+    def uri(self) -> str:
+        return f"file:{self._base_dir}"
 
     @property
     def base_dir(self) -> pathlib.Path:
@@ -227,6 +242,10 @@ class S3Storage(Storage):
         return cls(netloc, prefix)
 
     @property
+    def uri(self) -> str:
+        return f"s3://{self._bucket}/{self._prefix}"
+
+    @property
     def bucket(self) -> str:
         return self._bucket
 
@@ -278,7 +297,10 @@ STORAGE_REGISTRY: Dict[str, Type[Storage]] = {
 }
 
 
-def from_uri(uri: str, default_scheme: str = "file") -> Storage:
+def storage_from_uri(uri: str, *, default_scheme: str = "file") -> Storage:
+    """
+    Construct a storage instance from a string URI.
+    """
     scheme, *rest = urlsplit(uri, scheme=default_scheme)
     try:
         cls = STORAGE_REGISTRY[scheme]
