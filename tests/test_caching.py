@@ -63,7 +63,9 @@ class TestAthenaCachingWrapper:
     # Test execute method
 
     def test_repr(self, athena):
-        assert repr(athena) == "<AthenaCachingWrapper: <AthenaFake>>"
+        assert (
+            repr(athena) == "<AthenaCachingWrapper: <AthenaFake> cached at 'memory:'>"
+        )
 
     def test_remote_query_repr(self, remote_athena):
         query = remote_athena.submit("SELECT 1")

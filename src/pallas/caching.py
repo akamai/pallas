@@ -43,11 +43,21 @@ class AthenaCachingWrapper(Athena):
         self._cache_results = cache_results
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self._wrapped!r}>"
+        return (
+            f"<{type(self).__name__}: {self._wrapped!r} cached at {self.storage.uri!r}>"
+        )
 
     @property
     def wrapped(self) -> Athena:
         return self._wrapped
+
+    @property
+    def storage(self) -> Storage:
+        return self._storage
+
+    @property
+    def cache_results(self) -> bool:
+        return self._cache_results
 
     @property
     def database(self) -> Optional[str]:
