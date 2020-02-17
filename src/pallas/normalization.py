@@ -27,21 +27,25 @@ class AthenaNormalizationWrapper:
     - Line endings are normalized to LF
     """
 
-    _inner_athena: Athena
+    _wrapped: Athena
 
     def __init__(self, athena: Athena) -> None:
-        self._inner_athena = athena
+        self._wrapped = athena
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self._inner_athena!r}>"
+        return f"<{type(self).__name__}: {self._wrapped!r}>"
+
+    @property
+    def wrapped(self) -> Athena:
+        return self._wrapped
 
     @property
     def database(self) -> Optional[str]:
-        return self._inner_athena.database
+        return self._wrapped.database
 
     def submit(self, sql: str) -> Query:
         normalized = normalize_sql(sql)
-        return self._inner_athena.submit(normalized)
+        return self._wrapped.submit(normalized)
 
     def get_query(self, execution_id: str) -> Query:
-        return self._inner_athena.get_query(execution_id)
+        return self._wrapped.get_query(execution_id)

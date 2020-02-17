@@ -32,39 +32,43 @@ class AthenaCachingWrapper(Athena):
     cached results without internet connection.
     """
 
-    _inner_athena: Athena
+    _wrapped: Athena
     _storage: Storage
 
     def __init__(
         self, athena: Athena, *, storage: Storage, cache_results: bool = True
     ) -> None:
-        self._inner_athena = athena
+        self._wrapped = athena
         self._storage = storage
         self._cache_results = cache_results
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self._inner_athena!r}>"
+        return f"<{type(self).__name__}: {self._wrapped!r}>"
+
+    @property
+    def wrapped(self) -> Athena:
+        return self._wrapped
 
     @property
     def database(self) -> Optional[str]:
-        return self._inner_athena.database
+        return self._wrapped.database
 
     def submit(self, sql: str) -> Query:
         execution_id = self._load_execution_id(sql)
         if execution_id is not None:
             return self.get_query(execution_id)
-        inner_query = self._inner_athena.submit(sql)
-        self._save_execution_id(sql, inner_query.execution_id)
-        return self._wrap_query(inner_query)
+        query = self._wrapped.submit(sql)
+        self._save_execution_id(sql, query.execution_id)
+        return self._wrap_query(query)
 
     def get_query(self, execution_id: str) -> Query:
-        inner_query = self._inner_athena.get_query(execution_id)
-        return self._wrap_query(inner_query)
+        query = self._wrapped.get_query(execution_id)
+        return self._wrap_query(query)
 
-    def _wrap_query(self, inner_query: Query) -> Query:
+    def _wrap_query(self, query: Query) -> Query:
         if self._cache_results:
-            return QueryCachingWrapper(inner_query, self._storage)
-        return inner_query
+            return QueryCachingWrapper(query, self._storage)
+        return query
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
         try:
@@ -90,33 +94,37 @@ class QueryCachingWrapper(Query):
     Query wrapper that caches query results.
     """
 
-    _inner_query: Query
+    _wrapped: Query
     _storage: Storage
 
     def __init__(self, query: Query, storage: Storage) -> None:
-        self._inner_query = query
+        self._wrapped = query
         self._storage = storage
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self._inner_query!r}>"
+        return f"<{type(self).__name__}: {self._wrapped!r}>"
+
+    @property
+    def wrapped(self) -> Query:
+        return self._wrapped
 
     @property
     def execution_id(self) -> str:
-        return self._inner_query.execution_id
+        return self._wrapped.execution_id
 
     def get_info(self) -> QueryInfo:
-        return self._inner_query.get_info()
+        return self._wrapped.get_info()
 
     def get_results(self) -> QueryResults:
         results = self._load_results()
         if results is not None:
             return results
-        results = self._inner_query.get_results()
+        results = self._wrapped.get_results()
         self._save_results(results)
         return results
 
     def kill(self) -> None:
-        return self._inner_query.kill()
+        return self._wrapped.kill()
 
     def join(self) -> None:
         if self._has_results():
