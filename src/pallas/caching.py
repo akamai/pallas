@@ -66,10 +66,11 @@ class AthenaCachingWrapper(Athena):
     def database(self) -> Optional[str]:
         return self._wrapped.database
 
-    def submit(self, sql: str) -> Query:
-        execution_id = self._load_execution_id(sql)
-        if execution_id is not None:
-            return self.get_query(execution_id)
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+        if not ignore_cache:
+            execution_id = self._load_execution_id(sql)
+            if execution_id is not None:
+                return self.get_query(execution_id)
         query = self._wrapped.submit(sql)
         self._save_execution_id(sql, query.execution_id)
         return self._wrap_query(query)

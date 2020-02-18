@@ -27,7 +27,7 @@ class AthenaFake(Athena):
     def request_log(self) -> List[str]:
         return self._request_log
 
-    def submit(self, sql: str) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         execution_id = f"query-{len(self._queries)+1}"
         self._request_log.append("StartQueryExecution")
         info = self._get_info(execution_id, sql)

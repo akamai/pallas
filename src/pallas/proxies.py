@@ -48,7 +48,7 @@ class AthenaProxy(Athena):
     def output_location(self) -> Optional[str]:
         return self._output_location
 
-    def submit(self, sql: str) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         params = dict(
             QueryString=sql,
             ResultConfiguration={"OutputLocation": self._output_location},

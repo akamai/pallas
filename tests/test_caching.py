@@ -106,6 +106,18 @@ class TestAthenaCachingWrapper:
         assert fake.request_log == []
         assert_query_results(results)
 
+    def test_execute_second_query_ignore_cache(self, athena, fake):
+        """Test that cache is unique to a query."""
+        athena.execute("SELECT 1 id, 'foo' name")  # fill cache
+        fake.request_log.clear()
+        results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert_query_results(results)
+
     def test_execute_second_query_different_sql(self, athena, fake):
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
@@ -145,6 +157,13 @@ class TestAthenaCachingWrapper:
         fake.request_log.clear()
         athena.submit("SELECT 1 id, 'foo' name")
         assert fake.request_log == []
+
+    def test_submit_second_query_ignore_cache(self, athena, fake):
+        """Test that cache is unique to a query."""
+        athena.submit("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
+        assert fake.request_log == ["StartQueryExecution"]
 
     def test_submit_second_query_different_sql(self, athena, fake):
         """Test that cache is unique to a query."""

@@ -10,32 +10,58 @@ from pallas.waiting import Fibonacci
 
 
 class Athena(metaclass=ABCMeta):
-    """Interface for querying Athena."""
+    """
+    Athena interface
+    """
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
-
-    def execute(self, sql: str) -> QueryResults:
-        """Submit query execution and wait for results."""
-        query = self.submit(sql)
-        query.join()
-        return query.get_results()
 
     @property
     @abstractmethod
     def database(self) -> Optional[str]:
         """Name of Athena database"""
 
+    def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
+        """
+        Submit query execution and wait for results.
+
+        This is a blocking method that waits until query finishes
+        and results are downloaded.
+
+        :param sql: SQL query to be executed
+        :param ignore_cache: do not load cached results
+        :return: query results
+        """
+        query = self.submit(sql, ignore_cache=ignore_cache)
+        query.join()
+        return query.get_results()
+
     @abstractmethod
-    def submit(self, sql: str) -> Query:
-        """Submit query execution."""
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+        """
+        Submit query execution.
+
+        This is a non-blocking method that start a query execution
+        and returns.
+
+        :param sql: an SQL query to be executed
+        :param ignore_cache: do not load cached results
+        :return: a query instance
+        """
 
     @abstractmethod
     def get_query(self, execution_id: str) -> Query:
-        """Get previously submitted query execution"""
+        """
+        Get a previously submitted query execution.
+        """
 
 
 class Query(metaclass=ABCMeta):
+    """
+    Query interface
+    """
+
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: execution_id={self.execution_id!r}>"
 

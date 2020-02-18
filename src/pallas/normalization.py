@@ -43,9 +43,9 @@ class AthenaNormalizationWrapper(Athena):
     def database(self) -> Optional[str]:
         return self._wrapped.database
 
-    def submit(self, sql: str) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         normalized = normalize_sql(sql)
-        return self._wrapped.submit(normalized)
+        return self._wrapped.submit(normalized, ignore_cache=ignore_cache)
 
     def get_query(self, execution_id: str) -> Query:
         return self._wrapped.get_query(execution_id)
