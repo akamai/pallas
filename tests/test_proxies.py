@@ -16,6 +16,18 @@ def athena(region_name, athena_database, s3_tmp_uri):
     )
 
 
+# Should not be to trivial.
+# Test must be able to submit a query,
+# and check its status or kill it before the query finishes.
+EXAMPLE_SQL = """\
+SELECT * FROM
+    (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t1 (v1),
+    (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t2 (v2)
+ORDER BY
+    v1, v2\
+"""
+
+
 class TestAthenaProxy:
     def test_properties(self, athena, athena_database, s3_tmp_uri):
         assert athena.database == athena_database
@@ -29,13 +41,13 @@ class TestAthenaProxy:
         )
 
     def test_success(self, athena):
-        query = athena.submit("SELECT 1")
+        query = athena.submit(EXAMPLE_SQL)
         # Running
         info = query.get_info()
         assert not info.finished
         assert not info.succeeded
         assert info.database == athena.database
-        assert info.sql == "SELECT 1"
+        assert info.sql == EXAMPLE_SQL
         assert info.state in ("QUEUED", "RUNNING")
         # Finished
         query.join()
@@ -43,7 +55,7 @@ class TestAthenaProxy:
         assert info.finished
         assert info.succeeded
         assert info.database == athena.database
-        assert info.sql == "SELECT 1"
+        assert info.sql == EXAMPLE_SQL
         assert info.state == "SUCCEEDED"
 
     def test_fail(self, athena):
@@ -59,7 +71,7 @@ class TestAthenaProxy:
         assert info.sql == "SELECT x"
 
     def test_kill(self, athena):
-        query = athena.submit("SELECT 1")
+        query = athena.submit(EXAMPLE_SQL)
         query.kill()
         with pytest.raises(AthenaQueryError) as excinfo:
             query.join()
@@ -69,7 +81,7 @@ class TestAthenaProxy:
         assert not info.succeeded
         assert info.state == "CANCELLED"
         assert info.database == athena.database
-        assert info.sql == "SELECT 1"
+        assert info.sql == EXAMPLE_SQL
 
     def test_variaous_results(self, athena):
         sql = """\
