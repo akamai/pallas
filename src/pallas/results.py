@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Optional, Sequence, Union, overload
 
-from pallas.conversions import convert_value, get_dtype
+from pallas.conversions import get_dtype, parse_value
 
 try:
+    import numpy as np
     import pandas as pd
 except ImportError:
     pd = None
+    np = None
 
 
 QueryRecord = Dict[str, Any]
@@ -57,7 +59,7 @@ class QueryResults(Sequence[QueryRecord]):
             return QueryResults(self.column_names, self.column_types, self.data[index])
         row = self._data[index]
         info = zip(self._column_names, self._column_types, row)
-        return {cn: convert_value(ct, v) for cn, ct, v in info}
+        return {cn: parse_value(ct, v) for cn, ct, v in info}
 
     def __len__(self) -> int:
         return len(self._data)
@@ -83,7 +85,18 @@ class QueryResults(Sequence[QueryRecord]):
             dtype = get_dtype(column_type)
             if dtypes is not None:
                 dtype = dtypes.get(column_name, dtype)
-            values = [convert_value(column_type, row[i]) for row in self.data]
-            array = pd.array(values, dtype=dtype, copy=False)
-            frame_data[column_name] = array
+            values = [parse_value(column_type, row[i]) for row in self.data]
+            frame_data[column_name] = _pd_array(values, dtype=dtype)
         return pd.DataFrame(frame_data, copy=False)
+
+
+def _pd_array(values: Sequence[Any], *, dtype: str) -> Any:
+    if dtype == "object":
+        # Workaround for ValueError: PandasArray must be 1-dimensional.
+        # When all values are lists of same length, Pandas/NumPy think
+        # that we are constructing a 2-D array.
+        data = np.empty(len(values), dtype="object")
+        data[:] = values
+    else:
+        data = values
+    return pd.array(data, dtype=dtype, copy=False)

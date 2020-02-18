@@ -107,7 +107,11 @@ class TestAthenaProxy:
                 CAST('a' as CHAR) char_value,
                 CAST(NULL as CHAR) char_null,
                 CAST('b' as VARCHAR) varchar_value,
-                CAST(NULL as VARCHAR) varchar_null
+                CAST(NULL as VARCHAR) varchar_null,
+                ARRAY['item1', 'item2'] array_value,
+                CAST(NULL AS ARRAY(VARCHAR)) array_null,
+                MAP(ARRAY['k'], ARRAY['v']) map_value,
+                CAST(NULL AS MAP(VARCHAR, VARCHAR)) map_null
         """
         results = athena.execute(textwrap.dedent(sql))
         assert list(results) == [
@@ -132,6 +136,10 @@ class TestAthenaProxy:
                 "char_null": None,
                 "varchar_value": "b",
                 "varchar_null": None,
+                "array_value": ["item1", "item2"],
+                "array_null": None,
+                "map_value": {"k": "v"},
+                "map_null": None,
             }
         ]
 
