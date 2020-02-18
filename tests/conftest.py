@@ -27,6 +27,14 @@ def athena_database_fixture():
     return database
 
 
+@pytest.fixture(name="athena_workgroup", scope="session")
+def athena_workgroup_fixture():
+    """
+    Athena workgroup.
+    """
+    return os.environ.get("PALLAS_TEST_ATHENA_WORKGROUP")
+
+
 def _s3_recursive_delete(uri):
     scheme, netloc, path, query, fragment = urlsplit(uri)
     assert scheme == "s3"

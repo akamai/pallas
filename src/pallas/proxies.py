@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import boto3
 
@@ -13,24 +13,46 @@ logger = logging.getLogger("pallas")
 
 
 class AthenaProxy(Athena):
+    """
+    Athena client.
+
+    Executes queries using via AWS API using boto3 library.
+    This is the core implementation of the :class:`.Athena` interface.
+
+    It can be decorated by wrappers to provide additional functionality.
+
+    :param database: a name of Athena database.
+        If omitted, database should be specified in SQL.
+    :param workgroup: a name of Athena workgroup.
+        If omitted, default workgroup will be used.
+    :param output_location: an output location at S3 for query results.
+        Optional if a default location is specified for the *workgroup*.
+    :param region_name: an AWS region.
+        By default, a region from AWS config is used.
+    :param client: a boto3 client to use.
+        By default, a new client is constructed.
+    """
 
     _client: Any  # boto3 Athena client
-    _output_location: str
     _database: Optional[str]
+    _workgroup: Optional[str]
+    _output_location: Optional[str]
 
     def __init__(
         self,
         *,
-        output_location: str,
-        client: Optional[Any] = None,
         database: Optional[str] = None,
+        workgroup: Optional[str] = None,
+        output_location: Optional[str] = None,
         region_name: Optional[str] = None,
+        client: Optional[Any] = None,
     ) -> None:
         if client is None:
             client = boto3.client("athena", region_name=region_name)
         self._client = client
-        self._output_location = output_location
         self._database = database
+        self._workgroup = workgroup
+        self._output_location = output_location
 
     def __repr__(self) -> str:
         parts = []
@@ -45,16 +67,21 @@ class AthenaProxy(Athena):
         return self._database
 
     @property
+    def workgroup(self) -> Optional[str]:
+        return self._workgroup
+
+    @property
     def output_location(self) -> Optional[str]:
         return self._output_location
 
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
-        params = dict(
-            QueryString=sql,
-            ResultConfiguration={"OutputLocation": self._output_location},
-        )
+        params: Dict[str, Any] = dict(QueryString=sql)
         if self._database is not None:
             params.update(QueryExecutionContext={"Database": self._database})
+        if self._workgroup is not None:
+            params.update(WorkGroup=self._workgroup)
+        if self._output_location is not None:
+            params.update(ResultConfiguration={"OutputLocation": self._output_location})
         response = self._client.start_query_execution(**params)
         query = self.get_query(response["QueryExecutionId"])
         logger.info(

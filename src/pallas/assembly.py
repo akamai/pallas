@@ -10,8 +10,9 @@ from pallas.usability import AthenaKillOnInterruptWrapper, AthenaNormalizationWr
 
 
 def setup(
-    output_location: str,
     database: Optional[str] = None,
+    workgroup: Optional[str] = None,
+    output_location: Optional[str] = None,
     region_name: Optional[str] = None,
     cache_remote: Optional[str] = None,
     cache_local: Optional[str] = None,
@@ -23,27 +24,38 @@ def setup(
 
     Initializes :class:`.AthenaProxy` and decorates it by caching wrappers.
 
-    :param output_location: Athena output location
-    :param database: Athena database to query
-    :param region_name: AWS region
-    :param cache_remote: set to cache query IDs
-    :param cache_local: set to cache query results
-    :param normalize: set to true to normalize executed SQL
-    :param kill_on_interrupt: set to true to automatically kill queries
-    :return: Athena instance
+    :param database: a name of Athena database.
+        If omitted, database should be specified in SQL.
+    :param workgroup: a name of Athena workgroup.
+        If omitted, default workgroup will be used.
+    :param output_location: an output location at S3 for query results.
+        Optional if a default location is specified for the *workgroup*.
+    :param region_name: an AWS region.
+        By default, region from AWS config is used.
+    :param cache_remote: an URI of a remote cache.
+        Query execution IDs without results are stored to the remote cache.
+    :param cache_local: an URI of a local cache.
+        Both results and query execution IDs are stored to the local cache.
+    :param normalize: whether to normalize SQL
+        Normalizes whitespace to improve caching.
+    :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt
+        Kills query when interrupted during waiting.
+    :return: an Athena instance
+        A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
     athena: Athena
     athena = AthenaProxy(
-        output_location=output_location, database=database, region_name=region_name
+        database=database,
+        workgroup=workgroup,
+        output_location=output_location,
+        region_name=region_name,
     )
     if cache_remote is not None:
-        remote_storage = storage_from_uri(cache_remote)
-        athena = AthenaCachingWrapper(
-            athena, storage=remote_storage, cache_results=False
-        )
+        storage = storage_from_uri(cache_remote)
+        athena = AthenaCachingWrapper(athena, storage=storage, cache_results=False)
     if cache_local is not None:
-        local_storage = storage_from_uri(cache_local)
-        athena = AthenaCachingWrapper(athena, storage=local_storage, cache_results=True)
+        storage = storage_from_uri(cache_local)
+        athena = AthenaCachingWrapper(athena, storage=storage, cache_results=True)
     if normalize:
         athena = AthenaNormalizationWrapper(athena)
     if kill_on_interrupt:
