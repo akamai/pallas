@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import textwrap
 
-from pallas.base import AthenaWrapper, Query
+from pallas.base import AthenaWrapper, Query, QueryWrapper
 
 
 def normalize_sql(sql: str) -> str:
@@ -29,3 +29,25 @@ class AthenaNormalizationWrapper(AthenaWrapper):
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         normalized = normalize_sql(sql)
         return super().submit(normalized, ignore_cache=ignore_cache)
+
+
+class AthenaKillOnInterruptWrapper(AthenaWrapper):
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+        query = super().submit(sql, ignore_cache=ignore_cache)
+        return self._wrap_query(query)
+
+    def get_query(self, execution_id: str) -> Query:
+        query = super().get_query(execution_id)
+        return self._wrap_query(query)
+
+    def _wrap_query(self, query: Query) -> Query:
+        return QueryKillOnInterruptWrapper(query)
+
+
+class QueryKillOnInterruptWrapper(QueryWrapper):
+    def join(self) -> None:
+        try:
+            super().join()
+        except KeyboardInterrupt:
+            self.kill()
+            super().join()

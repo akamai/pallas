@@ -1,7 +1,7 @@
 from pallas.assembly import setup
 from pallas.caching import AthenaCachingWrapper
-from pallas.usability import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
+from pallas.usability import AthenaKillOnInterruptWrapper, AthenaNormalizationWrapper
 
 
 class TestSetup:
@@ -60,3 +60,8 @@ class TestSetup:
         )
         assert isinstance(athena, AthenaNormalizationWrapper)
         assert isinstance(athena.wrapped, AthenaCachingWrapper)
+
+    def test_kill_on_interrupt(self):
+        athena = setup(output_location="s3://example-output/", kill_on_interrupt=True)
+        assert isinstance(athena, AthenaKillOnInterruptWrapper)
+        assert isinstance(athena.wrapped, AthenaProxy)

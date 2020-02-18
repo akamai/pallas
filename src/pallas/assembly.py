@@ -4,9 +4,9 @@ from typing import Optional
 
 from pallas.base import Athena
 from pallas.caching import AthenaCachingWrapper
-from pallas.usability import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 from pallas.storage import storage_from_uri
+from pallas.usability import AthenaKillOnInterruptWrapper, AthenaNormalizationWrapper
 
 
 def setup(
@@ -16,6 +16,7 @@ def setup(
     cache_remote: Optional[str] = None,
     cache_local: Optional[str] = None,
     normalize: bool = False,
+    kill_on_interrupt: bool = False,
 ) -> Athena:
     """
     Assembly :class:`.Athena` instance.
@@ -28,7 +29,8 @@ def setup(
     :param cache_remote: set to cache query IDs
     :param cache_local: set to cache query results
     :param normalize: set to true to normalize executed SQL
-    :return:
+    :param kill_on_interrupt: set to true to automatically kill queries
+    :return: Athena instance
     """
     athena: Athena
     athena = AthenaProxy(
@@ -44,4 +46,6 @@ def setup(
         athena = AthenaCachingWrapper(athena, storage=local_storage, cache_results=True)
     if normalize:
         athena = AthenaNormalizationWrapper(athena)
+    if kill_on_interrupt:
+        athena = AthenaKillOnInterruptWrapper(athena)
     return athena
