@@ -75,7 +75,9 @@ class TestAthenaProxy:
         query.kill()
         with pytest.raises(AthenaQueryError) as excinfo:
             query.join()
-        assert str(excinfo.value) == "Athena query cancelled: Query cancelled by user"
+        # State change reason is sometimes missing for cancelled queries.
+        # Do not assert it here to avoid a flaky test.
+        assert str(excinfo.value).startswith("Athena query cancelled")
         info = query.get_info()
         assert info.finished
         assert not info.succeeded
