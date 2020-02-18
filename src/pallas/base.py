@@ -90,3 +90,56 @@ class Query(metaclass=ABCMeta):
                 info.check()
                 break
             time.sleep(delay)
+
+
+class AthenaWrapper(Athena):
+
+    _wrapped: Athena
+
+    def __init__(self, wrapped: Athena) -> None:
+        self._wrapped = wrapped
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self.wrapped!r}>"
+
+    @property
+    def wrapped(self) -> Athena:
+        return self._wrapped
+
+    @property
+    def database(self) -> Optional[str]:
+        return self._wrapped.database
+
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+        return self._wrapped.submit(sql, ignore_cache=ignore_cache)
+
+    def get_query(self, execution_id: str) -> Query:
+        return self._wrapped.get_query(execution_id)
+
+
+class QueryWrapper(Query):
+
+    _wrapped: Query
+
+    def __init__(self, wrapped: Query) -> None:
+        self._wrapped = wrapped
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self.wrapped!r}>"
+
+    @property
+    def wrapped(self) -> Query:
+        return self._wrapped
+
+    @property
+    def execution_id(self) -> str:
+        return self._wrapped.execution_id
+
+    def get_info(self) -> QueryInfo:
+        return self._wrapped.get_info()
+
+    def get_results(self) -> QueryResults:
+        return self._wrapped.get_results()
+
+    def kill(self) -> None:
+        self._wrapped.kill()

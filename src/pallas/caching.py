@@ -6,15 +6,14 @@ import logging
 from typing import Optional
 from urllib.parse import urlencode
 
-from pallas.base import Athena, Query
-from pallas.info import QueryInfo
+from pallas.base import Athena, AthenaWrapper, Query, QueryWrapper
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
 logger = logging.getLogger("pallas")
 
 
-class AthenaCachingWrapper(Athena):
+class AthenaCachingWrapper(AthenaWrapper):
     """
     Athena wrapper that caches query IDs and optionally results.
 
@@ -35,24 +34,19 @@ class AthenaCachingWrapper(Athena):
     cached results without internet connection.
     """
 
-    _wrapped: Athena
     _storage: Storage
 
     def __init__(
-        self, athena: Athena, *, storage: Storage, cache_results: bool = True
+        self, wrapped: Athena, *, storage: Storage, cache_results: bool = True
     ) -> None:
-        self._wrapped = athena
+        super().__init__(wrapped)
         self._storage = storage
         self._cache_results = cache_results
 
     def __repr__(self) -> str:
         return (
-            f"<{type(self).__name__}: {self._wrapped!r} cached at {self.storage.uri!r}>"
+            f"<{type(self).__name__}: {self.wrapped!r} cached at {self.storage.uri!r}>"
         )
-
-    @property
-    def wrapped(self) -> Athena:
-        return self._wrapped
 
     @property
     def storage(self) -> Storage:
@@ -62,27 +56,23 @@ class AthenaCachingWrapper(Athena):
     def cache_results(self) -> bool:
         return self._cache_results
 
-    @property
-    def database(self) -> Optional[str]:
-        return self._wrapped.database
-
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         if not ignore_cache:
             execution_id = self._load_execution_id(sql)
             if execution_id is not None:
                 return self.get_query(execution_id)
-        query = self._wrapped.submit(sql)
+        query = super().submit(sql, ignore_cache=ignore_cache)
         self._save_execution_id(sql, query.execution_id)
         return self._wrap_query(query)
 
     def get_query(self, execution_id: str) -> Query:
-        query = self._wrapped.get_query(execution_id)
+        query = super().get_query(execution_id)
         return self._wrap_query(query)
 
     def _wrap_query(self, query: Query) -> Query:
-        if self._cache_results:
-            return QueryCachingWrapper(query, self._storage)
-        return query
+        if not self._cache_results:
+            return query
+        return QueryCachingWrapper(query, self._storage)
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
         try:
@@ -112,42 +102,24 @@ class AthenaCachingWrapper(Athena):
         return f"query-{hash}"
 
 
-class QueryCachingWrapper(Query):
+class QueryCachingWrapper(QueryWrapper):
     """
     Query wrapper that caches query results.
     """
 
-    _wrapped: Query
     _storage: Storage
 
-    def __init__(self, query: Query, storage: Storage) -> None:
-        self._wrapped = query
+    def __init__(self, wrapped: Query, storage: Storage) -> None:
+        super().__init__(wrapped)
         self._storage = storage
-
-    def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self._wrapped!r}>"
-
-    @property
-    def wrapped(self) -> Query:
-        return self._wrapped
-
-    @property
-    def execution_id(self) -> str:
-        return self._wrapped.execution_id
-
-    def get_info(self) -> QueryInfo:
-        return self._wrapped.get_info()
 
     def get_results(self) -> QueryResults:
         results = self._load_results()
         if results is not None:
             return results
-        results = self._wrapped.get_results()
+        results = super().get_results()
         self._save_results(results)
         return results
-
-    def kill(self) -> None:
-        return self._wrapped.kill()
 
     def join(self) -> None:
         if self._has_results():
