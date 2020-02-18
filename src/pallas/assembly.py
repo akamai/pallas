@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from typing import Optional
 
 from pallas.base import Athena
 from pallas.caching import AthenaCachingWrapper
-from pallas.normalization import AthenaNormalizationWrapper
+from pallas.usability import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 from pallas.storage import storage_from_uri
 

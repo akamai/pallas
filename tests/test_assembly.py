@@ -1,6 +1,6 @@
 from pallas.assembly import setup
 from pallas.caching import AthenaCachingWrapper
-from pallas.normalization import AthenaNormalizationWrapper
+from pallas.usability import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 
 
