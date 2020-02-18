@@ -51,6 +51,12 @@ class Storage(metaclass=ABCMeta):
     for downloading query results form S3.
     """
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self.uri!r}>"
+
+    def __str__(self) -> str:
+        return self.uri
+
     @classmethod
     @abstractmethod
     def from_uri(cls, uri: str) -> Storage:

@@ -76,7 +76,8 @@ class TestFromURI:
     def test_memory_from_uri(self, uri):
         storage = storage_from_uri(uri)
         assert isinstance(storage, MemoryStorage)
-        assert storage.uri == "memory:"
+        assert str(storage) == storage.uri == "memory:"
+        assert repr(storage) == "<MemoryStorage: 'memory:'>"
 
     @pytest.mark.parametrize(
         "uri",
@@ -103,7 +104,8 @@ class TestFromURI:
     def test_file_from_uri(self, uri, base_dir):
         storage = storage_from_uri(uri)
         assert isinstance(storage, FileStorage)
-        assert storage.uri == f"file:{base_dir}"
+        assert str(storage) == storage.uri == f"file:{base_dir}"
+        assert repr(storage) == f"<FileStorage: 'file:{base_dir}'>"
         assert str(storage.base_dir) == base_dir
 
     @pytest.mark.parametrize(
@@ -132,7 +134,8 @@ class TestFromURI:
     def test_s3_from_uri(self, uri, bucket, prefix):
         storage = storage_from_uri(uri)
         assert isinstance(storage, S3Storage)
-        assert storage.uri == f"s3://{bucket}/{prefix}"
+        assert str(storage) == storage.uri == f"s3://{bucket}/{prefix}"
+        assert repr(storage) == f"<S3Storage: 's3://{bucket}/{prefix}'>"
         assert str(storage.bucket) == bucket
         assert str(storage.prefix) == prefix
 
