@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import itertools
-from typing import Any, List, Optional, Tuple
+import logging
+from typing import Any, List, Mapping, Optional, Sequence
 
 import boto3
 
 from pallas.base import Athena, Query
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
+
+logger = logging.getLogger("pallas")
 
 
 class AthenaProxy(Athena):
@@ -54,7 +56,12 @@ class AthenaProxy(Athena):
         if self._database is not None:
             params.update(QueryExecutionContext={"Database": self._database})
         response = self._client.start_query_execution(**params)
-        return self.get_query(response["QueryExecutionId"])
+        query = self.get_query(response["QueryExecutionId"])
+        logger.info(
+            f"Called Athena StartQueryExecution:"
+            f" QueryExecutionId={query.execution_id!r}"
+        )
+        return query
 
     def get_query(self, execution_id: str) -> Query:
         return QueryProxy(self._client, execution_id)
@@ -80,30 +87,48 @@ class QueryProxy(Query):
             return self._finished_info
         response = self._client.get_query_execution(QueryExecutionId=self.execution_id)
         info = QueryInfo(response["QueryExecution"])
+        logger.info(
+            f"Called Athena GetQueryExecution:"
+            f" QueryExecutionId={self.execution_id!r}: {info}"
+        )
         if info.finished:
             self._finished_info = info
         return info
 
     def kill(self) -> None:
         self._client.stop_query_execution(QueryExecutionId=self.execution_id)
+        logger.info(
+            f"Called Athena StopQueryExecution:"
+            f" QueryExecutionId={self.execution_id!r}"
+        )
 
     def get_results(self) -> QueryResults:
         params = dict(QueryExecutionId=self.execution_id)
         paginator = self._client.get_paginator("get_query_results")
         pages = iter(paginator.paginate(**params))
+
         first_page = next(pages)
         column_info = first_page["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
         column_names = tuple(column["Name"] for column in column_info)
         column_types = tuple(column["Type"] for column in column_info)
-        data: List[Tuple[str, ...]] = []
-        for page in itertools.chain([first_page], pages):
-            rows = page["ResultSet"]["Rows"]
-            data += [
-                tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows
-            ]
+        data = self._read_page(first_page)
         if data and data[0] == column_names:
             # Skip the first row iff it contains column names.
             # Athena often returns column names in the first row but not always.
             # (for example, SHOW PARTITIONS results do not have this header).
             data = data[1:]
+        logger.info(
+            f"Called Athena GetQueryResults:"
+            f" QueryExecutionId={self.execution_id!r}: {len(data)} rows"
+        )
+        for i, page in enumerate(pages, start=2):
+            data += self._read_page(page)
+            logger.info(
+                f"Called Athena GetQueryResults:"
+                f" QueryExecutionId={self.execution_id!r}: {len(data)} rows"
+            )
         return QueryResults(column_names, column_types, data)
+
+    def _read_page(self, page: Mapping[str, Any]) -> List[Sequence[str]]:
+        rows = page["ResultSet"]["Rows"]
+        return [tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows]

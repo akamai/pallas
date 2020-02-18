@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import logging
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -9,6 +10,8 @@ from pallas.base import Athena, Query
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
+
+logger = logging.getLogger("pallas")
 
 
 class AthenaCachingWrapper(Athena):
@@ -82,12 +85,21 @@ class AthenaCachingWrapper(Athena):
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
         try:
-            return self._storage.get(self._get_cache_key(sql))
+            execution_id = self._storage.get(self._get_cache_key(sql))
         except NotFoundError:
             return None
+        logger.info(
+            f"Query execution loaded from cache {self._storage.uri!r}:"
+            f" QueryExecutionId={execution_id!r}"
+        )
+        return execution_id
 
     def _save_execution_id(self, sql: str, execution_id: str) -> None:
         self._storage.set(self._get_cache_key(sql), execution_id)
+        logger.info(
+            f"Query execution saved to cache {self._storage.uri!r}:"
+            f" QueryExecutionId={execution_id!r}"
+        )
 
     def _get_cache_key(self, sql: str) -> str:
         parts = {}
@@ -156,7 +168,12 @@ class QueryCachingWrapper(Query):
         column_names = next(reader)
         column_types = next(reader)
         data = list(reader)
-        return QueryResults(column_names, column_types, data)
+        results = QueryResults(column_names, column_types, data)
+        logger.info(
+            f"Query results loaded from cache {self._storage.uri!r}:"
+            f" QueryExecutionId={self.execution_id!r}: {len(results.data)} rows"
+        )
+        return results
 
     def _save_results(self, results: QueryResults) -> None:
         stream = self._storage.writer(self._get_cache_key())
@@ -164,6 +181,10 @@ class QueryCachingWrapper(Query):
         writer.writerow(results.column_names)
         writer.writerow(results.column_types)
         writer.writerows(results.data)
+        logger.info(
+            f"Query results saved to cache {self._storage.uri!r}:"
+            f" QueryExecutionId={self.execution_id!r}: {len(results.data)} rows"
+        )
 
     def _get_cache_key(self) -> str:
         return f"results-{self.execution_id}"
