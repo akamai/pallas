@@ -18,7 +18,7 @@ def memory_storage_fixture(tmp_path):
 
 @pytest.fixture(name="file_storage")
 def file_storage_fixture(tmp_path):
-    return FileStorage(tmp_path)
+    return FileStorage(tmp_path / "cache")
 
 
 @pytest.fixture(name="s3_storage")

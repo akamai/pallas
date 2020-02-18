@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import pathlib
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Optional, TextIO, Type
+from typing import Any, Dict, Optional, TextIO, Type, Union
 from urllib.parse import urlsplit
 
 import boto3
@@ -160,9 +160,10 @@ class FileStorage(Storage):
     Storage implementation storing data on a local filesystem.
     """
 
+    _initialized: bool = False
     _base_dir: pathlib.Path
 
-    def __init__(self, base_dir: str) -> None:
+    def __init__(self, base_dir: Union[str, pathlib.Path]) -> None:
         self._base_dir = pathlib.Path(base_dir).expanduser().absolute()
 
     @classmethod
@@ -208,6 +209,10 @@ class FileStorage(Storage):
         return self._get_file(key).open("w", encoding="utf-8", newline="")
 
     def _get_file(self, key: str) -> pathlib.Path:
+        if not self._initialized:
+            # Create cache directory when first used.
+            self._base_dir.mkdir(exist_ok=True, parents=True)
+            self._initialized = True
         return self.base_dir / key
 
 
