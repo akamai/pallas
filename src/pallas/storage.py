@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import pathlib
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Optional, TextIO, Type, Union
+from typing import Any, Dict, Optional, TextIO, Tuple, Type, Union
 from urllib.parse import urlsplit
 
 import boto3
@@ -45,10 +45,7 @@ class Storage(metaclass=ABCMeta):
     """
     Interface for a simple key-value storage.
 
-    Implementations of are used primarily as cache backends,
-    but other use cases are possible.
-    For example, the :class:`.S3Storage` class can be used
-    for downloading query results form S3.
+    Implementations re used  as cache backends.
     """
 
     def __repr__(self) -> str:
@@ -222,6 +219,33 @@ class FileStorage(Storage):
         return self.base_dir / key
 
 
+def s3_parse_uri(uri: str) -> Tuple[str, str]:
+    """
+    Get bucket name and path from an S3 uri.
+    """
+    scheme, netloc, path, query, fragment = urlsplit(uri, scheme="s3")
+    if scheme != "s3":
+        raise UnsupportedURIError("Not a s3 scheme.")
+    if query or fragment:
+        raise UnsupportedURIError("The scheme does not support query or fragment.")
+    if not netloc:
+        raise UnsupportedURIError("Bucket is empty.")
+    return netloc, path.lstrip("/")
+
+
+def s3_wrap_body(body: Any) -> TextIO:
+    """
+    Wrap body returned by S3 GetObject to a valid TextIO
+    """
+    # Use _raw_stream (urllib3.response.HTTPResponse) because
+    # boto3 wrapper does not implement full Binary I/O interface.
+    raw = body._raw_stream
+    # TextIOWrapper does not work with auto_close
+    # https://urllib3.readthedocs.io/en/latest/user-guide.html#using-io-wrappers-with-response-content
+    raw.auto_close = False
+    return io.TextIOWrapper(raw, encoding="utf-8", newline="")
+
+
 class S3Storage(Storage):
     """
     Storage implementation storing data in AWS S3.
@@ -240,17 +264,10 @@ class S3Storage(Storage):
 
     @classmethod
     def from_uri(cls, uri: str) -> S3Storage:
-        scheme, netloc, path, query, fragment = urlsplit(uri, scheme="s3")
-        if scheme != "s3":
-            raise UnsupportedURIError("Not a s3 scheme.")
-        if query or fragment:
-            raise UnsupportedURIError("The scheme does not support query or fragment.")
-        if not netloc:
-            raise UnsupportedURIError("Bucket is empty.")
-        prefix = path.strip("/")
+        bucket, prefix = s3_parse_uri(uri)
         if prefix and not prefix.endswith("/"):
             prefix += "/"
-        return cls(netloc, prefix)
+        return cls(bucket, prefix)
 
     @property
     def uri(self) -> str:
@@ -289,13 +306,7 @@ class S3Storage(Storage):
             response = self._client.get_object(**params)
         except self._client.exceptions.NoSuchKey:
             raise NotFoundError(key) from None
-        # Use _raw_stream (urllib3.response.HTTPResponse) because
-        # boto3 wrapper does not implement full Binary I/O interface.
-        raw = response["Body"]._raw_stream
-        # TextIOWrapper does not work with auto_close
-        # https://urllib3.readthedocs.io/en/latest/user-guide.html#using-io-wrappers-with-response-content
-        raw.auto_close = False
-        return io.TextIOWrapper(raw, encoding="utf-8", newline="")
+        return s3_wrap_body(response["Body"])
 
     def _get_params(self, key: str) -> Dict[str, Any]:
         return dict(Bucket=self.bucket, Key=self.prefix + key)

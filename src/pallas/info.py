@@ -63,9 +63,9 @@ class QueryInfo:
         return cast(str, rv)
 
     @property
-    def output_location(self) -> Optional[str]:
+    def output_location(self) -> str:
         rv = self._data["ResultConfiguration"].get("OutputLocation")
-        return cast(Optional[str], rv)
+        return cast(str, rv)
 
     @property
     def database(self) -> Optional[str]:
