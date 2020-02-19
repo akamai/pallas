@@ -124,8 +124,6 @@ class QueryCachingWrapper(QueryWrapper):
     def join(self) -> None:
         if self._has_results():
             # If we have results then we can assume that query has finished.
-            # Avoiding unnecessary checks allows us to work
-            # completely offline when cached results are available.
             return
         super().join()
 

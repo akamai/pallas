@@ -31,9 +31,7 @@ class Athena(metaclass=ABCMeta):
         :param ignore_cache: do not load cached results
         :return: query results
         """
-        query = self.submit(sql, ignore_cache=ignore_cache)
-        query.join()
-        return query.get_results()
+        return self.submit(sql, ignore_cache=ignore_cache).get_results()
 
     @abstractmethod
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
@@ -66,23 +64,41 @@ class Query(metaclass=ABCMeta):
     @property
     @abstractmethod
     def execution_id(self) -> str:
-        """Athena query execution ID."""
+        """
+        Athena query execution ID.
+
+        Returns a unique ID of this query execution.
+        This ID can be used to retrieve the query using
+        the :meth:`.Athena.get_query()` method.
+        """
 
     @abstractmethod
     def get_info(self) -> QueryInfo:
-        """Retrieve information about this query execution."""
+        """
+        Retrieve information about this query execution.
+
+        Returns a status of this query with other information.
+        """
 
     @abstractmethod
     def get_results(self) -> QueryResults:
-        """Retrieve results of this query execution."""
+        """
+        Retrieve results of this query execution.
+
+        Waits until this query execution finishes and downloads results.
+        """
 
     @abstractmethod
     def kill(self) -> None:
-        """Kill this query execution."""
+        """
+        Kill this query execution.
+        """
 
     @abstractmethod
     def join(self) -> None:
-        """Wait until this query execution finishes."""
+        """
+        Wait until this query execution finishes.
+        """
 
 
 class AthenaWrapper(Athena):

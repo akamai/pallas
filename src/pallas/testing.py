@@ -97,6 +97,7 @@ class QueryFake(Query):
         return self._info
 
     def get_results(self) -> QueryResults:
+        self.join()
         self._request_log.append("GetQueryResults")
         return self._results
 

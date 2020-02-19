@@ -125,6 +125,8 @@ class QueryProxy(Query):
         return info
 
     def get_results(self) -> QueryResults:
+        self.join()
+
         params = dict(QueryExecutionId=self.execution_id)
         paginator = self._client.get_paginator("get_query_results")
         pages = iter(paginator.paginate(**params))

@@ -180,7 +180,7 @@ class TestAthenaCachingWrapper:
         athena.submit("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
         query_results = athena.get_query("query-1").get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
     def test_remote_get_cached_query_get_results(self, remote_athena, fake):
@@ -188,7 +188,7 @@ class TestAthenaCachingWrapper:
         remote_athena.execute("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
         query_results = remote_athena.get_query("query-1").get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
     def test_local_get_cached_query_get_results(self, local_athena, fake):
@@ -217,7 +217,7 @@ class TestAthenaCachingWrapper:
         query = athena.submit("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
         query_results = query.get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
     def test_remote_get_second_results_one_query(self, remote_athena, fake):
@@ -226,7 +226,7 @@ class TestAthenaCachingWrapper:
         query.get_results()
         fake.request_log.clear()
         query_results = query.get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
     def test_local_get_second_results_one_query(self, local_athena, fake):
@@ -244,7 +244,7 @@ class TestAthenaCachingWrapper:
         second_query = remote_athena.submit("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
         second_query_results = second_query.get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(second_query_results)
 
     def test_local_get_results_second_query_same_sql(self, local_athena, fake):
@@ -263,7 +263,7 @@ class TestAthenaCachingWrapper:
         second_query = athena.submit("SELECT 2 id, 'bar' name")
         fake.request_log.clear()
         second_query_results = second_query.get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_another_query_results(second_query_results)
 
     def test_local_get_uncached_results_second_query_same_sql(self, local_athena, fake):
@@ -272,7 +272,7 @@ class TestAthenaCachingWrapper:
         second_query = local_athena.submit("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
         second_query_results = second_query.get_results()
-        assert fake.request_log == ["GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(second_query_results)
 
     def test_local_get_cached_results_first_query_same_sql(self, local_athena, fake):
