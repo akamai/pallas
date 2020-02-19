@@ -102,3 +102,6 @@ class QueryFake(Query):
 
     def kill(self) -> None:
         self._request_log.append("StopQueryExecution")
+
+    def join(self) -> None:
+        self.get_info().check()

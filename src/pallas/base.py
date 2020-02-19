@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import time
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
-from pallas.waiting import Fibonacci
 
 
 class Athena(metaclass=ABCMeta):
@@ -82,14 +80,9 @@ class Query(metaclass=ABCMeta):
     def kill(self) -> None:
         """Kill this query execution."""
 
+    @abstractmethod
     def join(self) -> None:
         """Wait until this query execution finishes."""
-        for delay in Fibonacci(max_value=60):
-            info = self.get_info()
-            if info.finished:
-                info.check()
-                break
-            time.sleep(delay)
 
 
 class AthenaWrapper(Athena):
@@ -143,3 +136,6 @@ class QueryWrapper(Query):
 
     def kill(self) -> None:
         self._wrapped.kill()
+
+    def join(self) -> None:
+        self._wrapped.join()

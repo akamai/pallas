@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import boto3
@@ -8,6 +9,7 @@ import boto3
 from pallas.base import Athena, Query
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
+from pallas.waiting import Fibonacci
 
 logger = logging.getLogger("pallas")
 
@@ -122,13 +124,6 @@ class QueryProxy(Query):
             self._finished_info = info
         return info
 
-    def kill(self) -> None:
-        self._client.stop_query_execution(QueryExecutionId=self.execution_id)
-        logger.info(
-            f"Called Athena StopQueryExecution:"
-            f" QueryExecutionId={self.execution_id!r}"
-        )
-
     def get_results(self) -> QueryResults:
         params = dict(QueryExecutionId=self.execution_id)
         paginator = self._client.get_paginator("get_query_results")
@@ -159,3 +154,18 @@ class QueryProxy(Query):
     def _read_page(self, page: Mapping[str, Any]) -> List[Sequence[str]]:
         rows = page["ResultSet"]["Rows"]
         return [tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows]
+
+    def kill(self) -> None:
+        self._client.stop_query_execution(QueryExecutionId=self.execution_id)
+        logger.info(
+            f"Called Athena StopQueryExecution:"
+            f" QueryExecutionId={self.execution_id!r}"
+        )
+
+    def join(self) -> None:
+        for delay in Fibonacci(max_value=60):
+            info = self.get_info()
+            if info.finished:
+                info.check()
+                break
+            time.sleep(delay)
