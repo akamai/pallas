@@ -10,6 +10,13 @@ from pallas.results import QueryResults
 class Athena(metaclass=ABCMeta):
     """
     Athena interface
+
+    Provides methods to execute SQL queries in AWS Athena.
+
+    This is an abstract base class.
+    The :class:`.AthenaProxy` subclass submits actual queries to AWS API.
+    Other subclasses are implemented as decorators adding extra
+    functionally (for example caching).
     """
 
     def __repr__(self) -> str:
@@ -18,28 +25,36 @@ class Athena(metaclass=ABCMeta):
     @property
     @abstractmethod
     def database(self) -> Optional[str]:
-        """Name of Athena database"""
+        """
+        Name of Athena database that will be queries.
+
+        Individual queries can override this in SQL.
+        """
 
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
         """
-        Submit query execution and wait for results.
+        Execute a query and wait for results.
 
-        This is a blocking method that waits until query finishes
-        and results are downloaded.
+        This is a blocking method that waits until query finishes.
+        Returns :class:`QueryResults`.
 
         :param sql: SQL query to be executed
         :param ignore_cache: do not load cached results
         :return: query results
         """
+        # Do not override this method.
+        # Wrappers do not call execute on the wrapped instance,
+        # so overrides are likely to have no effect.
         return self.submit(sql, ignore_cache=ignore_cache).get_results()
 
     @abstractmethod
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         """
-        Submit query execution.
+        Submit a query and return.
 
-        This is a non-blocking method that start a query execution
-        and returns.
+        This is a non-blocking method that starts a query and returns.
+        Returns a :class:`Query` instance for monitoring query execution
+        and downloading results later.
 
         :param sql: an SQL query to be executed
         :param ignore_cache: do not load cached results
@@ -50,12 +65,23 @@ class Athena(metaclass=ABCMeta):
     def get_query(self, execution_id: str) -> Query:
         """
         Get a previously submitted query execution.
+
+        Athena stores results in S3 and does not delete them by default.
+        This method can get past queries and retrieve their results.
+
+        :param execution_id: an Athena query execution ID.
+        :return: a query instance
         """
 
 
 class Query(metaclass=ABCMeta):
     """
     Query interface
+
+    Provides access to one query execution.
+
+    Instances of this class are returned by :meth:`Athena.submit`
+    and :meth:`Athena.get_query` methods.
     """
 
     def __repr__(self) -> str:
@@ -102,6 +128,9 @@ class Query(metaclass=ABCMeta):
 
 
 class AthenaWrapper(Athena):
+    """
+    Base class for :class:`.Athena` decorators.
+    """
 
     _wrapped: Athena
 
@@ -127,6 +156,9 @@ class AthenaWrapper(Athena):
 
 
 class QueryWrapper(Query):
+    """
+    Base class for :class:`.Query` decorators.
+    """
 
     _wrapped: Query
 
