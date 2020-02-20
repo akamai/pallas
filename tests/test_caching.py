@@ -4,8 +4,8 @@ from pallas.caching import AthenaCachingWrapper
 from pallas.storage import MemoryStorage
 from pallas.testing import AthenaFake
 
-FAKE_DATA = [("1", "foo")]
-ANOTHER_FAKE_DATA = [("2", "bar")]
+FAKE_DATA = [("1", "foo", None)]
+ANOTHER_FAKE_DATA = [("2", "bar", None)]
 
 
 @pytest.fixture(name="fake")
@@ -14,8 +14,8 @@ def fake_athena_fixture():
     Athena mock decorated by caching wrapper.
     """
     fake = AthenaFake()
-    fake.column_names = "id", "name"
-    fake.column_types = "integer", "varchar"
+    fake.column_names = "id", "name", "value"
+    fake.column_types = "integer", "varchar", "double"
     fake.data = FAKE_DATA
     return fake
 
@@ -51,11 +51,11 @@ def athena_fixture(request):
 
 
 def assert_query_results(results):
-    assert list(results) == [{"id": 1, "name": "foo"}]
+    assert list(results) == [{"id": 1, "name": "foo", "value": None}]
 
 
 def assert_another_query_results(results):
-    assert list(results) == [{"id": 2, "name": "bar"}]
+    assert list(results) == [{"id": 2, "name": "bar", "value": None}]
 
 
 class TestAthenaCachingWrapper:

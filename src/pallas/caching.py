@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import hashlib
 import logging
 from typing import Optional
@@ -132,29 +131,22 @@ class QueryCachingWrapper(QueryWrapper):
 
     def _load_results(self) -> Optional[QueryResults]:
         try:
-            stream = self._storage.reader(self._get_cache_key())
+            with self._storage.reader(self._get_cache_key()) as stream:
+                results = QueryResults.load(stream)
         except NotFoundError:
             return None
-        reader = csv.reader(stream)
-        column_names = next(reader)
-        column_types = next(reader)
-        data = list(reader)
-        results = QueryResults(column_names, column_types, data)
         logger.info(
             f"Query results loaded from cache {self._storage.uri!r}:"
-            f" QueryExecutionId={self.execution_id!r}: {len(results.data)} rows"
+            f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
         )
         return results
 
     def _save_results(self, results: QueryResults) -> None:
-        stream = self._storage.writer(self._get_cache_key())
-        writer = csv.writer(stream)
-        writer.writerow(results.column_names)
-        writer.writerow(results.column_types)
-        writer.writerows(results.data)
+        with self._storage.writer(self._get_cache_key()) as stream:
+            results.save(stream)
         logger.info(
             f"Query results saved to cache {self._storage.uri!r}:"
-            f" QueryExecutionId={self.execution_id!r}: {len(results.data)} rows"
+            f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
         )
 
     def _get_cache_key(self) -> str:

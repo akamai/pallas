@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional, Sequence, Union, overload
+from typing import Any, Dict, Mapping, Optional, Sequence, TextIO, Union, cast, overload
 
 from pallas.conversions import get_dtype, parse_value
+from pallas.csv import read_csv, write_csv
 
 try:
     import numpy as np
@@ -24,13 +25,13 @@ class QueryResults(Sequence[QueryRecord]):
 
     _column_names: Sequence[str]
     _column_types: Sequence[str]
-    _data: Sequence[Sequence[str]]
+    _data: Sequence[Sequence[Optional[str]]]
 
     def __init__(
         self,
         column_names: Sequence[str],
         column_types: Sequence[str],
-        data: Sequence[Sequence[str]],
+        data: Sequence[Sequence[Optional[str]]],
     ) -> None:
         self._column_names = column_names
         self._column_types = column_types
@@ -56,13 +57,31 @@ class QueryResults(Sequence[QueryRecord]):
         self, index: Union[int, slice]
     ) -> Union[QueryRecord, Sequence[QueryRecord]]:
         if isinstance(index, slice):
-            return QueryResults(self.column_names, self.column_types, self.data[index])
+            return QueryResults(self.column_names, self.column_types, self._data[index])
         row = self._data[index]
         info = zip(self._column_names, self._column_types, row)
         return {cn: parse_value(ct, v) for cn, ct, v in info}
 
     def __len__(self) -> int:
         return len(self._data)
+
+    @classmethod
+    def load(cls, stream: TextIO) -> QueryResults:
+        reader = read_csv(stream)
+        column_names = next(reader)
+        column_types = next(reader)
+        data = list(reader)
+        if any(v is None for v in column_names):
+            raise ValueError("Missing column name")
+        if any(v is None for v in column_types):
+            raise ValueError("Missing column type")
+        column_names = cast(Sequence[str], column_names)
+        column_types = cast(Sequence[str], column_types)
+        return cls(column_names, column_types, data)
+
+    def save(self, stream: TextIO) -> None:
+        write_csv([self._column_names, self._column_types], stream)
+        write_csv(self._data, stream)
 
     @property
     def column_names(self) -> Sequence[str]:
@@ -71,10 +90,6 @@ class QueryResults(Sequence[QueryRecord]):
     @property
     def column_types(self) -> Sequence[str]:
         return list(self._column_types)
-
-    @property
-    def data(self) -> Sequence[Sequence[str]]:
-        return self._data
 
     def to_df(self, dtypes: Optional[Mapping[str, Any]] = None) -> pd.DataFrame:
         if pd is None:
@@ -85,7 +100,7 @@ class QueryResults(Sequence[QueryRecord]):
             dtype = get_dtype(column_type)
             if dtypes is not None:
                 dtype = dtypes.get(column_name, dtype)
-            values = [parse_value(column_type, row[i]) for row in self.data]
+            values = [parse_value(column_type, row[i]) for row in self._data]
             frame_data[column_name] = _pd_array(values, dtype=dtype)
         return pd.DataFrame(frame_data, copy=False)
 
