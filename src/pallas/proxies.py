@@ -11,6 +11,7 @@ from pallas.csv import read_csv
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 from pallas.storage import s3_parse_uri, s3_wrap_body
+from pallas.utils import truncate_str
 from pallas.waiting import Fibonacci
 
 logger = logging.getLogger("pallas")
@@ -34,6 +35,8 @@ class AthenaProxy(Athena):
     :param region_name: an AWS region.
         By default, a region from AWS config is used.
     :param athena_client: a boto3 client to use.
+        By default, a new client is constructed.
+    :param s3_client: a boto3 client to use.
         By default, a new client is constructed.
     """
 
@@ -91,11 +94,10 @@ class AthenaProxy(Athena):
             params.update(WorkGroup=self._workgroup)
         if self._output_location is not None:
             params.update(ResultConfiguration={"OutputLocation": self._output_location})
+        logger.info(f"Athena StartQueryExecution: QueryString={truncate_str(sql)!r}")
         response = self._athena_client.start_query_execution(**params)
         query = self.get_query(response["QueryExecutionId"])
-        logger.info(
-            f"Athena StartQueryExecution:" f" QueryExecutionId={query.execution_id!r}"
-        )
+        logger.info(f"Athena QueryExecutionId={query.execution_id!r} started.")
         return query
 
     def get_query(self, execution_id: str) -> Query:
@@ -126,14 +128,12 @@ class QueryProxy(Query):
         # Query info is cached if the query finished so it cannot change.
         if self._finished_info is not None:
             return self._finished_info
+        logger.info(f"Athena GetQueryExecution: QueryExecutionId={self.execution_id!r}")
         response = self._athena_client.get_query_execution(
             QueryExecutionId=self.execution_id
         )
         info = QueryInfo(response["QueryExecution"])
-        logger.info(
-            f"Athena GetQueryExecution:"
-            f" QueryExecutionId={self.execution_id!r}: {info}"
-        )
+        logger.info(f"Athena QueryExecution: {info}")
         if info.finished:
             self._finished_info = info
         return info
@@ -141,18 +141,18 @@ class QueryProxy(Query):
     def get_results(self) -> QueryResults:
         self.join()
         params = dict(QueryExecutionId=self.execution_id)
+        logger.info(f"Athena GetQueryResults: QueryExecutionId={self.execution_id!r}")
         response = self._athena_client.get_query_results(**params)
-        logger.info(
-            f"Athena GetQueryResults:"
-            f" QueryExecutionId={self.execution_id!r}:"
-            f" {len(response['ResultSet']['Rows'])} rows"
-        )
         column_names = self._read_column_names(response)
         column_types = self._read_column_types(response)
         if response.get("NextToken"):
+            logger.info("Athena ResultSet paginated. Will download from S3.")
             data = self._download_data()
         else:
             data = self._read_data(response)
+            logger.info(
+                f"Athena ResultSet complete: {len(data)} rows (including header)"
+            )
         if data and data[0] == column_names:
             # Skip the first row iff it contains column names.
             # Athena often returns column names in the first row but not always.
@@ -161,10 +161,10 @@ class QueryProxy(Query):
         return QueryResults(column_names, column_types, data)
 
     def kill(self) -> None:
-        self._athena_client.stop_query_execution(QueryExecutionId=self.execution_id)
         logger.info(
-            f"Athena StopQueryExecution:" f" QueryExecutionId={self.execution_id!r}"
+            f"Athena StopQueryExecution: QueryExecutionId={self.execution_id!r}"
         )
+        self._athena_client.stop_query_execution(QueryExecutionId=self.execution_id)
 
     def join(self) -> None:
         for delay in Fibonacci(max_value=60):
@@ -190,8 +190,9 @@ class QueryProxy(Query):
         output_location = self.get_info().output_location
         bucket, key = s3_parse_uri(output_location)
         params = dict(Bucket=bucket, Key=key)
+        logger.info(f"S3 GetObject:" f" Bucket={bucket!r} Key={key!r}")
         response = self._s3_client.get_object(**params)
         with s3_wrap_body(response["Body"]) as stream:
             data = list(read_csv(stream))
-        logger.info(f"Downloaded results from S3:" f" Bucket={bucket!r} Key={key!r}")
+        logger.info(f"S3 Body downloaded: {len(data)} rows (including header)")
         return data
