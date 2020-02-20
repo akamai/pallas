@@ -152,7 +152,7 @@ class TestAthenaProxy:
     def test_long_results(self, athena):
         r1, r2 = range(20), range(100)
         sql = f"""\
-            SELECT * FROM
+            SELECT v1, v2, NULL v3 FROM
                 (VALUES {', '.join(map(str, r1))}) AS t1 (v1),
                 (VALUES {', '.join(map(str, r2))}) AS t2 (v2)
             ORDER BY
@@ -160,5 +160,5 @@ class TestAthenaProxy:
         """
         results = athena.execute(textwrap.dedent(sql))
         assert list(results) == [
-            {"v1": v1, "v2": v2} for v1, v2 in itertools.product(r1, r2)
+            {"v1": v1, "v2": v2, "v3": None} for v1, v2 in itertools.product(r1, r2)
         ]

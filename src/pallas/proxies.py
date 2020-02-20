@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import logging
 import time
 from typing import Any, Dict, Mapping, Optional, Sequence
@@ -8,6 +7,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import boto3
 
 from pallas.base import Athena, Query
+from pallas.csv import read_csv
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 from pallas.storage import s3_parse_uri, s3_wrap_body
@@ -94,8 +94,7 @@ class AthenaProxy(Athena):
         response = self._athena_client.start_query_execution(**params)
         query = self.get_query(response["QueryExecutionId"])
         logger.info(
-            f"Called Athena StartQueryExecution:"
-            f" QueryExecutionId={query.execution_id!r}"
+            f"Athena StartQueryExecution:" f" QueryExecutionId={query.execution_id!r}"
         )
         return query
 
@@ -132,7 +131,7 @@ class QueryProxy(Query):
         )
         info = QueryInfo(response["QueryExecution"])
         logger.info(
-            f"Called Athena GetQueryExecution:"
+            f"Athena GetQueryExecution:"
             f" QueryExecutionId={self.execution_id!r}: {info}"
         )
         if info.finished:
@@ -144,11 +143,10 @@ class QueryProxy(Query):
         params = dict(QueryExecutionId=self.execution_id)
         response = self._athena_client.get_query_results(**params)
         logger.info(
-            f"Called Athena GetQueryResults:"
+            f"Athena GetQueryResults:"
             f" QueryExecutionId={self.execution_id!r}:"
             f" {len(response['ResultSet']['Rows'])} rows"
         )
-
         column_names = self._read_column_names(response)
         column_types = self._read_column_types(response)
         if response.get("NextToken"):
@@ -160,14 +158,12 @@ class QueryProxy(Query):
             # Athena often returns column names in the first row but not always.
             # (for example, SHOW PARTITIONS results do not have this header).
             data = data[1:]
-
         return QueryResults(column_names, column_types, data)
 
     def kill(self) -> None:
         self._athena_client.stop_query_execution(QueryExecutionId=self.execution_id)
         logger.info(
-            f"Called Athena StopQueryExecution:"
-            f" QueryExecutionId={self.execution_id!r}"
+            f"Athena StopQueryExecution:" f" QueryExecutionId={self.execution_id!r}"
         )
 
     def join(self) -> None:
@@ -190,13 +186,12 @@ class QueryProxy(Query):
         rows = response["ResultSet"]["Rows"]
         return [tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows]
 
-    def _download_data(self) -> Sequence[Sequence[str]]:
+    def _download_data(self) -> Sequence[Sequence[Optional[str]]]:
         output_location = self.get_info().output_location
         bucket, key = s3_parse_uri(output_location)
         params = dict(Bucket=bucket, Key=key)
         response = self._s3_client.get_object(**params)
         with s3_wrap_body(response["Body"]) as stream:
-            reader = csv.reader(stream, delimiter=",", doublequote=True)
-            data = [tuple(row) for row in reader]
+            data = list(read_csv(stream))
         logger.info(f"Downloaded results from S3:" f" Bucket={bucket!r} Key={key!r}")
         return data
