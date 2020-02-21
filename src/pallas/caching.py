@@ -74,20 +74,22 @@ class AthenaCachingWrapper(AthenaWrapper):
         return QueryCachingWrapper(query, self._storage)
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
+        key = self._get_cache_key(sql)
         try:
-            execution_id = self._storage.get(self._get_cache_key(sql))
+            execution_id = self._storage.get(key)
         except NotFoundError:
             return None
         logger.info(
-            f"Query execution loaded from cache {self._storage.uri!r}:"
+            f"Query execution loaded from cache {self._storage}{key}:"
             f" QueryExecutionId={execution_id!r}"
         )
         return execution_id
 
     def _save_execution_id(self, sql: str, execution_id: str) -> None:
-        self._storage.set(self._get_cache_key(sql), execution_id)
+        key = self._get_cache_key(sql)
+        self._storage.set(key, execution_id)
         logger.info(
-            f"Query execution saved to cache {self._storage.uri!r}:"
+            f"Query execution saved to cache {self._storage}{key}:"
             f" QueryExecutionId={execution_id!r}"
         )
 
@@ -130,22 +132,24 @@ class QueryCachingWrapper(QueryWrapper):
         return self._storage.has(self._get_cache_key())
 
     def _load_results(self) -> Optional[QueryResults]:
+        key = self._get_cache_key()
         try:
-            with self._storage.reader(self._get_cache_key()) as stream:
+            with self._storage.reader(key) as stream:
                 results = QueryResults.load(stream)
         except NotFoundError:
             return None
         logger.info(
-            f"Query results loaded from cache {self._storage.uri!r}:"
+            f"Query results loaded from cache {self._storage}{key}:"
             f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
         )
         return results
 
     def _save_results(self, results: QueryResults) -> None:
-        with self._storage.writer(self._get_cache_key()) as stream:
+        key = self._get_cache_key()
+        with self._storage.writer(key) as stream:
             results.save(stream)
         logger.info(
-            f"Query results saved to cache {self._storage.uri!r}:"
+            f"Query results saved to cache {self._storage}{key}:"
             f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
         )
 

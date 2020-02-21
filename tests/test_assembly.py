@@ -69,12 +69,12 @@ class TestSetup:
     def assert_cache_local(self, athena):
         caching_wrapper = athena.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
-        assert caching_wrapper.storage.uri == "file:/path"
+        assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results
         assert isinstance(caching_wrapper.wrapped, AthenaProxy)
 
     def test_cache_remote_and_local(self):
-        athena = setup(cache_remote="s3://bucket/path/", cache_local="/path",)
+        athena = setup(environ={}, cache_remote="s3://bucket/path/", cache_local="/path",)
         self.assert_cache_remote_and_local(athena)
 
     def test_cache_remote_and_local_from_env(self):
@@ -89,7 +89,7 @@ class TestSetup:
     def assert_cache_remote_and_local(self, athena):
         caching_wrapper = athena.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
-        assert caching_wrapper.storage.uri == "file:/path"
+        assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results
         assert isinstance(caching_wrapper.wrapped, AthenaCachingWrapper)
         assert caching_wrapper.wrapped.storage.uri == "s3://bucket/path/"

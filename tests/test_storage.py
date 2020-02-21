@@ -101,8 +101,8 @@ class TestFromURI:
     def test_file_from_uri(self, uri, base_dir):
         storage = storage_from_uri(uri)
         assert isinstance(storage, FileSystemStorage)
-        assert str(storage) == storage.uri == f"file:{base_dir}"
-        assert repr(storage) == f"<FileSystemStorage: 'file:{base_dir}'>"
+        assert str(storage) == storage.uri == f"file:{base_dir}/"
+        assert repr(storage) == f"<FileSystemStorage: 'file:{base_dir}/'>"
         assert str(storage.base_dir) == base_dir
 
     @pytest.mark.parametrize(

@@ -41,7 +41,7 @@ class FileSystemStorage(Storage):
 
     @property
     def uri(self) -> str:
-        return f"file:{self._base_dir}"
+        return f"file:{self._base_dir}/"
 
     @property
     def base_dir(self) -> pathlib.Path:
