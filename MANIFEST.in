@@ -1,0 +1,11 @@
+recursive-include src *.py
+recursive-include tests *.py
+include src/pallas/py.typed
+include .flake8
+include .isort.cfg
+include MANIFEST.in
+include mypy.ini
+include pytest.ini
+include README.md
+include setup.py
+include tox.ini
