@@ -16,9 +16,9 @@ setup(
     packages=find_packages("src"),
     package_dir={"": "src"},
     python_requires=">=3.7",
-    install_requires=["boto3",],
+    install_requires=["boto3"],
     extras_require={
-        "dev": ["flake8", "pytest", "mypy",],
-        "pandas": ["pandas>=1.0.0",],
+        "dev": ["flake8", "pytest", "mypy"],
+        "pandas": ["pandas>=1.0.0"],
     },
 )

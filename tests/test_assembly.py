@@ -74,7 +74,9 @@ class TestSetup:
         assert isinstance(caching_wrapper.wrapped, AthenaProxy)
 
     def test_cache_remote_and_local(self):
-        athena = setup(environ={}, cache_remote="s3://bucket/path/", cache_local="/path",)
+        athena = setup(
+            environ={}, cache_remote="s3://bucket/path/", cache_local="/path"
+        )
         self.assert_cache_remote_and_local(athena)
 
     def test_cache_remote_and_local_from_env(self):
