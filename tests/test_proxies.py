@@ -12,7 +12,7 @@ from pallas.proxies import AthenaProxy
 @pytest.fixture
 def athena(region_name, athena_database, athena_workgroup, s3_tmp_uri):
     return AthenaProxy(
-        region_name=region_name,
+        region=region_name,
         database=athena_database,
         workgroup=athena_workgroup,
         output_location=f"{s3_tmp_uri}/output",

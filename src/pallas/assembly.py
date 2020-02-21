@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
+import os
+from typing import Mapping, Optional
 
 from pallas.base import Athena
 from pallas.caching import AthenaCachingWrapper
@@ -10,27 +11,33 @@ from pallas.usability import AthenaKillOnInterruptWrapper, AthenaNormalizationWr
 
 
 def setup(
+    *,
+    environ: Optional[Mapping[str, str]] = None,
+    environ_prefix: str = "PALLAS",
     database: Optional[str] = None,
     workgroup: Optional[str] = None,
     output_location: Optional[str] = None,
-    region_name: Optional[str] = None,
+    region: Optional[str] = None,
     cache_remote: Optional[str] = None,
     cache_local: Optional[str] = None,
-    normalize: bool = False,
-    kill_on_interrupt: bool = False,
+    normalize: bool = True,
+    kill_on_interrupt: bool = True,
 ) -> Athena:
     """
     Assembly :class:`.Athena` instance.
 
     Initializes :class:`.AthenaProxy` and decorates it by caching wrappers.
 
+    :param environ: Mapping to use instead of ``os.environ``.
+        Set to empty dict to ignore environment variables.
+    :param environ_prefix: Prefix of environment variables.
     :param database: a name of Athena database.
         If omitted, database should be specified in SQL.
     :param workgroup: a name of Athena workgroup.
         If omitted, default workgroup will be used.
     :param output_location: an output location at S3 for query results.
         Optional if a default location is specified for the *workgroup*.
-    :param region_name: an AWS region.
+    :param region: an AWS region.
         By default, region from AWS config is used.
     :param cache_remote: an URI of a remote cache.
         Query execution IDs without results are stored to the remote cache.
@@ -43,12 +50,24 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
+    if environ is None:
+        environ = os.environ
+    config = _EnvironConfig(environ, environ_prefix)
+    database = config.get_str("DATABASE", database)
+    workgroup = config.get_str("WORKGROUP", workgroup)
+    output_location = config.get_str("OUTPUT_LOCATION", output_location)
+    region = config.get_str("REGION", region)
+    cache_remote = config.get_str("CACHE_REMOTE", cache_remote)
+    cache_local = config.get_str("CACHE_LOCAL", cache_local)
+    normalize = config.get_bool("NORMALIZE", normalize)
+    kill_on_interrupt = config.get_bool("KILL_ON_INTERRUPT", kill_on_interrupt)
+
     athena: Athena
     athena = AthenaProxy(
         database=database,
         workgroup=workgroup,
         output_location=output_location,
-        region_name=region_name,
+        region=region,
     )
     if cache_remote is not None:
         storage = storage_from_uri(cache_remote)
@@ -61,3 +80,29 @@ def setup(
     if kill_on_interrupt:
         athena = AthenaKillOnInterruptWrapper(athena)
     return athena
+
+
+class _EnvironConfig:
+    def __init__(self, environ: Mapping[str, str], prefix: str) -> None:
+        self._environ = environ
+        self._prefix = prefix
+
+    def get_str(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        v = self._get(key)
+        if not v:
+            return default
+        return v
+
+    def get_bool(self, key: str, default: bool = False) -> bool:
+        v = self._get(key)
+        if not v:
+            return default
+        v = str(v).lower()
+        if v in ("1", "true", "on", "yes"):
+            return True
+        if v in ("0", "false", "off", "no"):
+            return False
+        raise ValueError(f"Invalid boolean value: {key}")
+
+    def _get(self, key: str) -> str:
+        return self._environ.get(f"{self._prefix}_{key}", "")

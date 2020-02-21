@@ -31,7 +31,7 @@ class AthenaProxy(Athena):
         If omitted, default workgroup will be used.
     :param output_location: an output location at S3 for query results.
         Optional if a default location is specified for the *workgroup*.
-    :param region_name: an AWS region.
+    :param region: an AWS region.
         By default, a region from AWS config is used.
     :param athena_client: a boto3 client to use.
         By default, a new client is constructed.
@@ -51,12 +51,12 @@ class AthenaProxy(Athena):
         database: Optional[str] = None,
         workgroup: Optional[str] = None,
         output_location: Optional[str] = None,
-        region_name: Optional[str] = None,
+        region: Optional[str] = None,
         athena_client: Optional[Any] = None,
         s3_client: Optional[Any] = None,
     ) -> None:
         if athena_client is None:
-            athena_client = boto3.client("athena", region_name=region_name)
+            athena_client = boto3.client("athena", region_name=region)
         if s3_client is None:
             s3_client = boto3.client("s3")
         self._athena_client = athena_client
