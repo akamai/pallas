@@ -5,6 +5,7 @@ from typing import Optional
 
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
+from pallas.sql import quote
 
 
 class Athena(metaclass=ABCMeta):
@@ -21,6 +22,8 @@ class Athena(metaclass=ABCMeta):
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
+
+    quote = staticmethod(quote)
 
     @property
     @abstractmethod
