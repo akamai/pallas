@@ -1,5 +1,7 @@
+import datetime as dt
 import itertools
 import textwrap
+from decimal import Decimal
 
 import pytest
 
@@ -86,11 +88,16 @@ class TestAthenaProxy:
         assert info.database == athena.database
         assert info.sql == EXAMPLE_SQL
 
-    def test_variaous_results(self, athena):
+    def test_various_types(self, athena):
         sql = """\
             SELECT
                 'anonymous',
                 null unknown_null,
+                CAST('' as VARCHAR) varchar_empty,
+                CAST('b' as VARCHAR) varchar_value,
+                CAST(NULL as VARCHAR) varchar_null,
+                CAST('a' as CHAR) char_value,
+                CAST(NULL as CHAR) char_null,
                 true boolean_true,
                 false boolean_false,
                 cast(null AS BOOLEAN) boolean_null,
@@ -105,20 +112,31 @@ class TestAthenaProxy:
                 nan() double_nan,
                 infinity() double_plus_infinity,
                 -infinity() double_minus_infinity,
-                CAST('a' as CHAR) char_value,
-                CAST(NULL as CHAR) char_null,
-                CAST('b' as VARCHAR) varchar_value,
-                CAST(NULL as VARCHAR) varchar_null,
+                DECIMAL '0.1' decimal_value,
+                CAST(NULL as DECIMAL) decimal_null,
+                DATE '2001-08-22' date_value,
+                CAST(NULL as DATE) date_null,
+                TIMESTAMP '2001-08-22 03:04:05.321' timestamp_value,
+                CAST(NULL as TIMESTAMP) timestamp_null,
+                from_base64('AP8A') binary_value,
+                CAST(NULL as VARBINARY) binary_null,
                 ARRAY['item1', 'item2'] array_value,
                 CAST(NULL AS ARRAY(VARCHAR)) array_null,
                 MAP(ARRAY['k'], ARRAY['v']) map_value,
-                CAST(NULL AS MAP(VARCHAR, VARCHAR)) map_null
+                CAST(NULL AS MAP(VARCHAR, VARCHAR)) map_null,
+                CAST(ARRAY[1, NULL, 456] AS JSON) json_value,
+                CAST(NULL AS JSON) json_null
         """
         results = athena.execute(textwrap.dedent(sql))
         assert list(results) == [
             {
                 "_col0": "anonymous",
                 "unknown_null": None,
+                "varchar_empty": "",
+                "varchar_value": "b",
+                "varchar_null": None,
+                "char_value": "a",
+                "char_null": None,
                 "boolean_true": True,
                 "boolean_false": False,
                 "boolean_null": None,
@@ -133,14 +151,20 @@ class TestAthenaProxy:
                 "double_nan": pytest.approx(float("nan"), nan_ok=True),
                 "double_plus_infinity": float("inf"),
                 "double_minus_infinity": float("-inf"),
-                "char_value": "a",
-                "char_null": None,
-                "varchar_value": "b",
-                "varchar_null": None,
+                "decimal_value": Decimal("0.1"),
+                "decimal_null": None,
+                "timestamp_value": dt.datetime(2001, 8, 22, 3, 4, 5, 321000),
+                "timestamp_null": None,
+                "binary_value": b"\x00\xff\x00",
+                "binary_null": None,
+                "date_value": dt.date(2001, 8, 22),
+                "date_null": None,
                 "array_value": ["item1", "item2"],
                 "array_null": None,
                 "map_value": {"k": "v"},
                 "map_null": None,
+                "json_value": [1, None, 456],
+                "json_null": None,
             }
         ]
 

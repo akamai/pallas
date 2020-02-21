@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import datetime as dt
+import json
 from abc import ABCMeta, abstractmethod
+from decimal import Decimal
 from typing import Dict, Generic, List, Optional, TypeVar
 
 T_co = TypeVar("T_co", covariant=True)
@@ -68,6 +71,42 @@ class FloatConverter(Converter[float]):
         return float(value)
 
 
+class DecimalConverter(Converter[Decimal]):
+    @property
+    def dtype(self) -> object:
+        return "object"
+
+    def read_str(self, value: str) -> Decimal:
+        return Decimal(value)
+
+
+class DateConverter(Converter[dt.date]):
+    @property
+    def dtype(self) -> object:
+        return f"datetime64[ns]"
+
+    def read_str(self, value: str) -> dt.date:
+        return dt.date.fromisoformat(value)
+
+
+class DateTimeConverter(Converter[dt.datetime]):
+    @property
+    def dtype(self) -> object:
+        return f"datetime64[ns]"
+
+    def read_str(self, value: str) -> dt.datetime:
+        return dt.datetime.fromisoformat(value)
+
+
+class BinaryConverter(Converter[bytes]):
+    @property
+    def dtype(self) -> object:
+        return "bytes"
+
+    def read_str(self, value: str) -> bytes:
+        return bytes.fromhex(value)
+
+
 class ArrayConverter(Converter[List[str]]):
     """
     Parse string returned by Athena to a list.
@@ -84,6 +123,15 @@ class ArrayConverter(Converter[List[str]]):
         if not value.startswith("[") or not value.endswith("]"):
             raise ValueError(f"Invalid array value: {value!r}")
         return value[1:-1].split(", ")
+
+
+class JSONConverter(Converter[object]):
+    @property
+    def dtype(self) -> object:
+        return "object"
+
+    def read_str(self, value: str) -> object:
+        return json.loads(value)
 
 
 class MapConverter(Converter[Dict[str, str]]):
@@ -115,8 +163,13 @@ CONVERTERS: Dict[str, Converter[object]] = {
     "bigint": IntConverter(64),
     "float": FloatConverter(32),
     "double": FloatConverter(64),
+    "decimal": DecimalConverter(),
+    "date": DateConverter(),
+    "timestamp": DateTimeConverter(),
+    "varbinary": BinaryConverter(),
     "map": MapConverter(),
     "array": ArrayConverter(),
+    "json": JSONConverter(),
 }
 
 
