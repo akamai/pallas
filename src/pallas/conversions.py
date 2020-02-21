@@ -1,100 +1,130 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from abc import ABCMeta, abstractmethod
+from typing import Dict, Generic, List, Optional, TypeVar
+
+T_co = TypeVar("T_co", covariant=True)
 
 
-def parse_int(v: str) -> int:
+class Converter(Generic[T_co], metaclass=ABCMeta):
     """
-    Parse an integral number returned by Athena.
+    Convert values returned by Athena to Python types.
     """
-    return int(v)
+
+    @property
+    @abstractmethod
+    def dtype(self) -> object:
+        """Pandas dtype"""
+
+    def read(self, value: Optional[str]) -> Optional[T_co]:
+        if value is None:
+            return None
+        return self.read_str(value)
+
+    @abstractmethod
+    def read_str(self, value: str) -> T_co:
+        """Read value from string"""
 
 
-def parse_float(v: str) -> float:
-    """
-    Parse a floating-point number returned by Athena.
-    """
-    return float(v)
+class TextConverter(Converter[str]):
+    @property
+    def dtype(self) -> object:
+        return "str"
+
+    def read_str(self, value: str) -> str:
+        return value
 
 
-def parse_bool(v: str) -> bool:
-    """
-    Parse a boolean value returned by Athena.
-    """
-    return {"true": True, "false": False}[v]
+class BooleanConverter(Converter[bool]):
+    @property
+    def dtype(self) -> object:
+        return "bool"
+
+    def read_str(self, value: str) -> bool:
+        return {"true": True, "false": False}[value]
 
 
-def parse_array(value: str) -> List[str]:
+class IntConverter(Converter[int]):
+    def __init__(self, size: int) -> None:
+        self._size = size
+
+    @property
+    def dtype(self) -> object:
+        return f"Int{self._size}"
+
+    def read_str(self, value: str) -> int:
+        return int(value)
+
+
+class FloatConverter(Converter[float]):
+    def __init__(self, size: int) -> None:
+        self._size = size
+
+    @property
+    def dtype(self) -> object:
+        return f"float{self._size}"
+
+    def read_str(self, value: str) -> float:
+        return float(value)
+
+
+class ArrayConverter(Converter[List[str]]):
     """
     Parse string returned by Athena to a list.
 
     Always returns a list of strings because Athena does
     not send more details about item types.
     """
-    if not value.startswith("[") or not value.endswith("]"):
-        raise ValueError(f"Invalid array value: {value!r}")
-    return value[1:-1].split(", ")
+
+    @property
+    def dtype(self) -> object:
+        return "object"
+
+    def read_str(self, value: str) -> List[str]:
+        if not value.startswith("[") or not value.endswith("]"):
+            raise ValueError(f"Invalid array value: {value!r}")
+        return value[1:-1].split(", ")
 
 
-def parse_map(value: str) -> Dict[str, str]:
+class MapConverter(Converter[Dict[str, str]]):
     """
     Convert string value returned from Athena to a dictionary.
 
     Always returns a mapping from strings to strings because
     Athena does not send more details about item types.
     """
-    if not value.startswith("{") or not value.endswith("}"):
-        raise ValueError(f"Invalid map value: {value!r}")
-    parts = value[1:-1].split(", ")
-    return {k: v for k, _, v in (part.partition("=") for part in parts)}
+
+    @property
+    def dtype(self) -> object:
+        return "object"
+
+    def read_str(self, value: str) -> Dict[str, str]:
+        if not value.startswith("{") or not value.endswith("}"):
+            raise ValueError(f"Invalid map value: {value!r}")
+        parts = value[1:-1].split(", ")
+        return {k: v for k, _, v in (part.partition("=") for part in parts)}
 
 
-PARSERS = {
-    "boolean": parse_bool,
-    "tinyint": parse_int,
-    "smallint": parse_int,
-    "integer": parse_int,
-    "bigint": parse_int,
-    "float": parse_float,
-    "double": parse_float,
-    "map": parse_map,
-    "array": parse_array,
+default_converter = TextConverter()
+
+CONVERTERS: Dict[str, Converter[object]] = {
+    "boolean": BooleanConverter(),
+    "tinyint": IntConverter(8),
+    "smallint": IntConverter(16),
+    "integer": IntConverter(32),
+    "bigint": IntConverter(64),
+    "float": FloatConverter(32),
+    "double": FloatConverter(64),
+    "map": MapConverter(),
+    "array": ArrayConverter(),
 }
 
 
-def parse_value(column_type: str, value: Optional[str]) -> Any:
+def get_converter(column_type: str) -> Converter[object]:
     """
-    Parse value returned by Athena to a corresponding Python type.
+    Return a converter for a column type.
 
-    :param column_type: column type as reported by Athena
-    :param value: string column value as returned by Athena
-    :return: Python value
+    :param column_type: a column type as reported by Athena
+    :return: a converter instance.
     """
-    if value is None:
-        return None
-    converter = PARSERS.get(column_type)
-    if not converter:
-        return value
-    return converter(value)
-
-
-DTYPES = {
-    "boolean": "bool",
-    "tinyint": "Int8",
-    "smallint": "Int16",
-    "integer": "Int32",
-    "bigint": "Int64",
-    "float": "float32",
-    "double": "Float64",
-    "map": "object",
-    "array": "object",
-}
-
-
-def get_dtype(column_type: str) -> str:
-    """
-    Return Pandas dtype for an Athena type.
-    :param column_type: column type as reported by Athena
-    :return: Pandas dtype
-    """
-    return DTYPES.get(column_type, "str")
+    return CONVERTERS.get(column_type, default_converter)

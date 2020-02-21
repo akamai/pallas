@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional, Sequence, TextIO, Union, cast, overload
+from typing import Dict, Mapping, Optional, Sequence, TextIO, Union, cast, overload
 
-from pallas.conversions import get_dtype, parse_value
+from pallas.conversions import Converter, get_converter
 from pallas.csv import read_csv, write_csv
 
 try:
@@ -13,7 +13,7 @@ except ImportError:
     np = None
 
 
-QueryRecord = Dict[str, Any]
+QueryRecord = Dict[str, object]
 
 
 class QueryResults(Sequence[QueryRecord]):
@@ -59,8 +59,10 @@ class QueryResults(Sequence[QueryRecord]):
         if isinstance(index, slice):
             return QueryResults(self.column_names, self.column_types, self._data[index])
         row = self._data[index]
-        info = zip(self._column_names, self._column_types, row)
-        return {cn: parse_value(ct, v) for cn, ct, v in info}
+        return {
+            cn: converter.read(v)
+            for cn, converter, v in zip(self.column_names, self.converters, row)
+        }
 
     def __len__(self) -> int:
         return len(self._data)
@@ -91,21 +93,26 @@ class QueryResults(Sequence[QueryRecord]):
     def column_types(self) -> Sequence[str]:
         return list(self._column_types)
 
-    def to_df(self, dtypes: Optional[Mapping[str, Any]] = None) -> pd.DataFrame:
+    @property
+    def converters(self) -> Sequence[Converter[object]]:
+        return list(map(get_converter, self.column_types))
+
+    def to_df(self, dtypes: Optional[Mapping[str, object]] = None) -> pd.DataFrame:
         if pd is None:
             raise RuntimeError("Pandas cannot be imported.")
         frame_data = {}
-        column_info = zip(self.column_names, self.column_types)
-        for i, (column_name, column_type) in enumerate(column_info):
-            dtype = get_dtype(column_type)
+        for i, (column_name, converter) in enumerate(
+            zip(self.column_names, self.converters)
+        ):
+            dtype = converter.dtype
             if dtypes is not None:
                 dtype = dtypes.get(column_name, dtype)
-            values = [parse_value(column_type, row[i]) for row in self._data]
+            values = [converter.read(row[i]) for row in self._data]
             frame_data[column_name] = _pd_array(values, dtype=dtype)
         return pd.DataFrame(frame_data, copy=False)
 
 
-def _pd_array(values: Sequence[Any], *, dtype: str) -> Any:
+def _pd_array(values: Sequence[object], *, dtype: object) -> object:
     if dtype == "object":
         # Workaround for ValueError: PandasArray must be 1-dimensional.
         # When all values are lists of same length, Pandas/NumPy think
