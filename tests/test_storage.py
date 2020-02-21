@@ -2,13 +2,10 @@ import os
 
 import pytest
 
-from pallas.storage import (
-    FileStorage,
-    MemoryStorage,
-    NotFoundError,
-    S3Storage,
-    storage_from_uri,
-)
+from pallas.storage import NotFoundError, storage_from_uri
+from pallas.storage.filesystem import FileSystemStorage
+from pallas.storage.memory import MemoryStorage
+from pallas.storage.s3 import S3Storage
 
 
 @pytest.fixture(name="memory_storage")
@@ -18,7 +15,7 @@ def memory_storage_fixture(tmp_path):
 
 @pytest.fixture(name="file_storage")
 def file_storage_fixture(tmp_path):
-    return FileStorage(tmp_path / "cache")
+    return FileSystemStorage(tmp_path / "cache")
 
 
 @pytest.fixture(name="s3_storage")
@@ -103,9 +100,9 @@ class TestFromURI:
     )
     def test_file_from_uri(self, uri, base_dir):
         storage = storage_from_uri(uri)
-        assert isinstance(storage, FileStorage)
+        assert isinstance(storage, FileSystemStorage)
         assert str(storage) == storage.uri == f"file:{base_dir}"
-        assert repr(storage) == f"<FileStorage: 'file:{base_dir}'>"
+        assert repr(storage) == f"<FileSystemStorage: 'file:{base_dir}'>"
         assert str(storage.base_dir) == base_dir
 
     @pytest.mark.parametrize(

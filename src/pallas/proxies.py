@@ -10,7 +10,7 @@ from pallas.base import Athena, Query
 from pallas.csv import read_csv
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
-from pallas.storage import s3_parse_uri, s3_wrap_body
+from pallas.storage.s3 import s3_parse_uri, s3_wrap_body
 from pallas.utils import Fibonacci, truncate_str
 
 logger = logging.getLogger("pallas")
