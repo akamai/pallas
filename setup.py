@@ -26,7 +26,7 @@ setup(
             "mypy",
         ],
         "pandas": [
-            "pandas",
+            "pandas>=1.0.0",
         ],
     }
 )
