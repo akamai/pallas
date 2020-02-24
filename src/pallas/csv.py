@@ -29,10 +29,10 @@ def _decode_value(raw: str) -> CSVValue:
     if raw == "":
         return None
     if not (raw.startswith('"') and raw.endswith('"')):
-        raise ValueError(raw)
+        raise ValueError(f"Value not quoted: {raw}")
     parts = raw[1:-1].split('""')
     if any('"' in part for part in parts):
-        raise ValueError(f"Invalid value: {raw}")
+        raise ValueError(f"Invalid quoting: {raw}")
     return '"'.join(parts)
 
 
@@ -42,8 +42,8 @@ def _tokenize(stream: TextIO) -> Iterator[Tuple[str, str]]:
 
     Yields (value, control) pairs, where:
     - Value is raw field values, including all quoting.
-    - Control is on of: "," (field separator), "\n" (line separator),
-      "" (end of file).
+    - Control is one of:
+      "," (field separator), "\n" (line separator), "" (end of file).
 
     """
     buffer = ""  # Chunk of text read from the stream.
