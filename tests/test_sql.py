@@ -1,3 +1,6 @@
+import datetime as dt
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -24,6 +27,13 @@ from pallas.base import Athena
         (np.nan, "nan()"),
         (np.inf, "infinity()"),
         (-np.inf, "-infinity()"),
+        (Decimal("0.1"), "DECIMAL '0.1'"),
+        (dt.date(2001, 8, 22), "DATE '2001-08-22'"),
+        (
+            dt.datetime(2001, 8, 22, 3, 4, 5, 321000),
+            "TIMESTAMP '2001-08-22 03:04:05.321'",
+        ),
+        (b"\x00\xff\x00", "from_base64('AP8A')"),
     ],
 )
 def test_quote_value(value, quoted):

@@ -4,11 +4,14 @@ SQL helpers.
 Implements quoting compatible with Athena.
 """
 
+import base64
+import datetime as dt
 import math
 import numbers
+from decimal import Decimal
 from typing import Union
 
-SQL_SCALAR = Union[None, str, float, numbers.Real]
+SQL_SCALAR = Union[None, str, float, numbers.Real, Decimal, bytes, dt.date]
 
 
 def _quote_str(value: str) -> str:
@@ -32,6 +35,25 @@ def _quote_real(value: Union[float, numbers.Real]) -> str:
     return str(value)
 
 
+def _quote_decimal(value: Decimal) -> str:
+    return f"DECIMAL {_quote_str(str(value))}"
+
+
+def _quote_bytes(value: bytes) -> str:
+    encoded = base64.b64encode(value).decode("ascii")
+    return f"from_base64({_quote_str(encoded)})"
+
+
+def _quote_datetime(value: dt.datetime) -> str:
+    encoded = value.isoformat(sep=" ", timespec="milliseconds")
+    return f"TIMESTAMP {_quote_str(encoded)}"
+
+
+def _quote_date(value: dt.date) -> str:
+    encoded = value.isoformat()
+    return f"DATE {_quote_str(encoded)}"
+
+
 def quote(value: SQL_SCALAR) -> str:
     """
     Quote scalar method to an SQL expression.
@@ -47,4 +69,12 @@ def quote(value: SQL_SCALAR) -> str:
         return _quote_integral(value)
     if isinstance(value, float) or isinstance(value, numbers.Real):
         return _quote_real(value)
+    if isinstance(value, Decimal):
+        return _quote_decimal(value)
+    if isinstance(value, dt.datetime):
+        return _quote_datetime(value)
+    if isinstance(value, dt.date):
+        return _quote_date(value)
+    if isinstance(value, bytes):
+        return _quote_bytes(value)
     raise TypeError(f"Cannot quote {type(value)}.")
