@@ -1,3 +1,9 @@
+"""
+SQL helpers.
+
+Implements quoting compatible with Athena.
+"""
+
 import math
 import numbers
 from typing import Union

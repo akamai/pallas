@@ -1,3 +1,13 @@
+"""
+Proxies to AWS Athena APIs.
+
+Classes implemented in this module are the core of the Pallas library.
+They issue actual requests using boto3.
+
+Other clients are implemented as decorators wrapping the core
+and offering same interface.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -18,10 +28,10 @@ logger = logging.getLogger("pallas")
 
 class AthenaProxy(Athena):
     """
-    Athena client.
+    Proxy to AWS Athena.
 
-    Executes queries using via AWS API using boto3 library.
     This is the core implementation of the :class:`.Athena` interface.
+    It executes queries via AWS APIs using boto3 library.
 
     It can be decorated by wrappers to provide additional functionality.
 
@@ -106,6 +116,15 @@ class AthenaProxy(Athena):
 
 
 class QueryProxy(Query):
+    """
+    Proxy to an Athena query execution.
+
+    This is the core implementation of the :class:`.Query` interface.
+    It can monitor and control the query execution via AWS APIs
+    using boto3 library.
+
+    It can be decorated by wrappers to provide additional functionality.
+    """
 
     _athena_client: Any  # boto3 Athena client
     _s3_client: Any  # boto3 S3 client

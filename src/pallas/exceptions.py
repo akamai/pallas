@@ -1,3 +1,7 @@
+"""
+Exceptions raised when querying Athena.
+"""
+
 from __future__ import annotations
 
 from typing import Optional

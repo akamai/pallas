@@ -1,3 +1,11 @@
+"""
+CSV reading and writing.
+
+Athena uses a smart CSV format
+that can distinguish between empty string and missing data.
+Unfortunately, the format cannot be parsed using Python builtin CSV module.
+"""
+
 import io
 import re
 from typing import Iterable, Iterator, Optional, Sequence, TextIO, Tuple

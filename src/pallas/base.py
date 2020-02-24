@@ -1,3 +1,16 @@
+"""
+Interfaces and base classes for querying AWS Athena.
+
+Pallas exposes to main interfaces:
+ - :class:`.Athena` for submitting queries.
+ - :class:`.Query` for non-blocking monitoring of query status.
+
+Classes :class:`.AthenaProxy` and :class`.QueryProxy`
+are the core implementations of the interfaces.
+They can be optionally decorated by wrappers that provide
+extra functionality (like caching) preserving the same interface.
+"""
+
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod

@@ -1,3 +1,13 @@
+"""
+Facade that can setup an Athena clients from configuration.
+
+Full-features Athena client is made a layered composition of objects.
+The core is an :class:`.AthenaProxy` instance that issues requests to AWS.
+It is wrapped by decorators for extra functionality like caching.
+
+Function defined in this module can assembly the whole object structure.
+"""
+
 from __future__ import annotations
 
 import os

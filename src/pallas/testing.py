@@ -1,3 +1,7 @@
+"""
+Fake Athena client for testing purposes.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence

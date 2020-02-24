@@ -1,3 +1,7 @@
+"""
+Usability helpers for querying Athena from Jupyter Notebook.
+"""
+
 from __future__ import annotations
 
 import textwrap
@@ -32,6 +36,10 @@ class AthenaNormalizationWrapper(AthenaWrapper):
 
 
 class AthenaKillOnInterruptWrapper(AthenaWrapper):
+    """
+    Athena wrapper that kills queries on the KeyboardInterrupt exception.
+    """
+
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         query = super().submit(sql, ignore_cache=ignore_cache)
         return self._wrap_query(query)
@@ -45,6 +53,10 @@ class AthenaKillOnInterruptWrapper(AthenaWrapper):
 
 
 class QueryKillOnInterruptWrapper(QueryWrapper):
+    """
+    Query wrapper that kills queries on the KeyboardInterrupt exception.
+    """
+
     def join(self) -> None:
         try:
             super().join()

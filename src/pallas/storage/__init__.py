@@ -1,3 +1,7 @@
+"""
+Storage implementations for caching results.
+"""
+
 from __future__ import annotations
 
 from typing import Mapping, Type

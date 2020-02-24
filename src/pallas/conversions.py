@@ -1,3 +1,7 @@
+"""
+Conversions from strings returned by Athena to Python types.
+"""
+
 from __future__ import annotations
 
 import datetime as dt

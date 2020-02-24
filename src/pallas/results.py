@@ -1,3 +1,7 @@
+"""
+Encapsulation of results returned from Athena.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, Mapping, Optional, Sequence, TextIO, Union, cast, overload
