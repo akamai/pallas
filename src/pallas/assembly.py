@@ -12,8 +12,6 @@ from pallas.usability import AthenaKillOnInterruptWrapper, AthenaNormalizationWr
 
 def setup(
     *,
-    environ: Optional[Mapping[str, str]] = None,
-    environ_prefix: str = "PALLAS",
     database: Optional[str] = None,
     workgroup: Optional[str] = None,
     output_location: Optional[str] = None,
@@ -50,17 +48,6 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    if environ is None:
-        environ = os.environ
-    config = _EnvironConfig(environ, environ_prefix)
-    database = config.get_str("DATABASE", database)
-    workgroup = config.get_str("WORKGROUP", workgroup)
-    output_location = config.get_str("OUTPUT_LOCATION", output_location)
-    region = config.get_str("REGION", region)
-    cache_remote = config.get_str("CACHE_REMOTE", cache_remote)
-    cache_local = config.get_str("CACHE_LOCAL", cache_local)
-    normalize = config.get_bool("NORMALIZE", normalize)
-    kill_on_interrupt = config.get_bool("KILL_ON_INTERRUPT", kill_on_interrupt)
 
     athena: Athena
     athena = AthenaProxy(
@@ -80,6 +67,24 @@ def setup(
     if kill_on_interrupt:
         athena = AthenaKillOnInterruptWrapper(athena)
     return athena
+
+
+def environ_setup(
+    environ: Optional[Mapping[str, str]] = None, *, prefix: str = "PALLAS"
+) -> Athena:
+    if environ is None:
+        environ = os.environ
+    config = _EnvironConfig(environ, prefix)
+    return setup(
+        database=config.get_str("DATABASE"),
+        workgroup=config.get_str("WORKGROUP"),
+        output_location=config.get_str("OUTPUT_LOCATION"),
+        region=config.get_str("REGION"),
+        cache_remote=config.get_str("CACHE_REMOTE"),
+        cache_local=config.get_str("CACHE_LOCAL"),
+        normalize=config.get_bool("NORMALIZE", True),
+        kill_on_interrupt=config.get_bool("KILL_ON_INTERRUPT", True),
+    )
 
 
 class _EnvironConfig:
