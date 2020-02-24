@@ -11,6 +11,8 @@ class AthenaFake(Athena):
     """Fake Athena implementation that can be used for testing."""
 
     database: Optional[str] = None
+    workgroup: Optional[str] = None
+    output_location: Optional[str] = None
 
     column_names: Optional[Sequence[str]] = None
     column_types: Optional[Sequence[str]] = None

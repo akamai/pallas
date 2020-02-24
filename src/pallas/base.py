@@ -34,6 +34,23 @@ class Athena(metaclass=ABCMeta):
         Individual queries can override this in SQL.
         """
 
+    @property
+    @abstractmethod
+    def workgroup(self) -> Optional[str]:
+        """
+        Name of Athena workgroup.
+
+        Workgroup can set resource limits or override output location.
+        """
+
+    @property
+    def output_location(self) -> Optional[str]:
+        """
+        Query output location on S3.
+
+        Can be empty if default location is configured for a workgroup.
+        """
+
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
         """
         Execute a query and wait for results.
@@ -150,6 +167,14 @@ class AthenaWrapper(Athena):
     @property
     def database(self) -> Optional[str]:
         return self._wrapped.database
+
+    @property
+    def workgroup(self) -> Optional[str]:
+        return self._wrapped.workgroup
+
+    @property
+    def output_location(self) -> Optional[str]:
+        return self._wrapped.output_location
 
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         return self._wrapped.submit(sql, ignore_cache=ignore_cache)
