@@ -34,7 +34,7 @@ class TestReadCSV:
     def test_value(self, raw, value):
         assert read_csv_str(f"{raw}\n") == [(value,)]
 
-    @pytest.mark.parametrize("raw", ["1", '"', '""x'])
+    @pytest.mark.parametrize("raw", ["1", '"', '"x', '""x'])
     def test_invalid_value(self, raw):
         with pytest.raises(ValueError):
             read_csv_str(f"{raw}\n")

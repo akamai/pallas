@@ -29,16 +29,25 @@ def _decode_value(raw: str) -> CSVValue:
 
 
 def _tokenize(stream: TextIO) -> Iterator[Tuple[str, str]]:
-    pos = 0
-    buffer = ""
-    value = ""
-    quoted = False
+    """
+    Tokenize CSV input.
+
+    Yields (value, control) pairs, where:
+    - Value is raw field values, including all quoting.
+    - Control is on of: "," (field separator), "\n" (line separator),
+      "" (end of file).
+
+    """
+    buffer = ""  # Chunk of text read from the stream.
+    pos = 0  # Position in the buffer.
+    value = ""  # Last field, possibly read in multiple chunks.
+    quoted = False  # True when inside quoted value.
     while True:
         if not pos < len(buffer):
-            pos = 0
             buffer = stream.read(io.DEFAULT_BUFFER_SIZE)
+            pos = 0
             if not buffer:
-                break
+                break  # End of file
         pattern = quote_re if quoted else control_re
         match = pattern.search(buffer, pos)
         if match:
@@ -56,8 +65,9 @@ def _tokenize(stream: TextIO) -> Iterator[Tuple[str, str]]:
         elif control:
             yield value, control
             value = ""
-    if value:
-        yield value, ""
+    if quoted:
+        raise ValueError("Unterminated quoted value.")
+    yield value, ""
 
 
 def read_csv(stream: TextIO) -> Iterator[CSVRow]:
@@ -72,7 +82,8 @@ def read_csv(stream: TextIO) -> Iterator[CSVRow]:
     """
     row = []
     for value, control in _tokenize(stream):
-        row.append(_decode_value(value))
+        if control:
+            row.append(_decode_value(value))
         if control == "\n":
             yield tuple(row)
             row = []

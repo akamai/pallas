@@ -22,7 +22,7 @@ def setup(
     kill_on_interrupt: bool = True,
 ) -> Athena:
     """
-    Assembly :class:`.Athena` instance.
+    Setup :class:`.Athena` instance.
 
     Initializes :class:`.AthenaProxy` and decorates it by caching wrappers.
 
@@ -72,6 +72,26 @@ def setup(
 def environ_setup(
     environ: Optional[Mapping[str, str]] = None, *, prefix: str = "PALLAS"
 ) -> Athena:
+    """
+    Setup :class:`.Athena` instance from environment variables.
+
+    Reads the following environment variables: ::
+
+        export PALLAS_DATABASE=
+        export PALLAS_WORKGROUP=
+        export PALLAS_OUTPUT_LOCATION=
+        export PALLAS_REGION=
+        export PALLAS_NORMALIZE=true
+        export PALLAS_KILL_ON_INTERRUPT=true
+        export PALLAS_CACHE_REMOTE=$PALLAS_OUTPUT_LOCATION
+        export PALLAS_CACHE_LOCAL=~/Notebooks/.cache/
+
+    :param environ: A mapping object representing the string environment.
+        Defaults to ``os.environ``.
+    :param prefix: Prefix of environment variables.
+    :return: an Athena instance
+        A :class:`.AthenaProxy` instance wrapped necessary in decorators.
+    """
     if environ is None:
         environ = os.environ
     config = _EnvironConfig(environ, prefix)
