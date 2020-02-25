@@ -1,8 +1,10 @@
 """
 CSV reading and writing.
 
-Athena uses a smart CSV format
-that can distinguish between empty string and missing data.
+Athena uses a custom CSV format:
+ - All values are quoted. Quotes in values are doubled.
+ - Empty unquoted strings denotes a missing values.
+
 Unfortunately, the format cannot be parsed using Python builtin CSV module.
 """
 
