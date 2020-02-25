@@ -102,7 +102,7 @@ df = results.to_df()
 
 ## Development
 
-Pallas can be installed with development dependecies using pip:
+Pallas can be installed with development dependencies using pip:
 
 ```shell script
 $ pip install -e .[dev]
