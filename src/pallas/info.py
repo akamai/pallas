@@ -13,12 +13,20 @@ unit_prefixes = ["k", "M", "G", "T"]
 
 
 def format_price(v: float) -> str:
+    """
+    Format price in dollars.
+    """
     if v > 1:
         return "$%.2f" % v
     return "%.2f¢" % (100 * v)
 
 
 def format_size(v: float) -> str:
+    """
+    Format size in bytes.
+
+    This function assumes that 1000kB = 1000B.
+    """
     if v < 1000:
         return f"{v:.0f}B"
     for prefix in unit_prefixes:
@@ -29,6 +37,9 @@ def format_size(v: float) -> str:
 
 
 def format_time(v: dt.timedelta) -> str:
+    """
+    Format time.
+    """
     if v < dt.timedelta(minutes=1):
         s = v.total_seconds()
         return f"{s:.1f}s"
