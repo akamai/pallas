@@ -58,9 +58,7 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-
-    athena: Athena
-    athena = AthenaProxy(
+    athena: Athena = AthenaProxy(
         database=database,
         workgroup=workgroup,
         output_location=output_location,
