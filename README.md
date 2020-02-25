@@ -48,7 +48,8 @@ athena = pallas.setup(
 ```
 
 To avoid hardcoded configuration values,
-Pallas can be setup using environment variables:
+Pallas can be setup using environment variables,
+corresponding to arguments in the previous example:
 
 ```shell script
 export PALLAS_DATABASE=
