@@ -130,12 +130,17 @@ class _EnvironConfig:
         v = self._get(key)
         if not v:
             return default
-        v = str(v).lower()
+        v = v.lower()
         if v in ("1", "true", "on", "yes"):
             return True
         if v in ("0", "false", "off", "no"):
             return False
-        raise ValueError(f"Invalid boolean value: {key}")
+        raise ValueError(f"{self._prefix}_{key}: invalid boolean value: {v}")
 
     def _get(self, key: str) -> str:
-        return self._environ.get(f"{self._prefix}_{key}", "")
+        v = self._environ.get(f"{self._prefix}_{key}", "")
+        if not isinstance(v, str):
+            # Avoid unexpected behaviour when somebody passes something
+            # like {"PALLAS_KILL_ON_INTERRUPT": False} to environ.
+            raise TypeError("Environ values must be a string.")
+        return v
