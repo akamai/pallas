@@ -25,7 +25,7 @@ def format_size(v: float) -> str:
     """
     Format size in bytes.
 
-    This function assumes that 1000kB = 1000B.
+    This function assumes that 1kB = 1000B.
     """
     if v < 1000:
         return f"{v:.0f}B"
