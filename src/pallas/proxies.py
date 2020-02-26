@@ -26,6 +26,11 @@ from pallas.utils import Fibonacci, truncate_str
 logger = logging.getLogger("pallas")
 
 
+ColumnNames = Sequence[str]
+ColumnTypes = Sequence[str]
+Row = Sequence[Optional[str]]
+
+
 class AthenaProxy(Athena):
     """
     Proxy to AWS Athena.
@@ -171,12 +176,8 @@ class QueryProxy(Query):
             logger.info(
                 f"Athena ResultSet complete: {len(data)} rows (including header)"
             )
-        if data and data[0] == column_names:
-            # Skip the first row iff it contains column names.
-            # Athena often returns column names in the first row but not always.
-            # (for example, SHOW PARTITIONS results do not have this header).
-            data = data[1:]
-        return QueryResults(column_names, column_types, data)
+        fixed_data = _fix_data(column_names, data)
+        return QueryResults(column_names, column_types, fixed_data)
 
     def kill(self) -> None:
         logger.info(
@@ -192,19 +193,19 @@ class QueryProxy(Query):
                 break
             time.sleep(delay)
 
-    def _read_column_names(self, response: Mapping[str, Any]) -> Sequence[str]:
+    def _read_column_names(self, response: Mapping[str, Any]) -> ColumnNames:
         column_info = response["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
         return tuple(column["Name"] for column in column_info)
 
-    def _read_column_types(self, response: Mapping[str, Any]) -> Sequence[str]:
+    def _read_column_types(self, response: Mapping[str, Any]) -> ColumnTypes:
         column_info = response["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
         return tuple(column["Type"] for column in column_info)
 
-    def _read_data(self, response: Mapping[str, Any]) -> Sequence[Sequence[str]]:
+    def _read_data(self, response: Mapping[str, Any]) -> Sequence[Row]:
         rows = response["ResultSet"]["Rows"]
         return [tuple(item.get("VarCharValue") for item in row["Data"]) for row in rows]
 
-    def _download_data(self) -> Sequence[Sequence[Optional[str]]]:
+    def _download_data(self) -> Sequence[Row]:
         output_location = self.get_info().output_location
         bucket, key = s3_parse_uri(output_location)
         params = dict(Bucket=bucket, Key=key)
@@ -214,3 +215,26 @@ class QueryProxy(Query):
             data = list(read_csv(stream))
         logger.info(f"S3 Body downloaded: {len(data)} rows (including header)")
         return data
+
+
+def _fix_data(column_names: ColumnNames, data: Sequence[Row]) -> Sequence[Row]:
+    """
+    Fix malformed data returned from Athena.
+
+    Queries executed by Presto (typically queries with SELECT)
+    repeat column names in the first row of data,
+    so we have to remove them.
+
+    Queries by Hive (typically queries with DESCRIBE)
+    do not repeat column names, but all columns are combined to one.
+
+    Try to fix both of the above problems here.
+    """
+    if data and data[0] == column_names:
+        # DQL, SELECT statements executed by Presto
+        data = data[1:]
+    elif all(len(row) == 1 for row in data) and len(column_names) > 1:
+        # DCL, DESCRIBE statements executed by Hive
+        values = (row[0] for row in data if row[0] is not None)
+        data = [v.split("\t", maxsplit=len(column_names) - 1) for v in values]
+    return data
