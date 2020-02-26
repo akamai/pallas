@@ -8,9 +8,28 @@ import datetime as dt
 import json
 from abc import ABCMeta, abstractmethod
 from decimal import Decimal
-from typing import Dict, Generic, List, Optional, TypeVar
+from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar
+
+try:
+    import numpy as np
+    import pandas as pd
+except ImportError:
+    pd = None
+
 
 T_co = TypeVar("T_co", covariant=True)
+
+
+def _pd_array(values: Sequence[object], *, dtype: object) -> object:
+    if dtype == "object":
+        # Workaround for ValueError: PandasArray must be 1-dimensional.
+        # When all values are lists of same length, Pandas/NumPy think
+        # that we are constructing a 2-D array.
+        data = np.empty(len(values), dtype="object")
+        data[:] = values
+    else:
+        data = values
+    return pd.array(data, dtype=dtype, copy=False)
 
 
 class Converter(Generic[T_co], metaclass=ABCMeta):
@@ -24,13 +43,38 @@ class Converter(Generic[T_co], metaclass=ABCMeta):
         """Pandas dtype"""
 
     def read(self, value: Optional[str]) -> Optional[T_co]:
+        """
+        Read value returned from Athena.
+
+        Expect a string or ``None`` because optional strings
+        are what Athena returns at its API and that is also
+        what can be parsed from CSV stored in S3.
+        """
         if value is None:
             return None
         return self.read_str(value)
 
     @abstractmethod
     def read_str(self, value: str) -> T_co:
-        """Read value from string"""
+        """
+        Read value from string
+
+        To be implemented in subclasses.
+        """
+
+    def read_array(
+        self, values: Iterable[Optional[str]], dtype: Optional[object] = None,
+    ) -> object:  # Pandas array
+        """
+        Convert values returned from Athena to Pandas array.
+
+        :param values: Iterable yielding strings and ``None``
+        :param dtype: optional Pandas dtype to force
+        """
+        if dtype is None:
+            dtype = self.dtype
+        converted = [self.read(value) for value in values]
+        return _pd_array(converted, dtype=dtype)
 
 
 class TextConverter(Converter[str]):

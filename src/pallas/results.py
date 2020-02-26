@@ -10,7 +10,6 @@ from pallas.conversions import Converter, get_converter
 from pallas.csv import read_csv, write_csv
 
 try:
-    import numpy as np
     import pandas as pd
 except ImportError:
     pd = None
@@ -104,25 +103,10 @@ class QueryResults(Sequence[QueryRecord]):
     def to_df(self, dtypes: Optional[Mapping[str, object]] = None) -> pd.DataFrame:
         if pd is None:
             raise RuntimeError("Pandas cannot be imported.")
+        if dtypes is None:
+            dtypes = {}
         frame_data = {}
-        for i, (column_name, converter) in enumerate(
-            zip(self.column_names, self.converters)
-        ):
-            dtype = converter.dtype
-            if dtypes is not None:
-                dtype = dtypes.get(column_name, dtype)
-            values = [converter.read(row[i]) for row in self._data]
-            frame_data[column_name] = _pd_array(values, dtype=dtype)
+        for i, (name, converter) in enumerate(zip(self.column_names, self.converters)):
+            values = (row[i] for row in self._data)
+            frame_data[name] = converter.read_array(values, dtype=dtypes.get(name))
         return pd.DataFrame(frame_data, copy=False)
-
-
-def _pd_array(values: Sequence[object], *, dtype: object) -> object:
-    if dtype == "object":
-        # Workaround for ValueError: PandasArray must be 1-dimensional.
-        # When all values are lists of same length, Pandas/NumPy think
-        # that we are constructing a 2-D array.
-        data = np.empty(len(values), dtype="object")
-        data[:] = values
-    else:
-        data = values
-    return pd.array(data, dtype=dtype, copy=False)
