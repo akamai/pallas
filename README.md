@@ -2,8 +2,9 @@
 # Pallas – AWS Athena client
 
 Pallas makes querying AWS Athena easy.
-It was designed for research and analysis in Jupyter Notebook,
-but it can be useful for many other applications.
+
+We found it very helpful for loading data to Jupyter Notebook,
+but it is designed to be generic and usable in any application.
 
 Features:
 
@@ -12,7 +13,7 @@ Features:
    so no data have to be downloaded when a Jupyter notebook is restarted.
  * Remote caching – Query IDs can be cached in S3,
    so team mates can reproduce exact results without incurring additional costs.
- * Speed – Results are downloaded directly from S3,
+ * Speed – Large results are downloaded directly from S3,
    which is much faster than using Athena API.
  * Pandas integration - Results can be converted to Pandas DataFrame
    with correct data types mapped automatically.
