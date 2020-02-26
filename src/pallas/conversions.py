@@ -10,12 +10,8 @@ from abc import ABCMeta, abstractmethod
 from decimal import Decimal
 from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar
 
-try:
-    import numpy as np
-    import pandas as pd
-except ImportError:
-    pd = None
-
+from pallas._compat import numpy as np
+from pallas._compat import pandas as pd
 
 T_co = TypeVar("T_co", covariant=True)
 

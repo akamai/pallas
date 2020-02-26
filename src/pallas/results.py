@@ -6,15 +6,9 @@ from __future__ import annotations
 
 from typing import Dict, Mapping, Optional, Sequence, TextIO, Union, cast, overload
 
+from pallas._compat import pandas as pd
 from pallas.conversions import Converter, get_converter
 from pallas.csv import read_csv, write_csv
-
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
-    np = None
-
 
 QueryRecord = Dict[str, object]
 
