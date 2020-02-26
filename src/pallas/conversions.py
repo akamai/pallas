@@ -36,7 +36,7 @@ class Converter(Generic[T_co], metaclass=ABCMeta):
 class TextConverter(Converter[str]):
     @property
     def dtype(self) -> object:
-        return "str"
+        return "string"
 
     def read_str(self, value: str) -> str:
         return value
@@ -45,7 +45,7 @@ class TextConverter(Converter[str]):
 class BooleanConverter(Converter[bool]):
     @property
     def dtype(self) -> object:
-        return "bool"
+        return "boolean"
 
     def read_str(self, value: str) -> bool:
         return {"true": True, "false": False}[value]
@@ -87,7 +87,7 @@ class DecimalConverter(Converter[Decimal]):
 class DateConverter(Converter[dt.date]):
     @property
     def dtype(self) -> object:
-        return f"datetime64[ns]"
+        return "datetime64[ns]"
 
     def read_str(self, value: str) -> dt.date:
         return dt.date.fromisoformat(value)
@@ -96,7 +96,7 @@ class DateConverter(Converter[dt.date]):
 class DateTimeConverter(Converter[dt.datetime]):
     @property
     def dtype(self) -> object:
-        return f"datetime64[ns]"
+        return "datetime64[ns]"
 
     def read_str(self, value: str) -> dt.datetime:
         return dt.datetime.fromisoformat(value)
@@ -105,7 +105,7 @@ class DateTimeConverter(Converter[dt.datetime]):
 class BinaryConverter(Converter[bytes]):
     @property
     def dtype(self) -> object:
-        return "bytes"
+        return "object"
 
     def read_str(self, value: str) -> bytes:
         return bytes.fromhex(value)
@@ -115,8 +115,17 @@ class ArrayConverter(Converter[List[str]]):
     """
     Parse string returned by Athena to a list.
 
-    Always returns a list of strings because Athena does
-    not send more details about item types.
+    Array parsing has multiple limitations because of the
+    serialization format that Athena uses:
+
+     - Always returns a list of strings because Athena does
+       not send more details about item types.
+     - It is not possible to distinguish comma in values from
+       an item separator. We assume that values do not contain the comma.
+     - We are not able to distinguish an empty array
+       and an array with one empty string.
+       This converter returns an empty array in that case.
+
     """
 
     @property
@@ -126,24 +135,24 @@ class ArrayConverter(Converter[List[str]]):
     def read_str(self, value: str) -> List[str]:
         if not value.startswith("[") or not value.endswith("]"):
             raise ValueError(f"Invalid array value: {value!r}")
-        return value[1:-1].split(", ")
-
-
-class JSONConverter(Converter[object]):
-    @property
-    def dtype(self) -> object:
-        return "object"
-
-    def read_str(self, value: str) -> object:
-        return json.loads(value)
+        content = value[1:-1]
+        if not content:
+            return []
+        return content.split(", ")
 
 
 class MapConverter(Converter[Dict[str, str]]):
     """
     Convert string value returned from Athena to a dictionary.
 
-    Always returns a mapping from strings to strings because
-    Athena does not send more details about item types.
+    Map parsing has multiple limitations because of the
+    serialization format that Athena uses:
+
+    - Always returns a mapping from strings to strings because
+      Athena does not send more details about item types.
+    - It is not possible to distinguish a comma or an equal sign
+      in values from control characters.
+      We assume that values do not contain the comma or the equal sign.
     """
 
     @property
@@ -153,8 +162,20 @@ class MapConverter(Converter[Dict[str, str]]):
     def read_str(self, value: str) -> Dict[str, str]:
         if not value.startswith("{") or not value.endswith("}"):
             raise ValueError(f"Invalid map value: {value!r}")
-        parts = value[1:-1].split(", ")
-        return {k: v for k, _, v in (part.partition("=") for part in parts)}
+        content = value[1:-1]
+        if not content:
+            return {}
+        parts = (part.partition("=") for part in content.split(", "))
+        return {k: v for k, _, v in parts}
+
+
+class JSONConverter(Converter[object]):
+    @property
+    def dtype(self) -> object:
+        return "object"
+
+    def read_str(self, value: str) -> object:
+        return json.loads(value)
 
 
 default_converter = TextConverter()
@@ -171,8 +192,8 @@ CONVERTERS: Dict[str, Converter[object]] = {
     "date": DateConverter(),
     "timestamp": DateTimeConverter(),
     "varbinary": BinaryConverter(),
-    "map": MapConverter(),
     "array": ArrayConverter(),
+    "map": MapConverter(),
     "json": JSONConverter(),
 }
 
