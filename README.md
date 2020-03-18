@@ -3,7 +3,7 @@
 
 Pallas makes querying AWS Athena easy.
 
-We found it very helpful for loading data to Jupyter Notebook,
+We found it valuable for analyses in Jupyter Notebook,
 but it is designed to be generic and usable in any application.
 
 Features:
@@ -22,6 +22,13 @@ Features:
  * Optional white space normalization for better caching.
  * Kills queries on KeyboardInterrupt.
 
+## Installation
+
+Pallas requires Python 3.7 or newer. It can be installed using pip:
+
+```shell script
+pip install --upgrade pallas
+```
 
 ## Quick start
 
@@ -97,7 +104,7 @@ results = query.get_results()  # Retrieve results. Calls query.join() internally
 ```
 
 The result objects provides a list-like interface
-and can be converted to Pandas DataFrame:
+and can be converted to a Pandas DataFrame:
 
 ```python
 df = results.to_df()
@@ -122,7 +129,7 @@ export PALLAS_TEST_ATHENA_DATABASE=   # Name of Athena database
 export PALLAS_TEST_ATHENA_WORKGROUP=  # Optional
 export PALLAS_TEST_S3_TMP=            # s3:// URI
 ```
-Code checks and testing is automated using tox:
+Code checks and testing are automated using tox:
 
 ```shell script
 $ tox
