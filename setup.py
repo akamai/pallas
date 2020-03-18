@@ -39,7 +39,6 @@ setup(
         "pandas": ["pandas>=1.0.0"],
     },
     classifiers=[
-        "Development Status :: 4 - Beta",
         "Framework :: IPython",
         "Framework :: Jupyter",
         "Intended Audience :: Developers",
