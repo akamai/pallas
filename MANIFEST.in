@@ -3,6 +3,7 @@ recursive-include tests *.py
 include src/pallas/py.typed
 include .flake8
 include .isort.cfg
+include LICENSE
 include MANIFEST.in
 include mypy.ini
 include pytest.ini
