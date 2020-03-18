@@ -12,7 +12,7 @@ setup(
     author_email="mpojman@akamai.com",
     description="AWS Athena client",
     keywords=["Amazon", "Athena", "AWS", "database", "db", "Jupyter", "Presto", "SQL"],
-    license="...",  # TODO
+    license="Apache License 2.0",
     url="...",  # TODO
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -29,6 +29,7 @@ setup(
         "Framework :: IPython",
         "Framework :: Jupyter",
         "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
