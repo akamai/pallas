@@ -27,7 +27,7 @@ setup(
     description="AWS Athena client",
     keywords=["Amazon", "Athena", "AWS", "database", "db", "Jupyter", "Presto", "SQL"],
     license="Apache License 2.0",
-    # url="...",  # TODO
+    url="https://github.com/akamai/pallas",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages("src"),
