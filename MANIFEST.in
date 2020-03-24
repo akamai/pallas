@@ -6,6 +6,7 @@ include .isort.cfg
 include LICENSE
 include MANIFEST.in
 include mypy.ini
+include NOTICE
 include pytest.ini
 include README.md
 include setup.py
