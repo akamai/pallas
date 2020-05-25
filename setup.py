@@ -41,6 +41,7 @@ setup(
     classifiers=[
         "Framework :: IPython",
         "Framework :: Jupyter",
+        "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
@@ -52,6 +53,7 @@ setup(
         "Programming Language :: SQL",
         "Topic :: Database",
         "Topic :: Scientific/Engineering",
+        "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",
     ],
