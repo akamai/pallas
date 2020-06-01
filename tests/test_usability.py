@@ -49,15 +49,17 @@ class TestNormalizeSQL:
         assert sql == NORMALIZED_SQL
 
     def test_empty_lines(self):
+        # Leading and trailing new lines are removed.
+        # Other new lines are normalized to LF
         sql = normalize_sql(
-            """\n
-            SELECT\n\n\n
-                c1, c2\n
-            FROM\n
-                t\n
+            """\n\n\n
+            SELECT\n\N{space}\N{space}\N{space}\n\r\n
+                c1, c2
+            FROM
+                t\n\n\n
         """
         )
-        assert sql == NORMALIZED_SQL
+        assert sql == NORMALIZED_SQL.replace("SELECT", "SELECT\n\n\n")
 
 
 @pytest.fixture(name="athena")
