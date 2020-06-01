@@ -43,17 +43,34 @@ class TestQueryFake:
         assert fake_athena.request_log == ["StartQueryExecution", "StartQueryExecution"]
 
     def test_get_query(self, fake_athena):
-        query = fake_athena.submit("SELECT ...")
-        assert fake_athena.get_query("query-1") is query
+        query1 = fake_athena.submit("SELECT ...")
+        query2 = fake_athena.get_query("query-1")
+        assert query2.execution_id == query1.execution_id
 
     def test_query_info(self, fake_athena):
         query = fake_athena.submit("SELECT ...")
+        fake_athena.request_log.clear()
         info = query.get_info()
         assert info.execution_id == "query-1"
         assert info.sql == "SELECT ..."
         assert info.database is None
         assert info.finished
         assert info.succeeded
+        assert fake_athena.request_log == ["GetQueryExecution"]
+
+    def test_query_info_remembered(self, fake_athena):
+        query = fake_athena.submit("SELECT ...")
+        fake_athena.request_log.clear()
+        query.get_info()
+        query.get_info()
+        assert fake_athena.request_log == ["GetQueryExecution"]
+
+    def test_query_info_remembered_not_shared(self, fake_athena):
+        query = fake_athena.submit("SELECT ...")
+        fake_athena.request_log.clear()
+        query.get_info()
+        fake_athena.get_query(query.execution_id).get_info()
+        assert fake_athena.request_log == ["GetQueryExecution", "GetQueryExecution"]
 
     def test_default_query_results(self, fake_athena):
         query = fake_athena.submit("SELECT ...")

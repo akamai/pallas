@@ -36,11 +36,13 @@ class AthenaFake(Athena):
     column_types: Optional[Sequence[str]] = None
     data: Optional[Sequence[Sequence[str]]] = None
 
-    _queries: Dict[str, Query]
+    _sql: Dict[str, str]
+    _results: Dict[str, QueryResults]
     _request_log: List[str]
 
     def __init__(self) -> None:
-        self._queries = {}
+        self._sql = {}
+        self._results = {}
         self._request_log = []
 
     @property
@@ -48,16 +50,17 @@ class AthenaFake(Athena):
         return self._request_log
 
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
-        execution_id = f"query-{len(self._queries)+1}"
+        execution_id = f"query-{len(self._results) + 1}"
         self._request_log.append("StartQueryExecution")
-        info = self._get_info(execution_id, sql)
         results = self._get_results()
-        query = QueryFake(info, results, self._request_log)
-        self._queries[execution_id] = query
-        return query
+        self._sql[execution_id] = sql
+        self._results[execution_id] = results
+        return self.get_query(execution_id)
 
     def get_query(self, execution_id: str) -> Query:
-        return self._queries[execution_id]
+        info = self._get_info(execution_id, self._sql[execution_id])
+        results = self._results[execution_id]
+        return QueryFake(info, results, self._request_log)
 
     def _get_info(self, execution_id: str, sql: str) -> QueryInfo:
         data = {
@@ -101,6 +104,8 @@ class QueryFake(Query):
     _results: QueryResults
     _request_log: List[str]
 
+    _finished_info: Optional[QueryInfo] = None
+
     def __init__(
         self, info: QueryInfo, results: QueryResults, request_log: List[str]
     ) -> None:
@@ -113,7 +118,12 @@ class QueryFake(Query):
         return self._info.execution_id
 
     def get_info(self) -> QueryInfo:
+        # Mimic behavior of QueryProxy - remember info of finished queries.
+        if self._finished_info is not None:
+            return self._finished_info
         self._request_log.append("GetQueryExecution")
+        if self._info.finished:
+            self._finished_info = self._info
         return self._info
 
     def get_results(self) -> QueryResults:
