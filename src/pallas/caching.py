@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -28,6 +29,21 @@ from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
 logger = logging.getLogger("pallas")
+
+
+_comment_1 = r"--[^\n]*\n"
+_comment_2 = r"/\*([^*]|\*(?!/))*\*/"
+
+SELECT_RE = re.compile(rf"(\s+|{_comment_1}|{_comment_2})*(SELECT|WITH)\b")
+
+
+def is_cacheable(sql: str) -> bool:
+    """
+    Return whether an SQL statement can be cached.
+
+    Only SELECT statements are considered cacheable.
+    """
+    return SELECT_RE.match(sql) is not None
 
 
 class AthenaCachingWrapper(AthenaWrapper):
@@ -74,22 +90,25 @@ class AthenaCachingWrapper(AthenaWrapper):
         return self._cache_results
 
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
-        if not ignore_cache:
+        sql_cacheable = is_cacheable(sql)
+        if sql_cacheable and not ignore_cache:
             execution_id = self._load_execution_id(sql)
             if execution_id is not None:
                 return self.get_query(execution_id)
         query = super().submit(sql, ignore_cache=ignore_cache)
-        self._save_execution_id(sql, query.execution_id)
-        return self._wrap_query(query)
+        if sql_cacheable:
+            self._save_execution_id(sql, query.execution_id)
+            query = self._wrap_query(query)
+        return query
 
     def get_query(self, execution_id: str) -> Query:
         query = super().get_query(execution_id)
         return self._wrap_query(query)
 
     def _wrap_query(self, query: Query) -> Query:
-        if not self._cache_results:
-            return query
-        return QueryCachingWrapper(query, self._storage)
+        if self._cache_results:
+            query = QueryCachingWrapper(query, self._storage)
+        return query
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
         key = self._get_cache_key(sql)
@@ -137,7 +156,12 @@ class QueryCachingWrapper(QueryWrapper):
         if results is not None:
             return results
         results = super().get_results()
-        self._save_results(results)
+        # When an old query is accessed using its execution ID,
+        # we have to retrieve its SQL to determine whether it can be cached.
+        # Network should not be used until a cache is checked.
+        # Getting the SQL here should not produce an additional request.
+        if is_cacheable(self.get_info().sql):
+            self._save_results(results)
         return results
 
     def join(self) -> None:

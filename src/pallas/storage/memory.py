@@ -63,3 +63,6 @@ class MemoryStorage(Storage):
 
     def has(self, key: str) -> bool:
         return key in self._data
+
+    def size(self) -> int:
+        return len(self._data)

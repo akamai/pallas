@@ -25,10 +25,8 @@ from pallas.base import AthenaWrapper, Query, QueryWrapper
 
 def normalize_sql(sql: str) -> str:
     lines = sql.splitlines()
-    stripped = (l.rstrip() for l in lines)
-    nonempty = (l for l in stripped if l)
-    joined = "\n".join(nonempty)
-    return textwrap.dedent(joined)
+    joined = "\n".join(line.rstrip() for line in lines)
+    return textwrap.dedent(joined).strip()
 
 
 class AthenaNormalizationWrapper(AthenaWrapper):
@@ -38,9 +36,9 @@ class AthenaNormalizationWrapper(AthenaWrapper):
     Query normalization can improve caching.
 
     Following normalization operations are done:
-    - Trailing whitespace is removed from end of lines.
-    - Empty lines and lines with whitespace only are removed.
     - Common indentation is removed.
+    - Heading and trailing new lines are removed.
+    - Trailing whitespace is removed from end of lines.
     - Line endings are normalized to LF
     """
 
