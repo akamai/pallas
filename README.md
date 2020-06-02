@@ -180,3 +180,15 @@ $ tox
 [flake8]: https://flake8.pycqa.org/en/latest/
 [Mypy]: http://mypy-lang.org
 [pytest]: https://docs.pytest.org/en/latest/
+
+
+## Changelog
+
+### v0.2
+
+* Cache SELECT statements only (starting with SELECT or WITH)
+* Preserve empty lines in the middle of normalized queries.
+
+### v0.1
+
+* Initial release.
