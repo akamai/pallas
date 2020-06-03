@@ -13,5 +13,6 @@
 # limitations under the License.
 
 from pallas.assembly import environ_setup, setup
+from pallas.base import Athena, Query
 
-__all__ = ["environ_setup", "setup"]
+__all__ = ["environ_setup", "setup", "Athena", "Query"]

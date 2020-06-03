@@ -184,10 +184,16 @@ $ tox
 
 ## Changelog
 
+### v0.3
+
+* Athena and Query classes available from top-level module (useful for type hints)
+
+
 ### v0.2
 
 * Cache SELECT statements only (starting with SELECT or WITH)
 * Preserve empty lines in the middle of normalized queries.
+
 
 ### v0.1
 
