@@ -46,9 +46,9 @@ athena = pallas.setup(
     output_location="s3://...",
     # AWS region, read from ~/.aws/config if not specified.
     region=None,
-    # Query execution cache.
+    # Optional query execution cache.
     cache_remote="s3://...",
-    # Query result cache.
+    # Optional query result cache.
     cache_local="~/Notebooks/.cache/",
     # Normalize white whitespace for better caching. Enabled by default.
     normalize=True,
