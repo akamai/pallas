@@ -222,6 +222,7 @@ by international treaties and conventions and otherwise throughout the world.
 
 * Athena and Query classes available from top-level module (useful for type hints)
 * Fix: SELECT queries cached only when uppercase
+* Fix: Queries not killed on KeyboardInterrupt
 
 
 ### v0.2

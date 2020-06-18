@@ -18,7 +18,34 @@ Interruption handling of Athena queries
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from typing import Iterator
+
 from pallas.base import AthenaWrapper, Query, QueryWrapper
+from pallas.results import QueryResults
+
+
+@contextmanager
+def _kill_on_interrupt(query: Query) -> Iterator[None]:
+    try:
+        yield
+    except KeyboardInterrupt:
+        query.kill()
+        query.join()  # Wait until killed and raise
+
+
+class QueryKillOnInterruptWrapper(QueryWrapper):
+    """
+    Query wrapper that kills queries on the KeyboardInterrupt exception.
+    """
+
+    def get_results(self) -> QueryResults:
+        with _kill_on_interrupt(self.wrapped):
+            return self.wrapped.get_results()
+
+    def join(self) -> None:
+        with _kill_on_interrupt(self.wrapped):
+            return self.wrapped.join()
 
 
 class AthenaKillOnInterruptWrapper(AthenaWrapper):
@@ -36,16 +63,3 @@ class AthenaKillOnInterruptWrapper(AthenaWrapper):
 
     def _wrap_query(self, query: Query) -> Query:
         return QueryKillOnInterruptWrapper(query)
-
-
-class QueryKillOnInterruptWrapper(QueryWrapper):
-    """
-    Query wrapper that kills queries on the KeyboardInterrupt exception.
-    """
-
-    def join(self) -> None:
-        try:
-            super().join()
-        except KeyboardInterrupt:
-            self.kill()
-            super().join()
