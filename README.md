@@ -221,6 +221,7 @@ by international treaties and conventions and otherwise throughout the world.
 ### v0.3
 
 * Athena and Query classes available from top-level module (useful for type hints)
+* Fix: SELECT queries cached only when uppercase
 
 
 ### v0.2

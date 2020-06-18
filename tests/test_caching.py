@@ -76,8 +76,14 @@ class TestIsCacheable:
     def test_select(self):
         assert is_cacheable("SELECT 1")
 
+    def test_select_lowercase(self):
+        assert is_cacheable("select 1")
+
     def test_with_select(self):
         assert is_cacheable("WITH (...) AS t SELECT ...")
+
+    def test_with_select_lowercase(self):
+        assert is_cacheable("with (...) AS t select ...")
 
     def test_insert(self):
         assert not is_cacheable("INSERT ... AS SELECT")

@@ -34,7 +34,9 @@ logger = logging.getLogger("pallas")
 _comment_1 = r"--[^\n]*\n"
 _comment_2 = r"/\*([^*]|\*(?!/))*\*/"
 
-SELECT_RE = re.compile(rf"(\s+|{_comment_1}|{_comment_2})*(SELECT|WITH)\b")
+SELECT_RE = re.compile(
+    rf"(\s+|{_comment_1}|{_comment_2})*(SELECT|WITH)\b", re.IGNORECASE
+)
 
 
 def is_cacheable(sql: str) -> bool:
