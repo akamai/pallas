@@ -14,8 +14,8 @@
 
 import pytest
 
+from pallas.normalization import AthenaNormalizationWrapper, normalize_sql
 from pallas.testing import AthenaFake
-from pallas.usability import AthenaNormalizationWrapper, normalize_sql
 
 NORMALIZED_SQL = """\
 SELECT

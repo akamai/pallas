@@ -13,14 +13,14 @@
 # limitations under the License.
 
 """
-Usability helpers for querying Athena from Jupyter Notebook.
+Normalization of Athena queries
 """
 
 from __future__ import annotations
 
 import textwrap
 
-from pallas.base import AthenaWrapper, Query, QueryWrapper
+from pallas.base import AthenaWrapper, Query
 
 
 def normalize_sql(sql: str) -> str:
@@ -45,33 +45,3 @@ class AthenaNormalizationWrapper(AthenaWrapper):
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         normalized = normalize_sql(sql)
         return super().submit(normalized, ignore_cache=ignore_cache)
-
-
-class AthenaKillOnInterruptWrapper(AthenaWrapper):
-    """
-    Athena wrapper that kills queries on the KeyboardInterrupt exception.
-    """
-
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
-        query = super().submit(sql, ignore_cache=ignore_cache)
-        return self._wrap_query(query)
-
-    def get_query(self, execution_id: str) -> Query:
-        query = super().get_query(execution_id)
-        return self._wrap_query(query)
-
-    def _wrap_query(self, query: Query) -> Query:
-        return QueryKillOnInterruptWrapper(query)
-
-
-class QueryKillOnInterruptWrapper(QueryWrapper):
-    """
-    Query wrapper that kills queries on the KeyboardInterrupt exception.
-    """
-
-    def join(self) -> None:
-        try:
-            super().join()
-        except KeyboardInterrupt:
-            self.kill()
-            super().join()
