@@ -182,6 +182,27 @@ $ tox
 [pytest]: https://docs.pytest.org/en/latest/
 
 
+## Changelog
+
+### v0.3
+
+* Athena and Query classes available from the top-level module (useful for type hints).
+* AthenaQueryError from the top-level module.
+* Fix: SELECT queries cached only when uppercase.
+* Fix: Queries not killed on KeyboardInterrupt.
+
+
+### v0.2
+
+* Cache SELECT statements only (starting with SELECT or WITH).
+* Preserve empty lines in the middle of normalized queries.
+
+
+### v0.1
+
+* Initial release.
+
+
 ## License
 
 ```
@@ -215,23 +236,3 @@ You also assign all of your rights of any kind whatsoever accruing under
 the Assigned Copyrights provided by applicable law of any jurisdiction,
 by international treaties and conventions and otherwise throughout the world.
 ```
-
-## Changelog
-
-### v0.3
-
-* Athena and Query classes available from the top-level module (useful for type hints).
-* AthenaQueryError from the top-level module.
-* Fix: SELECT queries cached only when uppercase.
-* Fix: Queries not killed on KeyboardInterrupt.
-
-
-### v0.2
-
-* Cache SELECT statements only (starting with SELECT or WITH).
-* Preserve empty lines in the middle of normalized queries.
-
-
-### v0.1
-
-* Initial release.
