@@ -14,5 +14,6 @@
 
 from pallas.assembly import environ_setup, setup
 from pallas.base import Athena, Query
+from pallas.exceptions import AthenaQueryError
 
-__all__ = ["environ_setup", "setup", "Athena", "Query"]
+__all__ = ["environ_setup", "setup", "Athena", "Query", "AthenaQueryError"]

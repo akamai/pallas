@@ -220,14 +220,15 @@ by international treaties and conventions and otherwise throughout the world.
 
 ### v0.3
 
-* Athena and Query classes available from top-level module (useful for type hints)
-* Fix: SELECT queries cached only when uppercase
-* Fix: Queries not killed on KeyboardInterrupt
+* Athena and Query classes available from the top-level module (useful for type hints).
+* AthenaQueryError from the top-level module.
+* Fix: SELECT queries cached only when uppercase.
+* Fix: Queries not killed on KeyboardInterrupt.
 
 
 ### v0.2
 
-* Cache SELECT statements only (starting with SELECT or WITH)
+* Cache SELECT statements only (starting with SELECT or WITH).
 * Preserve empty lines in the middle of normalized queries.
 
 
