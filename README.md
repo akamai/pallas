@@ -184,7 +184,7 @@ $ tox
 
 ## Changelog
 
-### v0.3
+### v0.3.dev
 
 * Athena and Query classes available from the top-level module (useful for type hints).
 * AthenaQueryError from the top-level module.
@@ -192,13 +192,13 @@ $ tox
 * Fix: Queries not killed on KeyboardInterrupt.
 
 
-### v0.2
+### v0.2 (2020-06-02)
 
 * Cache SELECT statements only (starting with SELECT or WITH).
 * Preserve empty lines in the middle of normalized queries.
 
 
-### v0.1
+### v0.1 (2020-03-24)
 
 * Initial release.
 
