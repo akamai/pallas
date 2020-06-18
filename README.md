@@ -184,7 +184,7 @@ $ tox
 
 ## Changelog
 
-### v0.3.dev
+### v0.3 (2020-06-18)
 
 * Athena and Query classes available from the top-level module (useful for type hints).
 * AthenaQueryError from the top-level module.
