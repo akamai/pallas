@@ -32,6 +32,27 @@ pip install --upgrade pallas
 
 ## Quick start
 
+### AWS credentials
+
+Pallas uses [boto3] internally, so it reads [AWS credentials] from the standard locations.
+This includes:
+
+ * Shared credential file (`~/.aws/credentials`)
+ * Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
+ * Instance metadata service when run on an Amazon EC2 instance
+
+The `~/.aws/credentials` file can be generated using the AWS CLI.
+
+```shell script
+aws configure
+```
+
+We recommend to use the AWS CLI to check the configuration.
+If the AWS CLI is able to authenticate then Pallas should work too.
+
+
+### Client configuration
+
 Athena client can be obtained using the ``pallas.setup()`` method.
 All arguments are optional.
 
@@ -75,13 +96,8 @@ export PALLAS_CACHE_LOCAL=~/Notebooks/.cache/
 ```python
 athena = pallas.environ_setup()
 ```
-Python standard logging is available for monitoring:
 
-```python
-import logging
-import sys
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-```
+### Executing queries
 
 Use the `Athena.execute()` method to execute queries:
 
@@ -110,7 +126,15 @@ and can be converted to a Pandas DataFrame:
 df = results.to_df()
 ```
 
-## Alternatives
+Python standard logging is available for query status, including price:
+
+```python
+import logging
+import sys
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+```
+
+## Pallas Alternatives
 
 ### PyAthena
 
@@ -175,8 +199,9 @@ Code checks and testing are automated using tox:
 $ tox
 ```
 
-[PyAthena]: https://github.com/laughingman7743/PyAthena
 [boto3]: https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
+[AWS credentials]: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+[PyAthena]: https://github.com/laughingman7743/PyAthena
 [flake8]: https://flake8.pycqa.org/en/latest/
 [Mypy]: http://mypy-lang.org
 [pytest]: https://docs.pytest.org/en/latest/
