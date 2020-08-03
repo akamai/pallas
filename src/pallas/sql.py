@@ -27,9 +27,15 @@ import numbers
 import re
 import textwrap
 from decimal import Decimal
-from typing import Union
+from typing import List, Mapping, Tuple, Union
 
 SQL_SCALAR = Union[None, str, float, numbers.Real, Decimal, bytes, dt.date]
+
+# Parameters supported for SQL interpolation.
+#
+# Intentionally use Tuple and List instead of Sequence because
+# we do not want to accept strings.
+PARAMETERS = Union[None, Tuple[SQL_SCALAR], List[SQL_SCALAR], Mapping[str, SQL_SCALAR]]
 
 
 def _quote_str(value: str) -> str:
@@ -96,6 +102,21 @@ def quote(value: SQL_SCALAR) -> str:
     if isinstance(value, bytes):
         return _quote_bytes(value)
     raise TypeError(f"Cannot quote {type(value)}.")
+
+
+def substitute_parameters(operation: str, parameters: PARAMETERS = None) -> str:
+    """
+    Substitute parameters in SQL query.
+    """
+    if parameters is None:
+        # For consistency, run formatting even when no parameters are given.
+        # (percent signs should be always doubled, both with and without params).
+        return operation % ()
+    elif isinstance(parameters, Mapping):
+        return operation % {name: quote(param) for name, param in parameters.items()}
+    elif isinstance(parameters, (list, tuple)):
+        return operation % tuple(quote(param) for param in parameters)
+    raise TypeError("SQL parameters must be a sequence or a mapping.")
 
 
 _comment_1 = r"--[^\n]*\n"

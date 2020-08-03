@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 from pallas import Athena
-from pallas.sql import is_select, normalize_sql
+from pallas.sql import is_select, normalize_sql, substitute_parameters
 
 
 @pytest.mark.parametrize(
@@ -59,6 +59,30 @@ def test_quote_value(value, quoted):
 def test_quote_invalid(value):
     with pytest.raises(TypeError):
         Athena.quote(value)
+
+
+class TestSubstituteParameters:
+    def test_substitute_none(self):
+        sql = substitute_parameters("SELECT * FROM t WHERE x LIKE 'A%%'")
+        assert sql == "SELECT * FROM t WHERE x LIKE 'A%'"
+
+    def test_substitute_sequence(self):
+        sql = substitute_parameters(
+            "SELECT %s, %s FROM t WHERE x LIKE 'A%%'", [1, "foo"]
+        )
+        assert sql == "SELECT 1, 'foo' FROM t WHERE x LIKE 'A%'"
+
+    def test_substitute_mapping(self):
+        sql = substitute_parameters(
+            "SELECT %(id)s, %(name)s FROM t WHERE x LIKE 'A%%'",
+            {"id": 1, "name": "foo"},
+        )
+        assert sql == "SELECT 1, 'foo' FROM t WHERE x LIKE 'A%'"
+
+    @pytest.mark.parametrize("value", [1, "foo", object()])
+    def test_invalid(self, value):
+        with pytest.raises(TypeError):
+            substitute_parameters("SELECT %s", value)
 
 
 class TestIsSelect:
