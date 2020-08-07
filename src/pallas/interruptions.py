@@ -22,17 +22,12 @@ from contextlib import contextmanager
 from typing import Iterator
 
 from pallas.base import AthenaWrapper
-from pallas.results import QueryResults
 
 
 class AthenaKillOnInterruptWrapper(AthenaWrapper):
     """
     Athena wrapper that kills queries on the KeyboardInterrupt exception.
     """
-
-    def get_query_results(self, execution_id: str) -> QueryResults:
-        with self._kill_on_interrupt(execution_id):
-            return self.wrapped.get_query_results(execution_id)
 
     def join_query(self, execution_id: str) -> None:
         with self._kill_on_interrupt(execution_id):

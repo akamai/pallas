@@ -18,6 +18,8 @@ SQL helpers.
 Implements quoting compatible with Athena.
 """
 
+from __future__ import annotations
+
 import base64
 import datetime as dt
 import math

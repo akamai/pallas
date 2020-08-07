@@ -22,6 +22,8 @@ Athena uses a custom CSV format:
 Unfortunately, the format cannot be parsed using Python builtin CSV module.
 """
 
+from __future__ import annotations
+
 import io
 import re
 from typing import Iterable, Iterator, Optional, Sequence, TextIO, Tuple
