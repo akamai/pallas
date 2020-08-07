@@ -28,10 +28,7 @@ import os
 from typing import Mapping, Optional
 
 from pallas.base import AthenaClient
-from pallas.caching import AthenaCachingWrapper
 from pallas.facade import Athena
-from pallas.interruptions import AthenaKillOnInterruptWrapper
-from pallas.normalization import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 from pallas.storage import storage_from_uri
 
@@ -77,17 +74,15 @@ def setup(
         output_location=output_location,
         region=region,
     )
-    if cache_remote is not None:
-        storage = storage_from_uri(cache_remote)
-        client = AthenaCachingWrapper(client, storage=storage, cache_results=False)
-    if cache_local is not None:
-        storage = storage_from_uri(cache_local)
-        client = AthenaCachingWrapper(client, storage=storage, cache_results=True)
-    if normalize:
-        client = AthenaNormalizationWrapper(client)
-    if kill_on_interrupt:
-        client = AthenaKillOnInterruptWrapper(client)
-    return Athena(client)
+    storage_remote = None if cache_remote is None else storage_from_uri(cache_remote)
+    storage_local = None if cache_local is None else storage_from_uri(cache_local)
+    return Athena(
+        client,
+        storage_remote=storage_remote,
+        storage_local=storage_local,
+        normalize=normalize,
+        kill_on_interrupt=kill_on_interrupt,
+    )
 
 
 def environ_setup(
