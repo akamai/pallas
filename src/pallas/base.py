@@ -78,22 +78,6 @@ class AthenaClient(metaclass=ABCMeta):
         Can be empty if default location is configured for a workgroup.
         """
 
-    def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
-        """
-        Execute a query and wait for results.
-
-        This is a blocking method that waits until query finishes.
-        Returns :class:`QueryResults`.
-
-        :param sql: SQL query to be executed
-        :param ignore_cache: do not load cached results
-        :return: query results
-        """
-        # Do not override this method.
-        # Wrappers do not call execute on the wrapped instance,
-        # so overrides are likely to have no effect.
-        return self.submit(sql, ignore_cache=ignore_cache).get_results()
-
     @abstractmethod
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         """

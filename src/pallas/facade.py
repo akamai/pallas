@@ -20,6 +20,7 @@ from pallas.base import AthenaClient, AthenaWrapper
 from pallas.caching import AthenaCachingWrapper
 from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.normalization import AthenaNormalizationWrapper
+from pallas.results import QueryResults
 from pallas.storage import Storage
 
 
@@ -49,3 +50,16 @@ class Athena(AthenaWrapper):
         if kill_on_interrupt:
             client = AthenaKillOnInterruptWrapper(client)
         super().__init__(client)
+
+    def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
+        """
+        Execute a query and wait for results.
+
+        This is a blocking method that waits until query finishes.
+        Returns :class:`QueryResults`.
+
+        :param sql: SQL query to be executed
+        :param ignore_cache: do not load cached results
+        :return: query results
+        """
+        return self.submit(sql, ignore_cache=ignore_cache).get_results()
