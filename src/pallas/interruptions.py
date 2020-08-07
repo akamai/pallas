@@ -29,14 +29,14 @@ class AthenaKillOnInterruptWrapper(AthenaWrapper):
     Athena wrapper that kills queries on the KeyboardInterrupt exception.
     """
 
-    def join_query(self, execution_id: str) -> None:
+    def join_query_execution(self, execution_id: str) -> None:
         with self._kill_on_interrupt(execution_id):
-            return self.wrapped.join_query(execution_id)
+            return self.wrapped.join_query_execution(execution_id)
 
     @contextmanager
     def _kill_on_interrupt(self, execution_id: str) -> Iterator[None]:
         try:
             yield
         except KeyboardInterrupt:
-            self.kill_query(execution_id)
-            self.join_query(execution_id)  # Wait until killed and raise
+            self.stop_query_execution(execution_id)
+            self.join_query_execution(execution_id)  # Wait until killed and raise

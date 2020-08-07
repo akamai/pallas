@@ -91,13 +91,13 @@ class AthenaCachingWrapper(AthenaWrapper):
     def cache_results(self) -> bool:
         return self._cache_results
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
         sql_cacheable = is_cacheable(sql)
         if sql_cacheable and not ignore_cache:
             execution_id = self._load_execution_id(sql)
             if execution_id is not None:
                 return execution_id
-        execution_id = super().submit(sql, ignore_cache=ignore_cache)
+        execution_id = super().start_query_execution(sql, ignore_cache=ignore_cache)
         if sql_cacheable:
             self._save_execution_id(sql, execution_id)
         return execution_id
@@ -113,11 +113,11 @@ class AthenaCachingWrapper(AthenaWrapper):
             self._save_results(execution_id, results)
         return results
 
-    def join_query(self, execution_id: str) -> None:
+    def join_query_execution(self, execution_id: str) -> None:
         if self._cache_results and self._has_results(execution_id):
             # If we have results then we can assume that query has finished.
             return
-        super().join_query(execution_id)
+        super().join_query_execution(execution_id)
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
         key = self._get_execution_id_key(sql)

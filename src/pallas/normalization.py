@@ -42,6 +42,6 @@ class AthenaNormalizationWrapper(AthenaWrapper):
     - Line endings are normalized to LF
     """
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
         normalized = normalize_sql(sql)
-        return super().submit(normalized, ignore_cache=ignore_cache)
+        return super().start_query_execution(normalized, ignore_cache=ignore_cache)

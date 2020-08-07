@@ -27,11 +27,11 @@ class InterruptAthenaFake(AthenaFake):
 
     _interrupted: bool = False
 
-    def join_query(self, execution_id: str) -> None:
+    def join_query_execution(self, execution_id: str) -> None:
         if not self._interrupted:
             self._interrupted = True
             raise KeyboardInterrupt
-        super().join_query(execution_id)
+        super().join_query_execution(execution_id)
 
 
 @pytest.fixture(name="fake")

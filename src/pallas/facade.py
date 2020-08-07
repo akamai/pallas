@@ -68,7 +68,7 @@ class Query:
         # Query info is cached if the query finished and cannot change.
         if self._finished_info is not None:
             return self._finished_info
-        info = self._client.get_query_info(self._execution_id)
+        info = self._client.get_query_execution(self._execution_id)
         if info.finished:
             self._finished_info = info
         return info
@@ -79,20 +79,20 @@ class Query:
 
         Waits until this query execution finishes and downloads results.
         """
-        self._client.join_query(self._execution_id)
+        self._client.join_query_execution(self._execution_id)
         return self._client.get_query_results(self._execution_id)
 
     def kill(self) -> None:
         """
         Kill this query execution.
         """
-        self._client.kill_query(self._execution_id)
+        self._client.stop_query_execution(self._execution_id)
 
     def join(self) -> None:
         """
         Wait until this query execution finishes.
         """
-        self._client.join_query(self._execution_id)
+        self._client.join_query_execution(self._execution_id)
 
 
 class Athena:
@@ -172,7 +172,9 @@ class Athena:
         :param ignore_cache: do not load cached results
         :return: a query instance
         """
-        execution_id = self._client.submit(sql, ignore_cache=ignore_cache)
+        execution_id = self._client.start_query_execution(
+            sql, ignore_cache=ignore_cache
+        )
         return Query(self._client, execution_id)
 
     def get_query(self, execution_id: str) -> Query:

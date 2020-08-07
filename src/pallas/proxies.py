@@ -114,7 +114,7 @@ class AthenaProxy(AthenaClient):
     def output_location(self) -> Optional[str]:
         return self._output_location
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
         params: Dict[str, Any] = dict(QueryString=sql)
         if self._database is not None:
             params.update(QueryExecutionContext={"Database": self._database})
@@ -128,7 +128,7 @@ class AthenaProxy(AthenaClient):
         logger.info(f"Athena QueryExecutionId={execution_id!r} started.")
         return execution_id
 
-    def get_query_info(self, execution_id: str) -> QueryInfo:
+    def get_query_execution(self, execution_id: str) -> QueryInfo:
         logger.info(f"Athena GetQueryExecution: QueryExecutionId={execution_id!r}")
         response = self._athena_client.get_query_execution(
             QueryExecutionId=execution_id
@@ -154,20 +154,20 @@ class AthenaProxy(AthenaClient):
         fixed_data = _fix_data(column_names, data)
         return QueryResults(column_names, column_types, fixed_data)
 
-    def kill_query(self, execution_id: str) -> None:
+    def stop_query_execution(self, execution_id: str) -> None:
         logger.info(f"Athena StopQueryExecution: QueryExecutionId={execution_id!r}")
         self._athena_client.stop_query_execution(QueryExecutionId=execution_id)
 
-    def join_query(self, execution_id: str) -> None:
+    def join_query_execution(self, execution_id: str) -> None:
         for delay in Fibonacci(max_value=60):
-            info = self.get_query_info(execution_id)
+            info = self.get_query_execution(execution_id)
             if info.finished:
                 info.check()
                 break
             time.sleep(delay)
 
     def _download_data(self, execution_id: str) -> Sequence[Row]:
-        output_location = self.get_query_info(execution_id).output_location
+        output_location = self.get_query_execution(execution_id).output_location
         bucket, key = s3_parse_uri(output_location)
         params = dict(Bucket=bucket, Key=key)
         logger.info(f"S3 GetObject:" f" Bucket={bucket!r} Key={key!r}")

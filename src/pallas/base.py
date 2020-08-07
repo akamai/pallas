@@ -76,7 +76,7 @@ class AthenaClient(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
         """
         Submit a query.
 
@@ -86,7 +86,7 @@ class AthenaClient(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_query_info(self, execution_id: str) -> QueryInfo:
+    def get_query_execution(self, execution_id: str) -> QueryInfo:
         """
         Retrieve information about a query execution.
 
@@ -102,13 +102,13 @@ class AthenaClient(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def kill_query(self, execution_id: str) -> None:
+    def stop_query_execution(self, execution_id: str) -> None:
         """
         Kill a query execution.
         """
 
     @abstractmethod
-    def join_query(self, execution_id: str) -> None:
+    def join_query_execution(self, execution_id: str) -> None:
         """
         Wait until a query execution finishes.
         """
@@ -143,17 +143,17 @@ class AthenaWrapper(AthenaClient):
     def output_location(self) -> Optional[str]:
         return self._wrapped.output_location
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
-        return self._wrapped.submit(sql, ignore_cache=ignore_cache)
+    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
+        return self._wrapped.start_query_execution(sql, ignore_cache=ignore_cache)
 
-    def get_query_info(self, execution_id: str) -> QueryInfo:
-        return self._wrapped.get_query_info(execution_id)
+    def get_query_execution(self, execution_id: str) -> QueryInfo:
+        return self._wrapped.get_query_execution(execution_id)
 
     def get_query_results(self, execution_id: str) -> QueryResults:
         return self._wrapped.get_query_results(execution_id)
 
-    def kill_query(self, execution_id: str) -> None:
-        self._wrapped.kill_query(execution_id)
+    def stop_query_execution(self, execution_id: str) -> None:
+        self._wrapped.stop_query_execution(execution_id)
 
-    def join_query(self, execution_id: str) -> None:
-        self._wrapped.join_query(execution_id)
+    def join_query_execution(self, execution_id: str) -> None:
+        self._wrapped.join_query_execution(execution_id)
