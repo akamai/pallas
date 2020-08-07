@@ -1,4 +1,4 @@
 
 [flake8]
-exclude = .git,.tox
+exclude = .git,.tox,build,dist
 max-line-length = 88
