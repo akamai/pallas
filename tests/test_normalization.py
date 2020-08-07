@@ -62,10 +62,15 @@ class TestNormalizeSQL:
         assert sql == NORMALIZED_SQL.replace("SELECT", "SELECT\n\n\n")
 
 
-@pytest.fixture(name="athena")
-def athena_fixture():
+@pytest.fixture(name="fake")
+def fake_fixture():
     fake = AthenaFake()
     fake.database = "test_database"
+    return fake
+
+
+@pytest.fixture(name="athena")
+def athena_fixture(fake):
     return AthenaNormalizationWrapper(fake)
 
 

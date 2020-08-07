@@ -16,8 +16,8 @@ from contextlib import contextmanager
 
 import pytest
 
+from pallas import Athena
 from pallas.exceptions import AthenaQueryError
-from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.testing import AthenaFake, QueryFake
 
 
@@ -37,10 +37,14 @@ class InterruptAthenaFake(AthenaFake):
     query_cls = InterruptQueryFake
 
 
+@pytest.fixture(name="fake")
+def fake_fixture():
+    return InterruptAthenaFake()
+
+
 @pytest.fixture(name="athena")
-def athena_fixture():
-    fake = InterruptAthenaFake()
-    return AthenaKillOnInterruptWrapper(fake)
+def athena_fixture(fake):
+    return Athena(fake, kill_on_interrupt=True)
 
 
 @contextmanager
@@ -58,34 +62,34 @@ def no_keyboard_interrupt():
 
 
 class TestAthenaKillOnInterruptWrapper:
-    def test_execute(self, athena):
+    def test_execute(self, athena, fake):
         with no_keyboard_interrupt():
             with pytest.raises(AthenaQueryError):
                 athena.execute("SELECT 1")
-            assert athena.wrapped.request_log == [
+            assert fake.request_log == [
                 "StartQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_get_results(self, athena):
+    def test_get_results(self, athena, fake):
         with no_keyboard_interrupt():
             query = athena.submit("SELECT 1")
-            athena.wrapped.request_log.clear()
+            fake.request_log.clear()
             with pytest.raises(AthenaQueryError):
                 query.get_results()
-            assert athena.wrapped.request_log == [
+            assert fake.request_log == [
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_join(self, athena):
+    def test_join(self, athena, fake):
         with no_keyboard_interrupt():
             query = athena.submit("SELECT 1")
-            athena.wrapped.request_log.clear()
+            fake.request_log.clear()
             with pytest.raises(AthenaQueryError):
                 query.join()
-            assert athena.wrapped.request_log == [
+            assert fake.request_log == [
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
