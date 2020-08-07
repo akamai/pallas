@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence, Type
 
-from pallas.base import Athena, Query
+from pallas.base import AthenaClient, Query
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 
@@ -66,7 +66,7 @@ class QueryFake(Query):
         self.get_info().check()
 
 
-class AthenaFake(Athena):
+class AthenaFake(AthenaClient):
     """Fake Athena implementation that can be used for testing."""
 
     database: Optional[str] = None

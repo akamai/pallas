@@ -30,7 +30,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 
 import boto3
 
-from pallas.base import Athena, Query
+from pallas.base import AthenaClient, Query
 from pallas.csv import read_csv
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
@@ -45,7 +45,7 @@ ColumnTypes = Sequence[str]
 Row = Sequence[Optional[str]]
 
 
-class AthenaProxy(Athena):
+class AthenaProxy(AthenaClient):
     """
     Proxy to AWS Athena.
 

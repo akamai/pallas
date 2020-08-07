@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from pallas.assembly import environ_setup, setup
-from pallas.base import Athena, Query
+from pallas.base import Query
 from pallas.exceptions import AthenaQueryError
+from pallas.facade import Athena
 
 __all__ = ["environ_setup", "setup", "Athena", "Query", "AthenaQueryError"]

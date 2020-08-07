@@ -35,7 +35,7 @@ from pallas.results import QueryResults
 from pallas.sql import quote
 
 
-class Athena(metaclass=ABCMeta):
+class AthenaClient(metaclass=ABCMeta):
     """
     Athena interface
 
@@ -174,21 +174,21 @@ class Query(metaclass=ABCMeta):
         """
 
 
-class AthenaWrapper(Athena):
+class AthenaWrapper(AthenaClient):
     """
     Base class for :class:`.Athena` decorators.
     """
 
-    _wrapped: Athena
+    _wrapped: AthenaClient
 
-    def __init__(self, wrapped: Athena) -> None:
+    def __init__(self, wrapped: AthenaClient) -> None:
         self._wrapped = wrapped
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.wrapped!r}>"
 
     @property
-    def wrapped(self) -> Athena:
+    def wrapped(self) -> AthenaClient:
         return self._wrapped
 
     @property

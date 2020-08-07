@@ -18,7 +18,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pallas.base import Athena
+from pallas.facade import Athena
 
 
 @pytest.mark.parametrize(

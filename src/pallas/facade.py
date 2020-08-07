@@ -17,7 +17,7 @@ from __future__ import annotations
 from pallas.base import AthenaWrapper
 
 
-class AthenaFacade(AthenaWrapper):
+class Athena(AthenaWrapper):
     """
     Athena client
     """

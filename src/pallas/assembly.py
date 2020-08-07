@@ -27,10 +27,10 @@ from __future__ import annotations
 import os
 from typing import Mapping, Optional
 
-from pallas.base import Athena
+from pallas.base import AthenaClient
 from pallas.caching import AthenaCachingWrapper
+from pallas.facade import Athena
 from pallas.interruptions import AthenaKillOnInterruptWrapper
-from pallas.facade import AthenaFacade
 from pallas.normalization import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 from pallas.storage import storage_from_uri
@@ -71,7 +71,7 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    athena: Athena = AthenaProxy(
+    client: AthenaClient = AthenaProxy(
         database=database,
         workgroup=workgroup,
         output_location=output_location,
@@ -79,15 +79,15 @@ def setup(
     )
     if cache_remote is not None:
         storage = storage_from_uri(cache_remote)
-        athena = AthenaCachingWrapper(athena, storage=storage, cache_results=False)
+        client = AthenaCachingWrapper(client, storage=storage, cache_results=False)
     if cache_local is not None:
         storage = storage_from_uri(cache_local)
-        athena = AthenaCachingWrapper(athena, storage=storage, cache_results=True)
+        client = AthenaCachingWrapper(client, storage=storage, cache_results=True)
     if normalize:
-        athena = AthenaNormalizationWrapper(athena)
+        client = AthenaNormalizationWrapper(client)
     if kill_on_interrupt:
-        athena = AthenaKillOnInterruptWrapper(athena)
-    return AthenaFacade(athena)
+        client = AthenaKillOnInterruptWrapper(client)
+    return Athena(client)
 
 
 def environ_setup(

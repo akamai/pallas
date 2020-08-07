@@ -24,7 +24,7 @@ import re
 from typing import Optional
 from urllib.parse import urlencode
 
-from pallas.base import Athena, AthenaWrapper, Query, QueryWrapper
+from pallas.base import AthenaClient, AthenaWrapper, Query, QueryWrapper
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
@@ -72,7 +72,7 @@ class AthenaCachingWrapper(AthenaWrapper):
     _storage: Storage
 
     def __init__(
-        self, wrapped: Athena, *, storage: Storage, cache_results: bool = True
+        self, wrapped: AthenaClient, *, storage: Storage, cache_results: bool = True
     ) -> None:
         super().__init__(wrapped)
         self._storage = storage
