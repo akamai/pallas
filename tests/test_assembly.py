@@ -31,11 +31,11 @@ class TestSetup:
         self.assert_default(athena)
 
     def assert_default(self, athena):
-        impl = athena.wrapped
-        assert isinstance(impl, AthenaKillOnInterruptWrapper)
-        assert isinstance(impl.wrapped, AthenaNormalizationWrapper)
-        assert isinstance(impl.wrapped.wrapped, AthenaProxy)
-        assert impl.wrapped.wrapped.output_location == "s3://example-output/"
+        client = athena.client
+        assert isinstance(client, AthenaKillOnInterruptWrapper)
+        assert isinstance(client.wrapped, AthenaNormalizationWrapper)
+        assert isinstance(client.wrapped.wrapped, AthenaProxy)
+        assert client.wrapped.wrapped.output_location == "s3://example-output/"
 
     def test_do_not_normalize(self):
         athena = setup(normalize=False)
@@ -46,9 +46,9 @@ class TestSetup:
         self.assert_do_not_normalize(athena)
 
     def assert_do_not_normalize(self, athena):
-        impl = athena.wrapped
-        assert isinstance(impl, AthenaKillOnInterruptWrapper)
-        assert isinstance(impl.wrapped, AthenaProxy)
+        client = athena.client
+        assert isinstance(client, AthenaKillOnInterruptWrapper)
+        assert isinstance(client.wrapped, AthenaProxy)
 
     def test_do_not_kill_on_interrupt(self):
         athena = setup(kill_on_interrupt=False)
@@ -59,9 +59,9 @@ class TestSetup:
         self.assert_do_not_kill_on_interrupt(athena)
 
     def assert_do_not_kill_on_interrupt(self, athena):
-        impl = athena.wrapped
-        assert isinstance(impl, AthenaNormalizationWrapper)
-        assert isinstance(impl.wrapped, AthenaProxy)
+        client = athena.client
+        assert isinstance(client, AthenaNormalizationWrapper)
+        assert isinstance(client.wrapped, AthenaProxy)
 
     def test_cache_remote(self):
         athena = setup(cache_remote="s3://bucket/path/")
@@ -72,8 +72,8 @@ class TestSetup:
         self.assert_cache_remote(athena)
 
     def assert_cache_remote(self, athena):
-        impl = athena.wrapped
-        caching_wrapper = impl.wrapped.wrapped
+        client = athena.client
+        caching_wrapper = client.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "s3://bucket/path/"
         assert not caching_wrapper.cache_results
@@ -88,8 +88,8 @@ class TestSetup:
         self.assert_cache_local(athena)
 
     def assert_cache_local(self, athena):
-        impl = athena.wrapped
-        caching_wrapper = impl.wrapped.wrapped
+        client = athena.client
+        caching_wrapper = client.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results
@@ -109,8 +109,8 @@ class TestSetup:
         self.assert_cache_remote_and_local(athena)
 
     def assert_cache_remote_and_local(self, athena):
-        impl = athena.wrapped
-        caching_wrapper = impl.wrapped.wrapped
+        client = athena.client
+        caching_wrapper = client.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results

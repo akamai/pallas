@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pallas.base import AthenaClient, AthenaWrapper
+from pallas.base import AthenaClient, Query
 from pallas.caching import AthenaCachingWrapper
 from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.normalization import AthenaNormalizationWrapper
@@ -25,12 +25,14 @@ from pallas.sql import quote
 from pallas.storage import Storage
 
 
-class Athena(AthenaWrapper):
+class Athena:
     """
     Athena client
     """
 
     quote = staticmethod(quote)
+
+    _client: AthenaClient
 
     def __init__(
         self,
@@ -52,7 +54,67 @@ class Athena(AthenaWrapper):
             client = AthenaNormalizationWrapper(client)
         if kill_on_interrupt:
             client = AthenaKillOnInterruptWrapper(client)
-        super().__init__(client)
+        self._client = client
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self._client!r}>"
+
+    @property
+    def client(self) -> AthenaClient:
+        return self._client
+
+    @property
+    def database(self) -> Optional[str]:
+        """
+        Name of Athena database that will be queries.
+
+        Individual queries can override this in SQL.
+        """
+        return self._client.database
+
+    @property
+    def workgroup(self) -> Optional[str]:
+        """
+        Name of Athena workgroup.
+
+        Workgroup can set resource limits or override output location.
+        """
+        return self._client.workgroup
+
+    @property
+    def output_location(self) -> Optional[str]:
+        """
+        Query output location on S3.
+
+        Can be empty if default location is configured for a workgroup.
+        """
+        return self._client.output_location
+
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+        """
+        Submit a query and return.
+
+        This is a non-blocking method that starts a query and returns.
+        Returns a :class:`Query` instance for monitoring query execution
+        and downloading results later.
+
+        :param sql: an SQL query to be executed
+        :param ignore_cache: do not load cached results
+        :return: a query instance
+        """
+        return self._client.submit(sql, ignore_cache=ignore_cache)
+
+    def get_query(self, execution_id: str) -> Query:
+        """
+        Get a previously submitted query execution.
+
+        Athena stores results in S3 and does not delete them by default.
+        This method can get past queries and retrieve their results.
+
+        :param execution_id: an Athena query execution ID.
+        :return: a query instance
+        """
+        return self._client.get_query(execution_id)
 
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
         """
