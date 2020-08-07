@@ -31,10 +31,11 @@ class TestSetup:
         self.assert_default(athena)
 
     def assert_default(self, athena):
-        assert isinstance(athena, AthenaKillOnInterruptWrapper)
-        assert isinstance(athena.wrapped, AthenaNormalizationWrapper)
-        assert isinstance(athena.wrapped.wrapped, AthenaProxy)
-        assert athena.wrapped.wrapped.output_location == "s3://example-output/"
+        impl = athena.wrapped
+        assert isinstance(impl, AthenaKillOnInterruptWrapper)
+        assert isinstance(impl.wrapped, AthenaNormalizationWrapper)
+        assert isinstance(impl.wrapped.wrapped, AthenaProxy)
+        assert impl.wrapped.wrapped.output_location == "s3://example-output/"
 
     def test_do_not_normalize(self):
         athena = setup(normalize=False)
@@ -45,20 +46,22 @@ class TestSetup:
         self.assert_do_not_normalize(athena)
 
     def assert_do_not_normalize(self, athena):
-        assert isinstance(athena, AthenaKillOnInterruptWrapper)
-        assert isinstance(athena.wrapped, AthenaProxy)
+        impl = athena.wrapped
+        assert isinstance(impl, AthenaKillOnInterruptWrapper)
+        assert isinstance(impl.wrapped, AthenaProxy)
 
     def test_do_not_kill_on_interrupt(self):
         athena = setup(kill_on_interrupt=False)
-        self.asseet_do_not_kill_on_interrupt(athena)
+        self.assert_do_not_kill_on_interrupt(athena)
 
     def test_do_not_kill_on_interrupt_from_env(self):
         athena = environ_setup(environ={"PALLAS_KILL_ON_INTERRUPT": "0"})
-        self.asseet_do_not_kill_on_interrupt(athena)
+        self.assert_do_not_kill_on_interrupt(athena)
 
-    def asseet_do_not_kill_on_interrupt(self, athena):
-        assert isinstance(athena, AthenaNormalizationWrapper)
-        assert isinstance(athena.wrapped, AthenaProxy)
+    def assert_do_not_kill_on_interrupt(self, athena):
+        impl = athena.wrapped
+        assert isinstance(impl, AthenaNormalizationWrapper)
+        assert isinstance(impl.wrapped, AthenaProxy)
 
     def test_cache_remote(self):
         athena = setup(cache_remote="s3://bucket/path/")
@@ -69,7 +72,8 @@ class TestSetup:
         self.assert_cache_remote(athena)
 
     def assert_cache_remote(self, athena):
-        caching_wrapper = athena.wrapped.wrapped
+        impl = athena.wrapped
+        caching_wrapper = impl.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "s3://bucket/path/"
         assert not caching_wrapper.cache_results
@@ -84,7 +88,8 @@ class TestSetup:
         self.assert_cache_local(athena)
 
     def assert_cache_local(self, athena):
-        caching_wrapper = athena.wrapped.wrapped
+        impl = athena.wrapped
+        caching_wrapper = impl.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results
@@ -104,7 +109,8 @@ class TestSetup:
         self.assert_cache_remote_and_local(athena)
 
     def assert_cache_remote_and_local(self, athena):
-        caching_wrapper = athena.wrapped.wrapped
+        impl = athena.wrapped
+        caching_wrapper = impl.wrapped.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results

@@ -30,6 +30,7 @@ from typing import Mapping, Optional
 from pallas.base import Athena
 from pallas.caching import AthenaCachingWrapper
 from pallas.interruptions import AthenaKillOnInterruptWrapper
+from pallas.facade import AthenaFacade
 from pallas.normalization import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 from pallas.storage import storage_from_uri
@@ -86,7 +87,7 @@ def setup(
         athena = AthenaNormalizationWrapper(athena)
     if kill_on_interrupt:
         athena = AthenaKillOnInterruptWrapper(athena)
-    return athena
+    return AthenaFacade(athena)
 
 
 def environ_setup(
