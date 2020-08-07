@@ -16,13 +16,82 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pallas.base import AthenaClient, Query
+from pallas.base import AthenaClient
 from pallas.caching import AthenaCachingWrapper
+from pallas.info import QueryInfo
 from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.normalization import AthenaNormalizationWrapper
 from pallas.results import QueryResults
 from pallas.sql import quote
 from pallas.storage import Storage
+
+
+class Query:
+    """
+    Athena query
+
+    Provides access to one query execution.
+
+    Instances of this class are returned by :meth:`Athena.submit`
+    and :meth:`Athena.get_query` methods.
+    """
+
+    _client: AthenaClient
+    _execution_id: str
+
+    _finished_info: Optional[QueryInfo] = None
+
+    def __init__(self, client: AthenaClient, execution_id: str) -> None:
+        self._client = client
+        self._execution_id = execution_id
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: execution_id={self.execution_id!r}>"
+
+    @property
+    def execution_id(self) -> str:
+        """
+        Athena query execution ID.
+
+        Returns a unique ID of this query execution.
+        This ID can be used to retrieve the query using
+        the :meth:`.Athena.get_query()` method.
+        """
+        return self._execution_id
+
+    def get_info(self) -> QueryInfo:
+        """
+        Retrieve information about this query execution.
+
+        Returns a status of this query with other information.
+        """
+        # Query info is cached if the query finished and cannot change.
+        if self._finished_info is not None:
+            return self._finished_info
+        info = self._client.get_query_info(self._execution_id)
+        if info.finished:
+            self._finished_info = info
+        return info
+
+    def get_results(self) -> QueryResults:
+        """
+        Retrieve results of this query execution.
+
+        Waits until this query execution finishes and downloads results.
+        """
+        return self._client.get_query_results(self._execution_id)
+
+    def kill(self) -> None:
+        """
+        Kill this query execution.
+        """
+        self._client.kill_query(self._execution_id)
+
+    def join(self) -> None:
+        """
+        Wait until this query execution finishes.
+        """
+        self._client.join_query(self._execution_id)
 
 
 class Athena:
@@ -41,7 +110,7 @@ class Athena:
         storage_local: Optional[Storage] = None,
         normalize: bool = False,
         kill_on_interrupt: bool = False,
-    ):
+    ) -> None:
         if storage_remote is not None:
             client = AthenaCachingWrapper(
                 client, storage=storage_remote, cache_results=False
@@ -102,7 +171,8 @@ class Athena:
         :param ignore_cache: do not load cached results
         :return: a query instance
         """
-        return self._client.submit(sql, ignore_cache=ignore_cache)
+        execution_id = self._client.submit(sql, ignore_cache=ignore_cache)
+        return Query(self._client, execution_id)
 
     def get_query(self, execution_id: str) -> Query:
         """
@@ -114,7 +184,7 @@ class Athena:
         :param execution_id: an Athena query execution ID.
         :return: a query instance
         """
-        return self._client.get_query(execution_id)
+        return Query(self._client, execution_id)
 
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
         """

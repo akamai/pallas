@@ -21,31 +21,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Iterator
 
-from pallas.base import AthenaWrapper, Query, QueryWrapper
+from pallas.base import AthenaWrapper
 from pallas.results import QueryResults
-
-
-@contextmanager
-def _kill_on_interrupt(query: Query) -> Iterator[None]:
-    try:
-        yield
-    except KeyboardInterrupt:
-        query.kill()
-        query.join()  # Wait until killed and raise
-
-
-class QueryKillOnInterruptWrapper(QueryWrapper):
-    """
-    Query wrapper that kills queries on the KeyboardInterrupt exception.
-    """
-
-    def get_results(self) -> QueryResults:
-        with _kill_on_interrupt(self.wrapped):
-            return self.wrapped.get_results()
-
-    def join(self) -> None:
-        with _kill_on_interrupt(self.wrapped):
-            return self.wrapped.join()
 
 
 class AthenaKillOnInterruptWrapper(AthenaWrapper):
@@ -53,13 +30,18 @@ class AthenaKillOnInterruptWrapper(AthenaWrapper):
     Athena wrapper that kills queries on the KeyboardInterrupt exception.
     """
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
-        query = super().submit(sql, ignore_cache=ignore_cache)
-        return self._wrap_query(query)
+    def get_query_results(self, execution_id: str) -> QueryResults:
+        with self._kill_on_interrupt(execution_id):
+            return self.wrapped.get_query_results(execution_id)
 
-    def get_query(self, execution_id: str) -> Query:
-        query = super().get_query(execution_id)
-        return self._wrap_query(query)
+    def join_query(self, execution_id: str) -> None:
+        with self._kill_on_interrupt(execution_id):
+            return self.wrapped.join_query(execution_id)
 
-    def _wrap_query(self, query: Query) -> Query:
-        return QueryKillOnInterruptWrapper(query)
+    @contextmanager
+    def _kill_on_interrupt(self, execution_id: str) -> Iterator[None]:
+        try:
+            yield
+        except KeyboardInterrupt:
+            self.kill_query(execution_id)
+            self.join_query(execution_id)  # Wait until killed and raise

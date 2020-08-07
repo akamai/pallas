@@ -76,82 +76,41 @@ class AthenaClient(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
         """
-        Submit a query and return.
-
-        This is a non-blocking method that starts a query and returns.
-        Returns a :class:`Query` instance for monitoring query execution
-        and downloading results later.
+        Submit a query.
 
         :param sql: an SQL query to be executed
         :param ignore_cache: do not load cached results
-        :return: a query instance
+        :return: execution_id
         """
 
     @abstractmethod
-    def get_query(self, execution_id: str) -> Query:
+    def get_query_info(self, execution_id: str) -> QueryInfo:
         """
-        Get a previously submitted query execution.
+        Retrieve information about a query execution.
 
-        Athena stores results in S3 and does not delete them by default.
-        This method can get past queries and retrieve their results.
-
-        :param execution_id: an Athena query execution ID.
-        :return: a query instance
-        """
-
-
-class Query(metaclass=ABCMeta):
-    """
-    Query interface
-
-    Provides access to one query execution.
-
-    Instances of this class are returned by :meth:`Athena.submit`
-    and :meth:`Athena.get_query` methods.
-    """
-
-    def __repr__(self) -> str:
-        return f"<{type(self).__name__}: execution_id={self.execution_id!r}>"
-
-    @property
-    @abstractmethod
-    def execution_id(self) -> str:
-        """
-        Athena query execution ID.
-
-        Returns a unique ID of this query execution.
-        This ID can be used to retrieve the query using
-        the :meth:`.Athena.get_query()` method.
+        Returns a status of the query with other information.
         """
 
     @abstractmethod
-    def get_info(self) -> QueryInfo:
+    def get_query_results(self, execution_id: str) -> QueryResults:
         """
-        Retrieve information about this query execution.
+        Retrieve results of a query execution.
 
-        Returns a status of this query with other information.
-        """
-
-    @abstractmethod
-    def get_results(self) -> QueryResults:
-        """
-        Retrieve results of this query execution.
-
-        Waits until this query execution finishes and downloads results.
+        Waits until the query execution finishes and downloads results.
         """
 
     @abstractmethod
-    def kill(self) -> None:
+    def kill_query(self, execution_id: str) -> None:
         """
-        Kill this query execution.
+        Kill a query execution.
         """
 
     @abstractmethod
-    def join(self) -> None:
+    def join_query(self, execution_id: str) -> None:
         """
-        Wait until this query execution finishes.
+        Wait until a query execution finishes.
         """
 
 
@@ -184,42 +143,17 @@ class AthenaWrapper(AthenaClient):
     def output_location(self) -> Optional[str]:
         return self._wrapped.output_location
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
         return self._wrapped.submit(sql, ignore_cache=ignore_cache)
 
-    def get_query(self, execution_id: str) -> Query:
-        return self._wrapped.get_query(execution_id)
+    def get_query_info(self, execution_id: str) -> QueryInfo:
+        return self._wrapped.get_query_info(execution_id)
 
+    def get_query_results(self, execution_id: str) -> QueryResults:
+        return self._wrapped.get_query_results(execution_id)
 
-class QueryWrapper(Query):
-    """
-    Base class for :class:`.Query` decorators.
-    """
+    def kill_query(self, execution_id: str) -> None:
+        self._wrapped.kill_query(execution_id)
 
-    _wrapped: Query
-
-    def __init__(self, wrapped: Query) -> None:
-        self._wrapped = wrapped
-
-    def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self.wrapped!r}>"
-
-    @property
-    def wrapped(self) -> Query:
-        return self._wrapped
-
-    @property
-    def execution_id(self) -> str:
-        return self._wrapped.execution_id
-
-    def get_info(self) -> QueryInfo:
-        return self._wrapped.get_info()
-
-    def get_results(self) -> QueryResults:
-        return self._wrapped.get_results()
-
-    def kill(self) -> None:
-        self._wrapped.kill()
-
-    def join(self) -> None:
-        self._wrapped.join()
+    def join_query(self, execution_id: str) -> None:
+        self._wrapped.join_query(execution_id)

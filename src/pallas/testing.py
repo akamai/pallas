@@ -18,52 +18,11 @@ Fake Athena client for testing purposes.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Sequence, Type
+from typing import Dict, List, Optional, Sequence
 
-from pallas.base import AthenaClient, Query
+from pallas.base import AthenaClient
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
-
-
-class QueryFake(Query):
-    """Fake Query implementation that can be used for testing."""
-
-    _info: QueryInfo
-    _results: QueryResults
-    _request_log: List[str]
-
-    _finished_info: Optional[QueryInfo] = None
-
-    def __init__(
-        self, info: QueryInfo, results: QueryResults, request_log: List[str]
-    ) -> None:
-        self._info = info
-        self._results = results
-        self._request_log = request_log
-
-    @property
-    def execution_id(self) -> str:
-        return self._info.execution_id
-
-    def get_info(self) -> QueryInfo:
-        # Mimic behavior of QueryProxy - remember info of finished queries.
-        if self._finished_info is not None:
-            return self._finished_info
-        self._request_log.append("GetQueryExecution")
-        if self._info.finished:
-            self._finished_info = self._info
-        return self._info
-
-    def get_results(self) -> QueryResults:
-        self.join()
-        self._request_log.append("GetQueryResults")
-        return self._results
-
-    def kill(self) -> None:
-        self._request_log.append("StopQueryExecution")
-
-    def join(self) -> None:
-        self.get_info().check()
 
 
 class AthenaFake(AthenaClient):
@@ -78,8 +37,6 @@ class AthenaFake(AthenaClient):
     state = "SUCCEEDED"
     data: Optional[Sequence[Sequence[str]]] = None
 
-    query_cls: Type[QueryFake] = QueryFake
-
     _sql: Dict[str, str]
     _results: Dict[str, QueryResults]
     _request_log: List[str]
@@ -93,20 +50,30 @@ class AthenaFake(AthenaClient):
     def request_log(self) -> List[str]:
         return self._request_log
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
         execution_id = f"query-{len(self._results) + 1}"
         self._request_log.append("StartQueryExecution")
-        results = self._get_results()
+        results = self._fake_query_results()
         self._sql[execution_id] = sql
         self._results[execution_id] = results
-        return self.get_query(execution_id)
+        return execution_id
 
-    def get_query(self, execution_id: str) -> Query:
-        info = self._get_info(execution_id, self._sql[execution_id])
-        results = self._results[execution_id]
-        return self.query_cls(info, results, self._request_log)
+    def get_query_info(self, execution_id: str) -> QueryInfo:
+        self._request_log.append("GetQueryExecution")
+        return self._fake_query_info(execution_id, self._sql[execution_id])
 
-    def _get_info(self, execution_id: str, sql: str) -> QueryInfo:
+    def get_query_results(self, execution_id: str) -> QueryResults:
+        self.join_query(execution_id)
+        self._request_log.append("GetQueryResults")
+        return self._results[execution_id]
+
+    def kill_query(self, execution_id: str) -> None:
+        self._request_log.append("StopQueryExecution")
+
+    def join_query(self, execution_id: str) -> None:
+        self.get_query_info(execution_id).check()
+
+    def _fake_query_info(self, execution_id: str, sql: str) -> QueryInfo:
         data = {
             "QueryExecutionId": execution_id,
             "Query": sql,
@@ -128,7 +95,7 @@ class AthenaFake(AthenaClient):
         }
         return QueryInfo(data)
 
-    def _get_results(self) -> QueryResults:
+    def _fake_query_results(self) -> QueryResults:
         column_names = self.column_names
         column_types = self.column_types
         data = self.data

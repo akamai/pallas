@@ -14,7 +14,8 @@
 
 import pytest
 
-from pallas.normalization import AthenaNormalizationWrapper, normalize_sql
+from pallas import Athena
+from pallas.normalization import normalize_sql
 from pallas.testing import AthenaFake
 
 NORMALIZED_SQL = """\
@@ -71,16 +72,12 @@ def fake_fixture():
 
 @pytest.fixture(name="athena")
 def athena_fixture(fake):
-    return AthenaNormalizationWrapper(fake)
+    return Athena(fake, normalize=True)
 
 
 class TestAthenaNormalizationWrapper:
     def test_repr(self, athena):
-        assert repr(athena) == "<AthenaNormalizationWrapper: <AthenaFake>>"
-
-    def test_query_repr(self, athena):
-        query = athena.submit("SELECT 1")
-        assert repr(query) == "<QueryFake: execution_id='query-1'>"
+        assert repr(athena) == "<Athena: <AthenaNormalizationWrapper: <AthenaFake>>>"
 
     def test_database(self, athena):
         assert athena.database == "test_database"

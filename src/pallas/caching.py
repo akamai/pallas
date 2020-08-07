@@ -24,7 +24,7 @@ import re
 from typing import Optional
 from urllib.parse import urlencode
 
-from pallas.base import AthenaClient, AthenaWrapper, Query, QueryWrapper
+from pallas.base import AthenaClient, AthenaWrapper
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
@@ -91,29 +91,36 @@ class AthenaCachingWrapper(AthenaWrapper):
     def cache_results(self) -> bool:
         return self._cache_results
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
         sql_cacheable = is_cacheable(sql)
         if sql_cacheable and not ignore_cache:
             execution_id = self._load_execution_id(sql)
             if execution_id is not None:
-                return self.get_query(execution_id)
-        query = super().submit(sql, ignore_cache=ignore_cache)
+                return execution_id
+        execution_id = super().submit(sql, ignore_cache=ignore_cache)
         if sql_cacheable:
-            self._save_execution_id(sql, query.execution_id)
-            query = self._wrap_query(query)
-        return query
+            self._save_execution_id(sql, execution_id)
+        return execution_id
 
-    def get_query(self, execution_id: str) -> Query:
-        query = super().get_query(execution_id)
-        return self._wrap_query(query)
-
-    def _wrap_query(self, query: Query) -> Query:
+    def get_query_results(self, execution_id: str) -> QueryResults:
         if self._cache_results:
-            query = QueryCachingWrapper(query, self._storage)
-        return query
+            results = self._load_results(execution_id)
+            if results is not None:
+                return results
+        results = super().get_query_results(execution_id)
+        if self._cache_results:
+            # TODO: save only cachable queries
+            self._save_results(execution_id, results)
+        return results
+
+    def join_query(self, execution_id: str) -> None:
+        if self._cache_results and self._has_results(execution_id):
+            # If we have results then we can assume that query has finished.
+            return
+        super().join_query(execution_id)
 
     def _load_execution_id(self, sql: str) -> Optional[str]:
-        key = self._get_cache_key(sql)
+        key = self._get_execution_id_key(sql)
         try:
             execution_id = self._storage.get(key)
         except NotFoundError:
@@ -125,14 +132,39 @@ class AthenaCachingWrapper(AthenaWrapper):
         return execution_id
 
     def _save_execution_id(self, sql: str, execution_id: str) -> None:
-        key = self._get_cache_key(sql)
+        key = self._get_execution_id_key(sql)
         self._storage.set(key, execution_id)
         logger.info(
             f"Query execution saved to cache {self._storage}{key}:"
             f" QueryExecutionId={execution_id!r}"
         )
 
-    def _get_cache_key(self, sql: str) -> str:
+    def _has_results(self, execution_id: str) -> bool:
+        return self._storage.has(self._get_results_key(execution_id))
+
+    def _load_results(self, execution_id: str) -> Optional[QueryResults]:
+        key = self._get_results_key(execution_id)
+        try:
+            with self._storage.reader(key) as stream:
+                results = QueryResults.load(stream)
+        except NotFoundError:
+            return None
+        logger.info(
+            f"Query results loaded from cache {self._storage}{key}:"
+            f" QueryExecutionId={execution_id!r}: {len(results)} rows"
+        )
+        return results
+
+    def _save_results(self, execution_id: str, results: QueryResults) -> None:
+        key = self._get_results_key(execution_id)
+        with self._storage.writer(key) as stream:
+            results.save(stream)
+        logger.info(
+            f"Query results saved to cache {self._storage}{key}:"
+            f" QueryExecutionId={execution_id!r}: {len(results)} rows"
+        )
+
+    def _get_execution_id_key(self, sql: str) -> str:
         parts = {}
         if self.database is not None:
             parts["database"] = self.database
@@ -141,61 +173,5 @@ class AthenaCachingWrapper(AthenaWrapper):
         hash = hashlib.sha256(encoded).hexdigest()
         return f"query-{hash}"
 
-
-class QueryCachingWrapper(QueryWrapper):
-    """
-    Query wrapper that caches query results.
-    """
-
-    _storage: Storage
-
-    def __init__(self, wrapped: Query, storage: Storage) -> None:
-        super().__init__(wrapped)
-        self._storage = storage
-
-    def get_results(self) -> QueryResults:
-        results = self._load_results()
-        if results is not None:
-            return results
-        results = super().get_results()
-        # When an old query is accessed using its execution ID,
-        # we have to retrieve its SQL to determine whether it can be cached.
-        # Network should not be used until a cache is checked.
-        # Getting the SQL here should not produce an additional request.
-        if is_cacheable(self.get_info().sql):
-            self._save_results(results)
-        return results
-
-    def join(self) -> None:
-        if self._has_results():
-            # If we have results then we can assume that query has finished.
-            return
-        super().join()
-
-    def _has_results(self) -> bool:
-        return self._storage.has(self._get_cache_key())
-
-    def _load_results(self) -> Optional[QueryResults]:
-        key = self._get_cache_key()
-        try:
-            with self._storage.reader(key) as stream:
-                results = QueryResults.load(stream)
-        except NotFoundError:
-            return None
-        logger.info(
-            f"Query results loaded from cache {self._storage}{key}:"
-            f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
-        )
-        return results
-
-    def _save_results(self, results: QueryResults) -> None:
-        key = self._get_cache_key()
-        with self._storage.writer(key) as stream:
-            results.save(stream)
-        logger.info(
-            f"Query results saved to cache {self._storage}{key}:"
-            f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
-        )
-
-    def _get_cache_key(self) -> str:
-        return f"results-{self.execution_id}"
+    def _get_results_key(self, execution_id: str) -> str:
+        return f"results-{execution_id}"

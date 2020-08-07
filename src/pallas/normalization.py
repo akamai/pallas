@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import textwrap
 
-from pallas.base import AthenaWrapper, Query
+from pallas.base import AthenaWrapper
 
 
 def normalize_sql(sql: str) -> str:
@@ -42,6 +42,6 @@ class AthenaNormalizationWrapper(AthenaWrapper):
     - Line endings are normalized to LF
     """
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+    def submit(self, sql: str, *, ignore_cache: bool = False) -> str:
         normalized = normalize_sql(sql)
         return super().submit(normalized, ignore_cache=ignore_cache)

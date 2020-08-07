@@ -18,23 +18,20 @@ import pytest
 
 from pallas import Athena
 from pallas.exceptions import AthenaQueryError
-from pallas.testing import AthenaFake, QueryFake
-
-
-class InterruptQueryFake(QueryFake):
-    _interrupted: bool = False
-
-    def join(self) -> None:
-        if not self._interrupted:
-            self._interrupted = True
-            raise KeyboardInterrupt
-        super().join()
+from pallas.testing import AthenaFake
 
 
 class InterruptAthenaFake(AthenaFake):
 
     state = "CANCELLED"
-    query_cls = InterruptQueryFake
+
+    _interrupted: bool = False
+
+    def join_query(self, execution_id: str) -> None:
+        if not self._interrupted:
+            self._interrupted = True
+            raise KeyboardInterrupt
+        super().join_query(execution_id)
 
 
 @pytest.fixture(name="fake")

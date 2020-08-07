@@ -32,10 +32,6 @@ class TestAthenaFake:
     def test_repr(self, fake):
         assert repr(fake) == "<AthenaFake>"
 
-    def test_query_repr(self, athena):
-        query = athena.submit("SELECT 1")
-        assert repr(query) == "<QueryFake: execution_id='query-1'>"
-
     def test_submit(self, athena, fake):
         query = athena.submit("SELECT ...")
         assert query.execution_id == "query-1"
