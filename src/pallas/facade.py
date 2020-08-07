@@ -21,6 +21,7 @@ from pallas.caching import AthenaCachingWrapper
 from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.normalization import AthenaNormalizationWrapper
 from pallas.results import QueryResults
+from pallas.sql import quote
 from pallas.storage import Storage
 
 
@@ -28,6 +29,8 @@ class Athena(AthenaWrapper):
     """
     Athena client
     """
+
+    quote = staticmethod(quote)
 
     def __init__(
         self,
