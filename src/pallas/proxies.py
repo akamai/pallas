@@ -138,7 +138,6 @@ class AthenaProxy(AthenaClient):
         return info
 
     def get_query_results(self, execution_id: str) -> QueryResults:
-        self.join_query(execution_id)
         params = dict(QueryExecutionId=execution_id)
         logger.info(f"Athena GetQueryResults: QueryExecutionId={execution_id!r}")
         response = self._athena_client.get_query_results(**params)

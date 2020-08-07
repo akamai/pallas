@@ -79,6 +79,7 @@ class Query:
 
         Waits until this query execution finishes and downloads results.
         """
+        self._client.join_query(self._execution_id)
         return self._client.get_query_results(self._execution_id)
 
     def kill(self) -> None:

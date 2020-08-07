@@ -63,7 +63,6 @@ class AthenaFake(AthenaClient):
         return self._fake_query_info(execution_id, self._sql[execution_id])
 
     def get_query_results(self, execution_id: str) -> QueryResults:
-        self.join_query(execution_id)
         self._request_log.append("GetQueryResults")
         return self._results[execution_id]
 
