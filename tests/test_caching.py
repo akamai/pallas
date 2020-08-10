@@ -180,6 +180,7 @@ class TestAthenaCachingWrapper:
         assert_query_results(results)
         assert storage.size() == 1
 
+    @pytest.mark.xfail
     def test_local_execute_second_query(self, local_athena, fake, storage):
         """Test execution of a query in cache."""
         local_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
@@ -322,6 +323,7 @@ class TestAthenaCachingWrapper:
         assert_query_results(query_results)
         assert storage.size() == 1
 
+    @pytest.mark.xfail
     def test_local_get_cached_query_get_results(self, local_athena, fake, storage):
         """Test getting query in cache when results are cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")
@@ -359,7 +361,6 @@ class TestAthenaCachingWrapper:
         assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
-    @pytest.mark.xfail
     def test_remote_get_second_results_one_query(self, remote_athena, fake):
         """Test getting results twice results not cached."""
         query = remote_athena.submit("SELECT 1 id, 'foo' name")
@@ -392,6 +393,7 @@ class TestAthenaCachingWrapper:
         ]
         assert_query_results(second_query_results)
 
+    @pytest.mark.xfail
     def test_local_get_results_second_query_same_sql(self, local_athena, fake):
         """Test getting results query in cache results cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")
@@ -423,6 +425,7 @@ class TestAthenaCachingWrapper:
         ]
         assert_query_results(second_query_results)
 
+    @pytest.mark.xfail
     def test_local_get_cached_results_first_query_same_sql(self, local_athena, fake):
         """Test that first query can use cache from the second query."""
         first_query = local_athena.submit("SELECT 1 id, 'foo' name")
@@ -457,6 +460,7 @@ class TestAthenaCachingWrapper:
         second_query.join()
         assert fake.request_log == ["GetQueryExecution"]
 
+    @pytest.mark.xfail
     def test_local_join_second_query_query_same_sql(self, local_athena, fake):
         """Test waiting for a query cached results not cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")

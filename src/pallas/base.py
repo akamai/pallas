@@ -107,12 +107,6 @@ class AthenaClient(metaclass=ABCMeta):
         Kill a query execution.
         """
 
-    @abstractmethod
-    def join_query_execution(self, execution_id: str) -> None:
-        """
-        Wait until a query execution finishes.
-        """
-
 
 class AthenaWrapper(AthenaClient):
     """
@@ -154,6 +148,3 @@ class AthenaWrapper(AthenaClient):
 
     def stop_query_execution(self, execution_id: str) -> None:
         self._wrapped.stop_query_execution(execution_id)
-
-    def join_query_execution(self, execution_id: str) -> None:
-        self._wrapped.join_query_execution(execution_id)

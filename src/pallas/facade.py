@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Optional
 
 from pallas.base import AthenaClient
@@ -23,6 +24,7 @@ from pallas.normalization import AthenaNormalizationWrapper
 from pallas.results import QueryResults
 from pallas.sql import quote
 from pallas.storage import Storage
+from pallas.utils import Fibonacci
 
 
 class Query:
@@ -96,13 +98,20 @@ class Query:
         """
         Wait until this query execution finishes.
         """
-        try:
-            self._client.join_query_execution(self._execution_id)
-        except KeyboardInterrupt:
-            if not self.kill_on_interrupt:
-                raise
-            self.kill()
-            self.join()
+        for delay in Fibonacci(max_value=60):
+            info = self.get_info()
+            if info.finished:
+                info.check()
+                break
+            try:
+                time.sleep(delay)
+            except KeyboardInterrupt:
+                if not self.kill_on_interrupt:
+                    raise
+                self.kill()
+                # Catch only the first KeyboardInterrupt
+                self.kill_on_interrupt = False
+                self.join()
 
 
 class Athena:

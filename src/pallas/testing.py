@@ -68,9 +68,7 @@ class AthenaFake(AthenaClient):
 
     def stop_query_execution(self, execution_id: str) -> None:
         self._request_log.append("StopQueryExecution")
-
-    def join_query_execution(self, execution_id: str) -> None:
-        self.get_query_execution(execution_id).check()
+        self.state = "CANCELLED"
 
     def _fake_query_info(self, execution_id: str, sql: str) -> QueryInfo:
         data = {

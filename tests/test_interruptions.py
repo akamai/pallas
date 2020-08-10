@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from contextlib import contextmanager
 
 import pytest
@@ -21,27 +22,23 @@ from pallas.exceptions import AthenaQueryError
 from pallas.testing import AthenaFake
 
 
-class InterruptAthenaFake(AthenaFake):
-
-    state = "CANCELLED"
-
-    _interrupted: bool = False
-
-    def join_query_execution(self, execution_id: str):
-        if not self._interrupted:
-            self._interrupted = True
-            raise KeyboardInterrupt
-        super().join_query_execution(execution_id)
+def fake_sleep(seconds):
+    raise KeyboardInterrupt
 
 
 @pytest.fixture(name="fake")
 def fake_fixture():
-    return InterruptAthenaFake()
+    fake = AthenaFake()
+    fake.state = "RUNNING"
+    return fake
 
 
 @pytest.fixture(name="athena")
 def athena_fixture(fake):
-    return Athena(fake, kill_on_interrupt=True)
+    orig_sleep = time.sleep
+    time.sleep = fake_sleep
+    yield Athena(fake, kill_on_interrupt=True)
+    time.sleep = orig_sleep
 
 
 @contextmanager
@@ -65,6 +62,7 @@ class TestAthenaKillOnInterruptWrapper:
                 athena.execute("SELECT 1")
             assert fake.request_log == [
                 "StartQueryExecution",
+                "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
@@ -76,6 +74,7 @@ class TestAthenaKillOnInterruptWrapper:
             with pytest.raises(AthenaQueryError):
                 query.get_results()
             assert fake.request_log == [
+                "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
@@ -87,6 +86,7 @@ class TestAthenaKillOnInterruptWrapper:
             with pytest.raises(AthenaQueryError):
                 query.join()
             assert fake.request_log == [
+                "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]

@@ -25,7 +25,6 @@ and offering same interface.
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any, Dict, Mapping, Optional, Sequence, cast
 
 import boto3
@@ -35,7 +34,7 @@ from pallas.csv import read_csv
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 from pallas.storage.s3 import s3_parse_uri, s3_wrap_body
-from pallas.utils import Fibonacci, truncate_str
+from pallas.utils import truncate_str
 
 logger = logging.getLogger("pallas")
 
@@ -157,14 +156,6 @@ class AthenaProxy(AthenaClient):
     def stop_query_execution(self, execution_id: str) -> None:
         logger.info(f"Athena StopQueryExecution: QueryExecutionId={execution_id!r}")
         self._athena_client.stop_query_execution(QueryExecutionId=execution_id)
-
-    def join_query_execution(self, execution_id: str) -> None:
-        for delay in Fibonacci(max_value=60):
-            info = self.get_query_execution(execution_id)
-            if info.finished:
-                info.check()
-                break
-            time.sleep(delay)
 
     def _download_data(self, execution_id: str) -> Sequence[Row]:
         output_location = self.get_query_execution(execution_id).output_location

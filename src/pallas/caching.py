@@ -113,12 +113,6 @@ class AthenaCachingWrapper(AthenaWrapper):
             self._save_results(execution_id, results)
         return results
 
-    def join_query_execution(self, execution_id: str) -> None:
-        if self._cache_results and self._has_results(execution_id):
-            # If we have results then we can assume that query has finished.
-            return
-        super().join_query_execution(execution_id)
-
     def _load_execution_id(self, sql: str) -> Optional[str]:
         key = self._get_execution_id_key(sql)
         try:

@@ -80,7 +80,6 @@ class TestQuery:
         query.join()
         assert fake.request_log == ["GetQueryExecution"]
 
-    @pytest.mark.xfail
     def test_join_twice(self, athena, fake):
         """Test that query info is cached."""
         query = athena.submit("SELECT 1")
@@ -89,7 +88,6 @@ class TestQuery:
         query.join()
         assert fake.request_log == ["GetQueryExecution"]
 
-    @pytest.mark.xfail
     def test_get_info_and_join(self, athena, fake):
         """Test that query info is cached."""
         query = athena.submit("SELECT 1")
@@ -98,7 +96,6 @@ class TestQuery:
         query.join()
         assert fake.request_log == ["GetQueryExecution"]
 
-    @pytest.mark.xfail
     def test_join_and_get_info(self, athena, fake):
         """Test that query info is cached."""
         query = athena.submit("SELECT 1")
@@ -114,7 +111,6 @@ class TestQuery:
         query.get_results()
         assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    @pytest.mark.xfail
     def test_get_results_twice(self, athena, fake):
         """Test that get_results caches query info but not results."""
         query = athena.submit("SELECT 1")
@@ -127,7 +123,6 @@ class TestQuery:
             "GetQueryResults",
         ]
 
-    @pytest.mark.xfail
     def test_get_info_and_get_results(self, athena, fake):
         """Test that get_results use cached query info."""
         query = athena.submit("SELECT 1")
@@ -136,7 +131,6 @@ class TestQuery:
         query.get_results()
         assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    @pytest.mark.xfail
     def test_join_and_get_results(self, athena, fake):
         """Test that get_results use cached query info."""
         query = athena.submit("SELECT 1")
@@ -145,7 +139,6 @@ class TestQuery:
         query.get_results()
         assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    @pytest.mark.xfail
     def test_get_results_and_get_info(self, athena, fake):
         """Test that get_results cache query info."""
         query = athena.submit("SELECT 1")
@@ -154,7 +147,6 @@ class TestQuery:
         query.get_info()
         assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    @pytest.mark.xfail
     def test_get_results_and_join(self, athena, fake):
         """Test that get_results cache query info."""
         query = athena.submit("SELECT 1")
