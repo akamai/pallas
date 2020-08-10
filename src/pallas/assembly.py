@@ -51,9 +51,6 @@ def setup(
 
     Initializes :class:`.AthenaProxy` and decorates it by caching wrappers.
 
-    :param environ: Mapping to use instead of ``os.environ``.
-        Set to empty dict to ignore environment variables.
-    :param environ_prefix: Prefix of environment variables.
     :param database: a name of Athena database.
         If omitted, database should be specified in SQL.
     :param workgroup: a name of Athena workgroup.
