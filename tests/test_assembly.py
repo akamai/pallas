@@ -14,7 +14,6 @@
 
 from pallas.assembly import environ_setup, setup
 from pallas.caching import AthenaCachingWrapper
-from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.normalization import AthenaNormalizationWrapper
 from pallas.proxies import AthenaProxy
 
@@ -32,10 +31,10 @@ class TestSetup:
 
     def assert_default(self, athena):
         client = athena.client
-        assert isinstance(client, AthenaKillOnInterruptWrapper)
-        assert isinstance(client.wrapped, AthenaNormalizationWrapper)
-        assert isinstance(client.wrapped.wrapped, AthenaProxy)
-        assert client.wrapped.wrapped.output_location == "s3://example-output/"
+        assert client.output_location == "s3://example-output/"
+        assert athena.kill_on_interrupt
+        assert isinstance(client, AthenaNormalizationWrapper)
+        assert isinstance(client.wrapped, AthenaProxy)
 
     def test_do_not_normalize(self):
         athena = setup(normalize=False)
@@ -47,8 +46,7 @@ class TestSetup:
 
     def assert_do_not_normalize(self, athena):
         client = athena.client
-        assert isinstance(client, AthenaKillOnInterruptWrapper)
-        assert isinstance(client.wrapped, AthenaProxy)
+        assert isinstance(client, AthenaProxy)
 
     def test_do_not_kill_on_interrupt(self):
         athena = setup(kill_on_interrupt=False)
@@ -60,6 +58,7 @@ class TestSetup:
 
     def assert_do_not_kill_on_interrupt(self, athena):
         client = athena.client
+        assert not athena.kill_on_interrupt
         assert isinstance(client, AthenaNormalizationWrapper)
         assert isinstance(client.wrapped, AthenaProxy)
 
@@ -73,7 +72,7 @@ class TestSetup:
 
     def assert_cache_remote(self, athena):
         client = athena.client
-        caching_wrapper = client.wrapped.wrapped
+        caching_wrapper = client.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "s3://bucket/path/"
         assert not caching_wrapper.cache_results
@@ -89,7 +88,7 @@ class TestSetup:
 
     def assert_cache_local(self, athena):
         client = athena.client
-        caching_wrapper = client.wrapped.wrapped
+        caching_wrapper = client.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results
@@ -110,7 +109,7 @@ class TestSetup:
 
     def assert_cache_remote_and_local(self, athena):
         client = athena.client
-        caching_wrapper = client.wrapped.wrapped
+        caching_wrapper = client.wrapped
         assert isinstance(caching_wrapper, AthenaCachingWrapper)
         assert caching_wrapper.storage.uri == "file:/path/"
         assert caching_wrapper.cache_results

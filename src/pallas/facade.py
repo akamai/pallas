@@ -19,7 +19,6 @@ from typing import Optional
 from pallas.base import AthenaClient
 from pallas.caching import AthenaCachingWrapper
 from pallas.info import QueryInfo
-from pallas.interruptions import AthenaKillOnInterruptWrapper
 from pallas.normalization import AthenaNormalizationWrapper
 from pallas.results import QueryResults
 from pallas.sql import quote
@@ -39,11 +38,16 @@ class Query:
     _client: AthenaClient
     _execution_id: str
 
+    kill_on_interrupt: bool
+
     _finished_info: Optional[QueryInfo] = None
 
-    def __init__(self, client: AthenaClient, execution_id: str) -> None:
+    def __init__(
+        self, client: AthenaClient, execution_id: str, kill_on_interrupt: bool = False
+    ) -> None:
         self._client = client
         self._execution_id = execution_id
+        self.kill_on_interrupt = kill_on_interrupt
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: execution_id={self.execution_id!r}>"
@@ -92,7 +96,13 @@ class Query:
         """
         Wait until this query execution finishes.
         """
-        self._client.join_query_execution(self._execution_id)
+        try:
+            self._client.join_query_execution(self._execution_id)
+        except KeyboardInterrupt:
+            if not self.kill_on_interrupt:
+                raise
+            self.kill()
+            self.join()
 
 
 class Athena:
@@ -103,6 +113,8 @@ class Athena:
     quote = staticmethod(quote)
 
     _client: AthenaClient
+
+    kill_on_interrupt: bool
 
     def __init__(
         self,
@@ -122,9 +134,8 @@ class Athena:
             )
         if normalize:
             client = AthenaNormalizationWrapper(client)
-        if kill_on_interrupt:
-            client = AthenaKillOnInterruptWrapper(client)
         self._client = client
+        self.kill_on_interrupt = kill_on_interrupt
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self._client!r}>"
@@ -175,7 +186,7 @@ class Athena:
         execution_id = self._client.start_query_execution(
             sql, ignore_cache=ignore_cache
         )
-        return Query(self._client, execution_id)
+        return self.get_query(execution_id)
 
     def get_query(self, execution_id: str) -> Query:
         """
@@ -187,7 +198,9 @@ class Athena:
         :param execution_id: an Athena query execution ID.
         :return: a query instance
         """
-        return Query(self._client, execution_id)
+        return Query(
+            self._client, execution_id, kill_on_interrupt=self.kill_on_interrupt
+        )
 
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
         """

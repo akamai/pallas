@@ -27,7 +27,7 @@ class InterruptAthenaFake(AthenaFake):
 
     _interrupted: bool = False
 
-    def join_query_execution(self, execution_id: str) -> None:
+    def join_query_execution(self, execution_id: str):
         if not self._interrupted:
             self._interrupted = True
             raise KeyboardInterrupt
