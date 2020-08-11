@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import time
-from typing import Optional
+from typing import Optional, Iterable
 
 from pallas.base import AthenaClient
 from pallas.caching import AthenaCache
@@ -41,6 +41,8 @@ class Query:
     _execution_id: str
 
     kill_on_interrupt: bool
+
+    backoff: Iterable[int] = Fibonacci(max_value=60)
 
     _finished_info: Optional[QueryInfo] = None
 
@@ -113,7 +115,7 @@ class Query:
         """
         if self._cache.has_results(self._execution_id):
             return
-        for delay in Fibonacci(max_value=60):
+        for delay in self.backoff:
             info = self.get_info()
             if info.finished:
                 info.check()
