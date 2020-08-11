@@ -34,7 +34,7 @@ from pallas.info import QueryInfo
 from pallas.results import QueryResults
 
 
-class AthenaClient(metaclass=ABCMeta):
+class AthenaProxy(metaclass=ABCMeta):
     """
     Athena interface
 

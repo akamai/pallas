@@ -17,7 +17,7 @@ from __future__ import annotations
 import time
 from typing import Iterable, Optional
 
-from pallas.base import AthenaClient
+from pallas.base import AthenaProxy
 from pallas.caching import AthenaCache
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
@@ -36,7 +36,7 @@ class Query:
     """
 
     _execution_id: str
-    _client: AthenaClient
+    _client: AthenaProxy
     _cache: AthenaCache
 
     #: Whether to kill queries on KeyboardInterrupt
@@ -47,7 +47,7 @@ class Query:
     _finished_info: Optional[QueryInfo] = None
 
     def __init__(
-        self, execution_id: str, *, client: AthenaClient, cache: AthenaCache,
+        self, execution_id: str, *, client: AthenaProxy, cache: AthenaCache,
     ) -> None:
         self._execution_id = execution_id
         self._client = client
@@ -153,10 +153,10 @@ class Athena:
     #: Whether to kill queries on KeyboardInterrupt
     kill_on_interrupt: bool = True
 
-    _client: AthenaClient
+    _client: AthenaProxy
     _cache: AthenaCache
 
-    def __init__(self, client: AthenaClient) -> None:
+    def __init__(self, client: AthenaProxy) -> None:
         self._client = client
         self._cache = AthenaCache()
 
@@ -171,7 +171,7 @@ class Athena:
         return f"<{type(self).__name__}: {', '.join(parts)}>"
 
     @property
-    def client(self) -> AthenaClient:
+    def client(self) -> AthenaProxy:
         return self._client
 
     @property

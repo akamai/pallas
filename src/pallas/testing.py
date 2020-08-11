@@ -20,12 +20,12 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence
 
-from pallas.base import AthenaClient
+from pallas.base import AthenaProxy
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 
 
-class AthenaFake(AthenaClient):
+class AthenaFake(AthenaProxy):
     """Fake Athena implementation that can be used for testing."""
 
     column_names: Optional[Sequence[str]] = None
