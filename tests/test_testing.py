@@ -15,12 +15,12 @@
 import pytest
 
 from pallas import Athena
-from pallas.testing import AthenaFake
+from pallas.testing import FakeProxy
 
 
 @pytest.fixture(name="fake")
 def fake_fixture():
-    return AthenaFake()
+    return FakeProxy()
 
 
 @pytest.fixture(name="athena")

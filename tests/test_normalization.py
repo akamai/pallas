@@ -16,7 +16,7 @@ import pytest
 
 from pallas import Athena
 from pallas.sql import normalize_sql
-from pallas.testing import AthenaFake
+from pallas.testing import FakeProxy
 
 NORMALIZED_SQL = """\
 SELECT
@@ -65,7 +65,7 @@ class TestNormalizeSQL:
 
 @pytest.fixture(name="fake")
 def fake_fixture():
-    fake = AthenaFake()
+    fake = FakeProxy()
     return fake
 
 

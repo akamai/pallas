@@ -17,7 +17,7 @@ import pytest
 from pallas import Athena
 from pallas.sql import is_select
 from pallas.storage.memory import MemoryStorage
-from pallas.testing import AthenaFake
+from pallas.testing import FakeProxy
 
 FAKE_DATA = [("1", "foo", None)]
 ANOTHER_FAKE_DATA = [("2", "bar", None)]
@@ -33,7 +33,7 @@ def fake_athena_fixture():
     """
     Athena mock decorated by caching wrapper.
     """
-    fake = AthenaFake()
+    fake = FakeProxy()
     fake.column_names = "id", "name", "value"
     fake.column_types = "integer", "varchar", "double"
     fake.data = FAKE_DATA

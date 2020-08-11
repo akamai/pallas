@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Fake Athena client for testing purposes.
+Helpers for testing.
 """
 
 from __future__ import annotations
@@ -25,8 +25,12 @@ from pallas.proxies import AthenaProxy
 from pallas.results import QueryResults
 
 
-class AthenaFake(AthenaProxy):
-    """Fake Athena implementation that can be used for testing."""
+class FakeProxy(AthenaProxy):
+    """
+    Fake of proxy to AWS Athena.
+
+    Can replace :class:`.Boto3Proxy` for testing.
+    """
 
     column_names: Optional[Sequence[str]] = None
     column_types: Optional[Sequence[str]] = None

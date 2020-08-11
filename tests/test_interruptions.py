@@ -19,7 +19,7 @@ import pytest
 
 from pallas import Athena
 from pallas.exceptions import AthenaQueryError
-from pallas.testing import AthenaFake
+from pallas.testing import FakeProxy
 
 
 def fake_sleep(seconds):
@@ -28,7 +28,7 @@ def fake_sleep(seconds):
 
 @pytest.fixture(name="fake")
 def fake_fixture():
-    fake = AthenaFake()
+    fake = FakeProxy()
     fake.state = "RUNNING"
     return fake
 

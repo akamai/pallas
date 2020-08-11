@@ -47,7 +47,7 @@ class AthenaProxy(metaclass=ABCMeta):
 
     This is an internal interface that is used by the :class:`.Athena` client.
     The :class:`.Boto3Proxy` implementation will be used in most cases,
-    but it can be replaced by :class:`.AthenaFake` for testing.
+    but it can be replaced by :class:`.FakeProxy` for testing.
     """
 
     @abstractmethod
@@ -97,7 +97,7 @@ class Boto3Proxy(AthenaProxy):
     Proxy to AWS Athena using the boto3 library.
 
     This is an internal class that is used by the :class:`.Athena` client.
-    It can be replaced by :class:`.AthenaFake` for testing.
+    It can be replaced by :class:`.FakeProxy` for testing.
     """
 
     _athena_client: Any  # boto3 Athena client
