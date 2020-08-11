@@ -13,13 +13,7 @@
 # limitations under the License.
 
 """
-Facade that can setup an Athena clients from configuration.
-
-Full-features Athena client is made a layered composition of objects.
-The core is an :class:`.AthenaProxy` instance that issues requests to AWS.
-It is wrapped by decorators for extra functionality like caching.
-
-Function defined in this module can assembly the whole object structure.
+Methods for setting up Athena clients.
 """
 
 from __future__ import annotations
@@ -44,9 +38,7 @@ def setup(
     kill_on_interrupt: bool = True,
 ) -> Athena:
     """
-    Setup :class:`.Athena` instance.
-
-    Initializes :class:`.AthenaProxy` and decorates it by caching wrappers.
+    Setup an :class:`.Athena` client.
 
     :param database: a name of Athena database.
         If omitted, database should be specified in SQL.
@@ -60,15 +52,12 @@ def setup(
         Both results and query execution IDs are stored to the local cache.
     :param cache_remote: an URI of a remote cache.
         Query execution IDs without results are stored to the remote cache.
-    :param normalize: whether to normalize SQL
-        Normalizes whitespace to improve caching.
-    :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt
-        Kills query when interrupted during waiting.
-    :return: an Athena instance
+    :param normalize: whether to normalize SQL queries.
+    :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt.
+    :return: an Athena instance.
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    client = Boto3Proxy(region=region)
-    athena = Athena(client)
+    athena = Athena(Boto3Proxy(region=region))
     if isinstance(cache_local, str):
         athena.cache.local = storage_from_uri(cache_local)
     else:
@@ -89,7 +78,7 @@ def environ_setup(
     environ: Optional[Mapping[str, str]] = None, *, prefix: str = "PALLAS"
 ) -> Athena:
     """
-    Setup :class:`.Athena` instance from environment variables.
+    Setup an :class:`.Athena` client from environment variables.
 
     Reads the following environment variables: ::
 
@@ -104,9 +93,8 @@ def environ_setup(
 
     :param environ: A mapping object representing the string environment.
         Defaults to ``os.environ``.
-    :param prefix: Prefix of environment variables.
-    :return: an Athena instance
-        A :class:`.AthenaProxy` instance wrapped necessary in decorators.
+    :param prefix: A prefix of environment variables
+    :return: an Athena client
     """
     if environ is None:
         environ = os.environ

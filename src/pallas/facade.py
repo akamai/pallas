@@ -30,27 +30,30 @@ class Query:
     Athena query
 
     Provides access to one query execution.
+    It can be used to monitor status of the query results
+    or retrieving results when the execution finishes.
 
     Instances of this class are returned by :meth:`Athena.submit`
     and :meth:`Athena.get_query` methods.
     """
 
-    _execution_id: str
-    _client: AthenaProxy
-    _cache: AthenaCache
+    #: Delays in seconds between for checking query status.
+    backoff: Iterable[int] = Fibonacci(max_value=60)
 
     #: Whether to kill queries on KeyboardInterrupt
     kill_on_interrupt: bool = False
 
-    backoff: Iterable[int] = Fibonacci(max_value=60)
+    _execution_id: str
+    _proxy: AthenaProxy
+    _cache: AthenaCache
 
-    _finished_info: Optional[QueryInfo] = None
+    _info: Optional[QueryInfo] = None
 
     def __init__(
-        self, execution_id: str, *, client: AthenaProxy, cache: AthenaCache,
+        self, execution_id: str, *, proxy: AthenaProxy, cache: AthenaCache,
     ) -> None:
         self._execution_id = execution_id
-        self._client = client
+        self._proxy = proxy
         self._cache = cache
 
     def __repr__(self) -> str:
@@ -61,7 +64,6 @@ class Query:
         """
         Athena query execution ID.
 
-        Returns a unique ID of this query execution.
         This ID can be used to retrieve the query using
         the :meth:`.Athena.get_query()` method.
         """
@@ -74,16 +76,16 @@ class Query:
         Returns a status of this query with other information.
         """
         # Query info is cached if the query finished and cannot change.
-        if self._finished_info is not None:
-            return self._finished_info
-        info = self._client.get_query_execution(self._execution_id)
+        if self._info is not None:
+            return self._info
+        info = self._proxy.get_query_execution(self._execution_id)
         if info.finished:
-            self._finished_info = info
+            self._info = info
         return info
 
     def get_results(self) -> QueryResults:
         """
-        Retrieve results of this query execution.
+        Download results of this query execution.
 
         Waits until this query execution finishes and downloads results.
         """
@@ -95,9 +97,9 @@ class Query:
             return results
         self.join()
         info = self.get_info()
-        results = self._client.get_query_results(info)
-        use_cache = is_select(info.sql)
-        if use_cache:
+        results = self._proxy.get_query_results(info)
+        should_cache = is_select(info.sql)
+        if should_cache:
             self._cache.save_results(self._execution_id, results)
         return results
 
@@ -105,12 +107,13 @@ class Query:
         """
         Kill this query execution.
         """
-        self._client.stop_query_execution(self._execution_id)
+        self._proxy.stop_query_execution(self._execution_id)
 
     def join(self) -> None:
         """
         Wait until this query execution finishes.
         """
+        # When we have results locally, exit without calling any AWS API.
         if self._cache.has_results(self._execution_id):
             return
         for delay in self.backoff:
@@ -133,7 +136,10 @@ class Athena:
     """
     Athena client.
 
-    Provides methods to execute SQL queries in AWS Athena.
+    Provides methods to execute SQL queries in AWS Athena,
+    with an optional caching and other helpers.
+
+    Can be used as a blocking or a non-blocking client.
     """
 
     quote = staticmethod(quote)
@@ -159,11 +165,11 @@ class Athena:
     #: Whether to kill queries on KeyboardInterrupt
     kill_on_interrupt: bool = True
 
-    _client: AthenaProxy
+    _proxy: AthenaProxy
     _cache: AthenaCache
 
-    def __init__(self, client: AthenaProxy) -> None:
-        self._client = client
+    def __init__(self, proxy: AthenaProxy) -> None:
+        self._proxy = proxy
         self._cache = AthenaCache()
 
     def __repr__(self) -> str:
@@ -177,8 +183,8 @@ class Athena:
         return f"<{type(self).__name__}: {', '.join(parts)}>"
 
     @property
-    def client(self) -> AthenaProxy:
-        return self._client
+    def proxy(self) -> AthenaProxy:
+        return self._proxy
 
     @property
     def cache(self) -> AthenaCache:
@@ -198,13 +204,13 @@ class Athena:
         """
         if self.normalize:
             sql = normalize_sql(sql)
-        use_cache = is_select(sql)
-        if use_cache and not ignore_cache:
+        should_cache = is_select(sql)
+        if should_cache and not ignore_cache:
             execution_id = self._cache.load_execution_id(self.database, sql)
             if execution_id is not None:
                 return self.get_query(execution_id)
-        execution_id = self._client.start_query_execution(sql)
-        if use_cache:
+        execution_id = self._proxy.start_query_execution(sql)
+        if should_cache:
             self._cache.save_execution_id(self.database, sql, execution_id)
         return self.get_query(execution_id)
 
@@ -213,12 +219,12 @@ class Athena:
         Get a previously submitted query execution.
 
         Athena stores results in S3 and does not delete them by default.
-        This method can get past queries and retrieve their results.
+        This method can get past queries to retrieve their results.
 
         :param execution_id: an Athena query execution ID.
         :return: a query instance
         """
-        query = Query(execution_id, client=self._client, cache=self._cache)
+        query = Query(execution_id, proxy=self._proxy, cache=self._cache)
         query.kill_on_interrupt = self.kill_on_interrupt
         return query
 
@@ -227,7 +233,6 @@ class Athena:
         Execute a query and wait for results.
 
         This is a blocking method that waits until query finishes.
-        Returns :class:`QueryResults`.
 
         :param sql: SQL query to be executed
         :param ignore_cache: do not load cached results

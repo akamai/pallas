@@ -31,29 +31,38 @@ logger = logging.getLogger("pallas")
 
 class AthenaCache:
     """
-    Caches query IDs and optionally results.
+    Caches queries and its results.
 
     Athena always stores results in S3, so it is possible
     to retrieve past results without manually copying data.
 
-    The caching wrapper can work two modes,
-    depending on *cache_results* setting:
+    This class can hold a reference to two instances of cache storage:
 
-    1) Remote mode - cache query execution IDs.
-    2) Local mode - Cache query execution IDs and query results.
+    - local, which caches both query execution IDs and query results
+    - remote, which cache query execution IDs only.
 
-    I the remote mode, cache is used to recover query execution IDs
-    that are necessary for downloading results of past queries.
+    It is possible to configure one the backends, both of them,
+    or none of them.
 
-    In the local mode, results are stored to cache too.
-    If the cache storage is local then it is possible to retrieve
-    cached results without internet connection.
+    Queries cached in the local storage can be executed without
+    an internet connection.
+    Queries cached in the remote storage are not executed twice,
+    but results have to be downloaded from AWS.
+
+    In theory, it is possible to use remote backend for the local
+    cache (or vice versa), but we assume that the local cache
+    is actually stored locally
     """
 
     local: Optional[Storage] = None
     remote: Optional[Storage] = None
 
     def load_execution_id(self, database: Optional[str], sql: str) -> Optional[str]:
+        """
+        Retrieve cached query execution ID for the given SQL.
+
+        Looks into both the local and the remote storage.
+        """
         key = self._get_execution_key(database, sql)
         for storage in self._execution_storages:
             try:
@@ -70,6 +79,11 @@ class AthenaCache:
     def save_execution_id(
         self, database: Optional[str], sql: str, execution_id: str
     ) -> None:
+        """
+        Store cached query execution ID for the given SQL.
+
+        Updates both the local and the remote storage.
+        """
         key = self._get_execution_key(database, sql)
         for storage in reversed(self._execution_storages):
             storage.set(key, execution_id)
@@ -79,6 +93,11 @@ class AthenaCache:
             )
 
     def has_results(self, execution_id: str) -> bool:
+        """
+        Checks whether results are cached for the given execution ID.
+
+        Looks into the local storage only.
+        """
         key = self._get_results_key(execution_id)
         for storage in self._results_storages:
             if not storage.has(key):
@@ -91,6 +110,11 @@ class AthenaCache:
         return False
 
     def load_results(self, execution_id: str) -> Optional[QueryResults]:
+        """
+        Retrieve cached results for the given execution ID.
+
+        Looks into the local storage only.
+        """
         key = self._get_results_key(execution_id)
         for storage in self._results_storages:
             try:
@@ -106,6 +130,11 @@ class AthenaCache:
         return None
 
     def save_results(self, execution_id: str, results: QueryResults) -> None:
+        """
+        Store cached results for the given SQL.
+
+        Updates the local storage only.
+        """
         key = self._get_results_key(execution_id)
         for storage in reversed(self._results_storages):
             with storage.writer(key) as stream:

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from pallas.assembly import environ_setup, setup
 from pallas.exceptions import AthenaQueryError
 from pallas.facade import Athena, Query
