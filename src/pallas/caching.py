@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import re
 from typing import List, Optional
 from urllib.parse import urlencode
 
@@ -28,23 +27,6 @@ from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
 logger = logging.getLogger("pallas")
-
-
-_comment_1 = r"--[^\n]*\n"
-_comment_2 = r"/\*([^*]|\*(?!/))*\*/"
-
-SELECT_RE = re.compile(
-    rf"(\s+|{_comment_1}|{_comment_2})*(SELECT|WITH)\b", re.IGNORECASE
-)
-
-
-def is_cacheable(sql: str) -> bool:
-    """
-    Return whether an SQL statement can be cached.
-
-    Only SELECT statements are considered cacheable.
-    """
-    return SELECT_RE.match(sql) is not None
 
 
 class AthenaCache:

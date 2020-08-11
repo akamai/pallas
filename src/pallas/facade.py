@@ -18,10 +18,10 @@ import time
 from typing import Optional
 
 from pallas.base import AthenaClient
-from pallas.caching import AthenaCache, is_cacheable
+from pallas.caching import AthenaCache
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
-from pallas.sql import normalize_sql, quote
+from pallas.sql import is_select, normalize_sql, quote
 from pallas.storage import Storage
 from pallas.utils import Fibonacci
 
@@ -96,7 +96,7 @@ class Query:
             return results
         self.join()
         results = self._client.get_query_results(self._execution_id)
-        use_cache = is_cacheable(self.get_info().sql)
+        use_cache = is_select(self.get_info().sql)
         if use_cache:
             self._cache.save_results(self._execution_id, results)
         return results
@@ -207,7 +207,7 @@ class Athena:
         """
         if self.normalize:
             sql = normalize_sql(sql)
-        use_cache = is_cacheable(sql)
+        use_cache = is_select(sql)
         if use_cache and not ignore_cache:
             execution_id = self._cache.load_execution_id(self.database, sql)
             if execution_id is not None:

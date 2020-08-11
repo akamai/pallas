@@ -15,7 +15,7 @@
 import pytest
 
 from pallas import Athena
-from pallas.caching import is_cacheable
+from pallas.sql import is_select
 from pallas.storage.memory import MemoryStorage
 from pallas.testing import AthenaFake
 
@@ -78,28 +78,28 @@ def assert_another_query_results(results):
 
 class TestIsCacheable:
     def test_select(self):
-        assert is_cacheable("SELECT 1")
+        assert is_select("SELECT 1")
 
     def test_select_lowercase(self):
-        assert is_cacheable("select 1")
+        assert is_select("select 1")
 
     def test_with_select(self):
-        assert is_cacheable("WITH (...) AS t SELECT ...")
+        assert is_select("WITH (...) AS t SELECT ...")
 
     def test_with_select_lowercase(self):
-        assert is_cacheable("with (...) AS t select ...")
+        assert is_select("with (...) AS t select ...")
 
     def test_insert(self):
-        assert not is_cacheable("INSERT ... AS SELECT")
+        assert not is_select("INSERT ... AS SELECT")
 
     def test_create(self):
-        assert not is_cacheable("CREATE TABLE AS ... SELECT")
+        assert not is_select("CREATE TABLE AS ... SELECT")
 
     def test_select_without_whitesplace(self):
-        assert is_cacheable("SELECT*FROM ...")
+        assert is_select("SELECT*FROM ...")
 
     def test_single_line_comments(self):
-        assert is_cacheable(
+        assert is_select(
             """
             -- Comment 1
             -- Comment 2
@@ -108,7 +108,7 @@ class TestIsCacheable:
         )
 
     def test_multi_line_comments(self):
-        assert is_cacheable(
+        assert is_select(
             """
             /*
             Comment 1
@@ -119,7 +119,7 @@ class TestIsCacheable:
         )
 
     def test_multi_line_comment_escaped(self):
-        assert is_cacheable(
+        assert is_select(
             r"""
             /* *\/ */
             SELECT
