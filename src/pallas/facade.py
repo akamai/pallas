@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import time
-from typing import Optional, Iterable
+from typing import Iterable, Optional
 
 from pallas.base import AthenaClient
 from pallas.caching import AthenaCache
@@ -138,27 +138,48 @@ class Athena:
 
     quote = staticmethod(quote)
 
+    #: Name of Athena database to be be queried.
+    #:
+    #: Individual queries can override this in SQL.
+    database: Optional[str] = None
+
+    #: Name of Athena workgroup.
+    #:
+    #: Workgroup can set resource limits or override output location.
+    workgroup: Optional[str] = None
+
+    #: URI of output location on S3.
+    #:
+    #: Can be empty if default location is configured for a workgroup.
+    output_location: Optional[str] = None
+
+    #: Whether to normalize queries before execution.
+    normalize: bool = True
+
+    #: Whether to kill queries on KeyboardInterrupt
+    kill_on_interrupt: bool = True
+
     _client: AthenaClient
     _cache: AthenaCache
-
-    normalize: bool
-    kill_on_interrupt: bool
 
     def __init__(
         self,
         client: AthenaClient,
         storage_remote: Optional[Storage] = None,
         storage_local: Optional[Storage] = None,
-        normalize: bool = False,
-        kill_on_interrupt: bool = False,
     ) -> None:
         self._client = client
         self._cache = AthenaCache(local=storage_local, remote=storage_remote)
-        self.normalize = normalize
-        self.kill_on_interrupt = kill_on_interrupt
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self._client!r}>"
+        parts = []
+        if self.database is not None:
+            parts.append(f"database={self.database!r}")
+        if self.workgroup is not None:
+            parts.append(f"workgroup={self.workgroup!r}")
+        if self.output_location is not None:
+            parts.append(f"output_location={self.output_location!r}")
+        return f"<{type(self).__name__}: {', '.join(parts)}>"
 
     @property
     def client(self) -> AthenaClient:
@@ -167,33 +188,6 @@ class Athena:
     @property
     def cache(self) -> AthenaCache:
         return self._cache
-
-    @property
-    def database(self) -> Optional[str]:
-        """
-        Name of Athena database that will be queries.
-
-        Individual queries can override this in SQL.
-        """
-        return self._client.database
-
-    @property
-    def workgroup(self) -> Optional[str]:
-        """
-        Name of Athena workgroup.
-
-        Workgroup can set resource limits or override output location.
-        """
-        return self._client.workgroup
-
-    @property
-    def output_location(self) -> Optional[str]:
-        """
-        Query output location on S3.
-
-        Can be empty if default location is configured for a workgroup.
-        """
-        return self._client.output_location
 
     def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
         """

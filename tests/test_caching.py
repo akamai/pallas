@@ -225,7 +225,7 @@ class TestAthenaCache:
         """Test that cache is unique to a database."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
         fake.request_log.clear()
-        fake.database = "other"
+        athena.database = "other"
         results = athena.execute("SELECT 1 id, 'foo' name")
         assert fake.request_log == [
             "StartQueryExecution",

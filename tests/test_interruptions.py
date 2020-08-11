@@ -37,7 +37,9 @@ def fake_fixture():
 def athena_fixture(fake):
     orig_sleep = time.sleep
     time.sleep = fake_sleep
-    yield Athena(fake, kill_on_interrupt=True)
+    athena = Athena(fake)
+    athena.kill_on_interrupt = True
+    yield athena
     time.sleep = orig_sleep
 
 

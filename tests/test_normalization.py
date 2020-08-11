@@ -66,19 +66,17 @@ class TestNormalizeSQL:
 @pytest.fixture(name="fake")
 def fake_fixture():
     fake = AthenaFake()
-    fake.database = "test_database"
     return fake
 
 
 @pytest.fixture(name="athena")
 def athena_fixture(fake):
-    return Athena(fake, normalize=True)
+    athena = Athena(fake)
+    athena.normalize = True
+    return athena
 
 
 class TestAthenaNormalization:
-    def test_database(self, athena):
-        assert athena.database == "test_database"
-
     def test_submit(self, athena):
         query = athena.submit(
             """

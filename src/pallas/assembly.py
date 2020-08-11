@@ -68,21 +68,16 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    client: AthenaClient = AthenaProxy(
-        database=database,
-        workgroup=workgroup,
-        output_location=output_location,
-        region=region,
-    )
+    client: AthenaClient = AthenaProxy(region=region)
     storage_remote = None if cache_remote is None else storage_from_uri(cache_remote)
     storage_local = None if cache_local is None else storage_from_uri(cache_local)
-    return Athena(
-        client,
-        storage_remote=storage_remote,
-        storage_local=storage_local,
-        normalize=normalize,
-        kill_on_interrupt=kill_on_interrupt,
-    )
+    athena = Athena(client, storage_remote=storage_remote, storage_local=storage_local)
+    athena.database = database
+    athena.workgroup = workgroup
+    athena.output_location = output_location
+    athena.normalize = normalize
+    athena.kill_on_interrupt = kill_on_interrupt
+    return athena
 
 
 def environ_setup(

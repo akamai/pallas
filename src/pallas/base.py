@@ -49,39 +49,22 @@ class AthenaClient(metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
 
-    @property
     @abstractmethod
-    def database(self) -> Optional[str]:
-        """
-        Name of Athena database that will be queries.
-
-        Individual queries can override this in SQL.
-        """
-
-    @property
-    @abstractmethod
-    def workgroup(self) -> Optional[str]:
-        """
-        Name of Athena workgroup.
-
-        Workgroup can set resource limits or override output location.
-        """
-
-    @property
-    def output_location(self) -> Optional[str]:
-        """
-        Query output location on S3.
-
-        Can be empty if default location is configured for a workgroup.
-        """
-
-    @abstractmethod
-    def start_query_execution(self, sql: str) -> str:
+    def start_query_execution(
+        self,
+        sql: str,
+        *,
+        database: Optional[str] = None,
+        workgroup: Optional[str] = None,
+        output_location: Optional[str] = None,
+    ) -> str:
         """
         Submit a query.
 
         :param sql: an SQL query to be executed
-        :param ignore_cache: do not load cached results
+        :param database: a name of Athena database to be queried
+        :param workgroup: a name of Athena workgroup
+        :param output_location: URI of output location on S3
         :return: execution_id
         """
 

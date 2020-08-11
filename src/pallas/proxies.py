@@ -53,12 +53,6 @@ class AthenaProxy(AthenaClient):
 
     It can be decorated by wrappers to provide additional functionality.
 
-    :param database: a name of Athena database.
-        If omitted, database should be specified in SQL.
-    :param workgroup: a name of Athena workgroup.
-        If omitted, default workgroup will be used.
-    :param output_location: an output location at S3 for query results.
-        Optional if a default location is specified for the *workgroup*.
     :param region: an AWS region.
         By default, a region from AWS config is used.
     :param athena_client: a boto3 client to use.
@@ -69,16 +63,10 @@ class AthenaProxy(AthenaClient):
 
     _athena_client: Any  # boto3 Athena client
     _s3_client: Any  # boto3 S3 client
-    _database: Optional[str]
-    _workgroup: Optional[str]
-    _output_location: Optional[str]
 
     def __init__(
         self,
         *,
-        database: Optional[str] = None,
-        workgroup: Optional[str] = None,
-        output_location: Optional[str] = None,
         region: Optional[str] = None,
         athena_client: Optional[Any] = None,
         s3_client: Optional[Any] = None,
@@ -89,38 +77,21 @@ class AthenaProxy(AthenaClient):
             s3_client = boto3.client("s3")
         self._athena_client = athena_client
         self._s3_client = s3_client
-        self._database = database
-        self._workgroup = workgroup
-        self._output_location = output_location
 
-    def __repr__(self) -> str:
-        parts = []
-        if self.database is not None:
-            parts.append(f"database={self.database!r}")
-        if self.output_location is not None:
-            parts.append(f"output_location={self.output_location!r}")
-        return f"<{type(self).__name__}: {', '.join(parts)}>"
-
-    @property
-    def database(self) -> Optional[str]:
-        return self._database
-
-    @property
-    def workgroup(self) -> Optional[str]:
-        return self._workgroup
-
-    @property
-    def output_location(self) -> Optional[str]:
-        return self._output_location
-
-    def start_query_execution(self, sql: str) -> str:
+    def start_query_execution(
+        self,
+        sql: str,
+        database: Optional[str] = None,
+        workgroup: Optional[str] = None,
+        output_location: Optional[str] = None,
+    ) -> str:
         params: Dict[str, Any] = dict(QueryString=sql)
-        if self._database is not None:
-            params.update(QueryExecutionContext={"Database": self._database})
-        if self._workgroup is not None:
-            params.update(WorkGroup=self._workgroup)
-        if self._output_location is not None:
-            params.update(ResultConfiguration={"OutputLocation": self._output_location})
+        if database is not None:
+            params.update(QueryExecutionContext={"Database": database})
+        if workgroup is not None:
+            params.update(WorkGroup=workgroup)
+        if output_location is not None:
+            params.update(ResultConfiguration={"OutputLocation": output_location})
         logger.info(f"Athena StartQueryExecution: QueryString={truncate_str(sql)!r}")
         response = self._athena_client.start_query_execution(**params)
         execution_id = cast(str, response["QueryExecutionId"])

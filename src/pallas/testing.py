@@ -28,10 +28,6 @@ from pallas.results import QueryResults
 class AthenaFake(AthenaClient):
     """Fake Athena implementation that can be used for testing."""
 
-    database: Optional[str] = None
-    workgroup: Optional[str] = None
-    output_location: Optional[str] = None
-
     column_names: Optional[Sequence[str]] = None
     column_types: Optional[Sequence[str]] = None
     state = "SUCCEEDED"
@@ -50,7 +46,13 @@ class AthenaFake(AthenaClient):
     def request_log(self) -> List[str]:
         return self._request_log
 
-    def start_query_execution(self, sql: str) -> str:
+    def start_query_execution(
+        self,
+        sql: str,
+        database: Optional[str] = None,
+        workgroup: Optional[str] = None,
+        output_location: Optional[str] = None,
+    ) -> str:
         execution_id = f"query-{len(self._results) + 1}"
         self._request_log.append("StartQueryExecution")
         results = self._fake_query_results()
