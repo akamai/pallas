@@ -210,7 +210,9 @@ $ tox
 ## Changelog
 
 ### v0.4.dev
-* ...
+* Allow to override configuration of the Athena class after it is initialized.
+* Refactored implementation from layered decorators to one class using specialized  helpers.
+
 
 ### v0.3 (2020-06-18)
 
