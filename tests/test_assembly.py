@@ -13,8 +13,6 @@
 # limitations under the License.
 
 from pallas.assembly import environ_setup, setup
-from pallas.caching import AthenaCachingWrapper
-from pallas.proxies import AthenaProxy
 
 
 class TestSetup:
@@ -57,11 +55,8 @@ class TestSetup:
         self.assert_cache_remote(athena)
 
     def assert_cache_remote(self, athena):
-        caching_wrapper = athena.client
-        assert isinstance(caching_wrapper, AthenaCachingWrapper)
-        assert caching_wrapper.storage.uri == "s3://bucket/path/"
-        assert not caching_wrapper.cache_results
-        assert isinstance(caching_wrapper.wrapped, AthenaProxy)
+        assert athena.cache.remote.uri == "s3://bucket/path/"
+        assert athena.cache.local is None
 
     def test_cache_local(self):
         athena = setup(cache_local="/path")
@@ -72,11 +67,8 @@ class TestSetup:
         self.assert_cache_local(athena)
 
     def assert_cache_local(self, athena):
-        caching_wrapper = athena.client
-        assert isinstance(caching_wrapper, AthenaCachingWrapper)
-        assert caching_wrapper.storage.uri == "file:/path/"
-        assert caching_wrapper.cache_results
-        assert isinstance(caching_wrapper.wrapped, AthenaProxy)
+        assert athena.cache.local.uri == "file:/path/"
+        assert athena.cache.remote is None
 
     def test_cache_remote_and_local(self):
         athena = setup(cache_remote="s3://bucket/path/", cache_local="/path")
@@ -92,11 +84,5 @@ class TestSetup:
         self.assert_cache_remote_and_local(athena)
 
     def assert_cache_remote_and_local(self, athena):
-        caching_wrapper = athena.client
-        assert isinstance(caching_wrapper, AthenaCachingWrapper)
-        assert caching_wrapper.storage.uri == "file:/path/"
-        assert caching_wrapper.cache_results
-        assert isinstance(caching_wrapper.wrapped, AthenaCachingWrapper)
-        assert caching_wrapper.wrapped.storage.uri == "s3://bucket/path/"
-        assert not caching_wrapper.wrapped.cache_results
-        assert isinstance(caching_wrapper.wrapped.wrapped, AthenaProxy)
+        assert athena.cache.local.uri == "file:/path/"
+        assert athena.cache.remote.uri == "s3://bucket/path/"

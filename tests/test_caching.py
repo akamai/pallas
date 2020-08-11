@@ -127,12 +127,7 @@ class TestIsCacheable:
         )
 
 
-class TestAthenaCachingWrapper:
-    def test_repr(self, athena):
-        assert (
-            repr(athena)
-            == "<Athena: <AthenaCachingWrapper: <AthenaFake> cached at 'memory:'>>"
-        )
+class TestAthenaCache:
 
     # Test execute method
 
@@ -156,7 +151,6 @@ class TestAthenaCachingWrapper:
         local_athena.execute("SELECT 1 id, 'foo' name")
         assert storage.size() == 2
 
-    @pytest.mark.xfail
     def test_execute_one_query_not_select(self, athena, fake, storage):
         """Test execution of a query that should not be cached."""
         results = athena.execute("CREATE TABLE ...")
@@ -180,7 +174,6 @@ class TestAthenaCachingWrapper:
         assert_query_results(results)
         assert storage.size() == 1
 
-    @pytest.mark.xfail
     def test_local_execute_second_query(self, local_athena, fake, storage):
         """Test execution of a query in cache."""
         local_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
@@ -190,7 +183,6 @@ class TestAthenaCachingWrapper:
         assert_query_results(results)
         assert storage.size() == 2
 
-    @pytest.mark.xfail
     def test_execute_second_query_not_select(self, athena, fake, storage):
         """Test that only SELECT queries are cached."""
         athena.execute("CREATE TABLE ...")
@@ -323,7 +315,6 @@ class TestAthenaCachingWrapper:
         assert_query_results(query_results)
         assert storage.size() == 1
 
-    @pytest.mark.xfail
     def test_local_get_cached_query_get_results(self, local_athena, fake, storage):
         """Test getting query in cache when results are cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")
@@ -333,7 +324,6 @@ class TestAthenaCachingWrapper:
         assert_query_results(query_results)
         assert storage.size() == 2
 
-    @pytest.mark.xfail
     def test_get_query_get_results_not_select(self, athena, storage):
         """Test that results are cached for SELECT queries onlys."""
         athena.submit("CREATE TABLE ...")
@@ -393,7 +383,6 @@ class TestAthenaCachingWrapper:
         ]
         assert_query_results(second_query_results)
 
-    @pytest.mark.xfail
     def test_local_get_results_second_query_same_sql(self, local_athena, fake):
         """Test getting results query in cache results cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")
@@ -425,7 +414,6 @@ class TestAthenaCachingWrapper:
         ]
         assert_query_results(second_query_results)
 
-    @pytest.mark.xfail
     def test_local_get_cached_results_first_query_same_sql(self, local_athena, fake):
         """Test that first query can use cache from the second query."""
         first_query = local_athena.submit("SELECT 1 id, 'foo' name")
@@ -460,7 +448,6 @@ class TestAthenaCachingWrapper:
         second_query.join()
         assert fake.request_log == ["GetQueryExecution"]
 
-    @pytest.mark.xfail
     def test_local_join_second_query_query_same_sql(self, local_athena, fake):
         """Test waiting for a query cached results not cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")

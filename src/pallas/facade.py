@@ -18,7 +18,7 @@ import time
 from typing import Optional
 
 from pallas.base import AthenaClient
-from pallas.caching import AthenaCachingWrapper
+from pallas.caching import AthenaCache, is_cacheable
 from pallas.info import QueryInfo
 from pallas.normalization import normalize_sql
 from pallas.results import QueryResults
@@ -38,6 +38,7 @@ class Query:
     """
 
     _client: AthenaClient
+    _cache: AthenaCache
     _execution_id: str
 
     kill_on_interrupt: bool
@@ -45,10 +46,16 @@ class Query:
     _finished_info: Optional[QueryInfo] = None
 
     def __init__(
-        self, client: AthenaClient, execution_id: str, kill_on_interrupt: bool = False
+        self,
+        *,
+        client: AthenaClient,
+        cache: AthenaCache,
+        execution_id: str,
+        kill_on_interrupt: bool = False,
     ) -> None:
         self._client = client
         self._execution_id = execution_id
+        self._cache = cache
         self.kill_on_interrupt = kill_on_interrupt
 
     def __repr__(self) -> str:
@@ -85,8 +92,15 @@ class Query:
 
         Waits until this query execution finishes and downloads results.
         """
+        results = self._cache.load_results(self._execution_id)
+        if results is not None:
+            return results
         self.join()
-        return self._client.get_query_results(self._execution_id)
+        results = self._client.get_query_results(self._execution_id)
+        use_cache = is_cacheable(self.get_info().sql)
+        if use_cache:
+            self._cache.save_results(self._execution_id, results)
+        return results
 
     def kill(self) -> None:
         """
@@ -98,6 +112,8 @@ class Query:
         """
         Wait until this query execution finishes.
         """
+        if self._cache.has_results(self._execution_id):
+            return
         for delay in Fibonacci(max_value=60):
             info = self.get_info()
             if info.finished:
@@ -122,6 +138,7 @@ class Athena:
     quote = staticmethod(quote)
 
     _client: AthenaClient
+    _cache: AthenaCache
 
     normalize: bool
     kill_on_interrupt: bool
@@ -134,15 +151,8 @@ class Athena:
         normalize: bool = False,
         kill_on_interrupt: bool = False,
     ) -> None:
-        if storage_remote is not None:
-            client = AthenaCachingWrapper(
-                client, storage=storage_remote, cache_results=False
-            )
-        if storage_local is not None:
-            client = AthenaCachingWrapper(
-                client, storage=storage_local, cache_results=True
-            )
         self._client = client
+        self._cache = AthenaCache(local=storage_local, remote=storage_remote)
         self.normalize = normalize
         self.kill_on_interrupt = kill_on_interrupt
 
@@ -152,6 +162,10 @@ class Athena:
     @property
     def client(self) -> AthenaClient:
         return self._client
+
+    @property
+    def cache(self) -> AthenaCache:
+        return self._cache
 
     @property
     def database(self) -> Optional[str]:
@@ -194,9 +208,14 @@ class Athena:
         """
         if self.normalize:
             sql = normalize_sql(sql)
-        execution_id = self._client.start_query_execution(
-            sql, ignore_cache=ignore_cache
-        )
+        use_cache = is_cacheable(sql)
+        if use_cache and not ignore_cache:
+            execution_id = self._cache.load_execution_id(self.database, sql)
+            if execution_id is not None:
+                return self.get_query(execution_id)
+        execution_id = self._client.start_query_execution(sql)
+        if use_cache:
+            self._cache.save_execution_id(self.database, sql, execution_id)
         return self.get_query(execution_id)
 
     def get_query(self, execution_id: str) -> Query:
@@ -210,7 +229,10 @@ class Athena:
         :return: a query instance
         """
         return Query(
-            self._client, execution_id, kill_on_interrupt=self.kill_on_interrupt
+            client=self._client,
+            cache=self._cache,
+            execution_id=execution_id,
+            kill_on_interrupt=self.kill_on_interrupt,
         )
 
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
