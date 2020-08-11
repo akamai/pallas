@@ -44,7 +44,7 @@ ColumnTypes = Sequence[str]
 Row = Sequence[Optional[str]]
 
 
-class AthenaProxy(AthenaClient):
+class Boto3Proxy(AthenaClient):
     """
     Proxy to AWS Athena.
 

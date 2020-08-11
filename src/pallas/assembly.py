@@ -28,7 +28,7 @@ import os
 from typing import Mapping, Optional, Union
 
 from pallas.facade import Athena
-from pallas.proxies import AthenaProxy
+from pallas.proxies import Boto3Proxy
 from pallas.storage import Storage, storage_from_uri
 
 
@@ -67,7 +67,7 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    client = AthenaProxy(region=region)
+    client = Boto3Proxy(region=region)
     athena = Athena(client)
     if isinstance(cache_local, str):
         athena.cache.local = storage_from_uri(cache_local)

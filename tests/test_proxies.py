@@ -21,12 +21,12 @@ import pytest
 
 from pallas import Athena
 from pallas.exceptions import AthenaQueryError
-from pallas.proxies import AthenaProxy
+from pallas.proxies import Boto3Proxy
 
 
 @pytest.fixture
 def athena(region_name, athena_database, athena_workgroup, s3_tmp_uri):
-    client = AthenaProxy(
+    client = Boto3Proxy(
         region=region_name,
         database=athena_database,
         workgroup=athena_workgroup,
