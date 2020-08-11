@@ -20,18 +20,10 @@ from __future__ import annotations
 
 import textwrap
 
-from pallas.base import AthenaWrapper
-
 
 def normalize_sql(sql: str) -> str:
-    lines = sql.splitlines()
-    joined = "\n".join(line.rstrip() for line in lines)
-    return textwrap.dedent(joined).strip()
-
-
-class AthenaNormalizationWrapper(AthenaWrapper):
     """
-    Athena wrapper that normalizes executed queries.
+    Normalizes an SQL query.
 
     Query normalization can improve caching.
 
@@ -41,7 +33,6 @@ class AthenaNormalizationWrapper(AthenaWrapper):
     - Trailing whitespace is removed from end of lines.
     - Line endings are normalized to LF
     """
-
-    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
-        normalized = normalize_sql(sql)
-        return super().start_query_execution(normalized, ignore_cache=ignore_cache)
+    lines = sql.splitlines()
+    joined = "\n".join(line.rstrip() for line in lines)
+    return textwrap.dedent(joined).strip()

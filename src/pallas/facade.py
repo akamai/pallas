@@ -20,7 +20,7 @@ from typing import Optional
 from pallas.base import AthenaClient
 from pallas.caching import AthenaCachingWrapper
 from pallas.info import QueryInfo
-from pallas.normalization import AthenaNormalizationWrapper
+from pallas.normalization import normalize_sql
 from pallas.results import QueryResults
 from pallas.sql import quote
 from pallas.storage import Storage
@@ -123,6 +123,7 @@ class Athena:
 
     _client: AthenaClient
 
+    normalize: bool
     kill_on_interrupt: bool
 
     def __init__(
@@ -141,9 +142,8 @@ class Athena:
             client = AthenaCachingWrapper(
                 client, storage=storage_local, cache_results=True
             )
-        if normalize:
-            client = AthenaNormalizationWrapper(client)
         self._client = client
+        self.normalize = normalize
         self.kill_on_interrupt = kill_on_interrupt
 
     def __repr__(self) -> str:
@@ -192,6 +192,8 @@ class Athena:
         :param ignore_cache: do not load cached results
         :return: a query instance
         """
+        if self.normalize:
+            sql = normalize_sql(sql)
         execution_id = self._client.start_query_execution(
             sql, ignore_cache=ignore_cache
         )

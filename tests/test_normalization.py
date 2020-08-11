@@ -75,9 +75,7 @@ def athena_fixture(fake):
     return Athena(fake, normalize=True)
 
 
-class TestAthenaNormalizationWrapper:
-    def test_repr(self, athena):
-        assert repr(athena) == "<Athena: <AthenaNormalizationWrapper: <AthenaFake>>>"
+class TestAthenaNormalization:
 
     def test_database(self, athena):
         assert athena.database == "test_database"
