@@ -26,13 +26,12 @@ from pallas.proxies import Boto3Proxy
 
 @pytest.fixture
 def athena(region_name, athena_database, athena_workgroup, s3_tmp_uri):
-    client = Boto3Proxy(
-        region=region_name,
-        database=athena_database,
-        workgroup=athena_workgroup,
-        output_location=f"{s3_tmp_uri}/output",
-    )
-    return Athena(client)
+    proxy = Boto3Proxy(region=region_name)
+    athena = Athena(proxy)
+    athena.database = athena_database
+    athena.workgroup = athena_workgroup
+    athena.output_location = s3_tmp_uri
+    return athena
 
 
 # Should not be to trivial.
@@ -49,17 +48,7 @@ EXAMPLE_SQL = textwrap.dedent(
 )
 
 
-class TestAthenaProxy:
-    def test_properties(self, athena, athena_database, s3_tmp_uri):
-        assert athena.database == athena_database
-        assert athena.output_location == f"{s3_tmp_uri}/output"
-
-    def test_repr(self, athena):
-        assert repr(athena) == (
-            f"<Athena: <AthenaProxy: database={athena.database!r},"
-            f" output_location={athena.output_location!r}>>"
-        )
-
+class TestBoto3Proxy:
     def test_success(self, athena):
         query = athena.submit(EXAMPLE_SQL)
         # Running

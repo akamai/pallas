@@ -25,10 +25,20 @@ def fake_fixture():
 
 @pytest.fixture(name="athena")
 def athena_fixture(fake):
-    return Athena(fake)
+    athena = Athena(fake)
+    athena.database = "example_database"
+    athena.workgroup = "example-workgroup"
+    athena.output_location = "s3://example-output/"
+    return athena
 
 
 class TestAthena:
+    def test_repr(self, athena):
+        assert repr(athena) == (
+            "<Athena: database='example_database', workgroup='example-workgroup',"
+            " output_location='s3://example-output/'>"
+        )
+
     def test_submit(self, athena, fake):
         athena.submit("SELECT 1")
         assert fake.request_log == ["StartQueryExecution"]
@@ -47,8 +57,21 @@ class TestAthena:
             "GetQueryResults",
         ]
 
+    def test_normalize(self, athena):
+        query = athena.submit(" SELECT 1 ")
+        assert query.get_info().sql == "SELECT 1"
+
+    def test_do_not_normalize(self, athena):
+        athena.normalize = False
+        query = athena.submit(" SELECT 1 ")
+        assert query.get_info().sql == " SELECT 1 "
+
 
 class TestQuery:
+    def test_repr(self, athena):
+        query = athena.submit("SELECT 1")
+        assert repr(query) == "<Query: execution_id='query-1'>"
+
     def test_get_info(self, athena, fake):
         """Test that query info is retrieved."""
         query = athena.submit("SELECT 1")

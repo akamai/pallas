@@ -173,13 +173,11 @@ class Athena:
         self._cache = AthenaCache()
 
     def __repr__(self) -> str:
-        parts = []
-        if self.database is not None:
-            parts.append(f"database={self.database!r}")
-        if self.workgroup is not None:
-            parts.append(f"workgroup={self.workgroup!r}")
-        if self.output_location is not None:
-            parts.append(f"output_location={self.output_location!r}")
+        parts = [
+            f"database={self.database!r}",
+            f"workgroup={self.workgroup!r}",
+            f"output_location={self.output_location!r}",
+        ]
         return f"<{type(self).__name__}: {', '.join(parts)}>"
 
     @property
@@ -209,7 +207,12 @@ class Athena:
             execution_id = self._cache.load_execution_id(self.database, sql)
             if execution_id is not None:
                 return self.get_query(execution_id)
-        execution_id = self._proxy.start_query_execution(sql)
+        execution_id = self._proxy.start_query_execution(
+            sql,
+            database=self.database,
+            workgroup=self.workgroup,
+            output_location=self.output_location,
+        )
         if should_cache:
             self._cache.save_execution_id(self.database, sql, execution_id)
         return self.get_query(execution_id)

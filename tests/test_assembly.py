@@ -19,70 +19,62 @@ class TestSetup:
     def test_default(self):
         athena = setup(output_location="s3://example-output/")
         assert athena.output_location == "s3://example-output/"
-        assert athena.normalize
-        assert athena.kill_on_interrupt
+        assert athena.normalize is True
+        assert athena.kill_on_interrupt is True
 
     def test_default_from_env(self):
         athena = environ_setup(
             environ={"PALLAS_OUTPUT_LOCATION": "s3://example-output/"}
         )
         assert athena.output_location == "s3://example-output/"
-        assert athena.normalize
-        assert athena.kill_on_interrupt
+        assert athena.normalize is True
+        assert athena.kill_on_interrupt is True
+        assert athena.cache.local is None
+        assert athena.cache.remote is None
 
     def test_do_not_normalize(self):
         athena = setup(normalize=False)
-        assert not athena.normalize
+        assert athena.normalize is False
 
     def test_do_not_normalize_from_env(self):
         athena = environ_setup(environ={"PALLAS_NORMALIZE": "0"})
-        assert not athena.normalize
+        assert athena.normalize is False
 
     def test_do_not_kill_on_interrupt(self):
         athena = setup(kill_on_interrupt=False)
-        assert not athena.kill_on_interrupt
+        assert athena.kill_on_interrupt is False
 
     def test_do_not_kill_on_interrupt_from_env(self):
         athena = environ_setup(environ={"PALLAS_KILL_ON_INTERRUPT": "0"})
-        assert not athena.kill_on_interrupt
-
-    def test_cache_remote(self):
-        athena = setup(cache_remote="s3://bucket/path/")
-        self.assert_cache_remote(athena)
-
-    def test_cache_remote_from_env(self):
-        athena = environ_setup(environ={"PALLAS_CACHE_REMOTE": "s3://bucket/path/"})
-        self.assert_cache_remote(athena)
-
-    def assert_cache_remote(self, athena):
-        assert athena.cache.remote.uri == "s3://bucket/path/"
-        assert athena.cache.local is None
+        assert athena.kill_on_interrupt is False
 
     def test_cache_local(self):
         athena = setup(cache_local="/path")
-        self.assert_cache_local(athena)
+        assert athena.cache.local.uri == "file:/path/"
 
     def test_cache_local_from_env(self):
         athena = environ_setup(environ={"PALLAS_CACHE_LOCAL": "/path"})
-        self.assert_cache_local(athena)
-
-    def assert_cache_local(self, athena):
         assert athena.cache.local.uri == "file:/path/"
-        assert athena.cache.remote is None
 
-    def test_cache_remote_and_local(self):
+    def test_cache_remote(self):
+        athena = setup(cache_remote="s3://bucket/path/")
+        assert athena.cache.remote.uri == "s3://bucket/path/"
+
+    def test_cache_remote_from_env(self):
+        athena = environ_setup(environ={"PALLAS_CACHE_REMOTE": "s3://bucket/path/"})
+        assert athena.cache.remote.uri == "s3://bucket/path/"
+
+    def test_cache_local_and_remote(self):
         athena = setup(cache_remote="s3://bucket/path/", cache_local="/path")
-        self.assert_cache_remote_and_local(athena)
+        assert athena.cache.local.uri == "file:/path/"
+        assert athena.cache.remote.uri == "s3://bucket/path/"
 
-    def test_cache_remote_and_local_from_env(self):
+    def test_cache_local_and_remote_from_env(self):
         athena = environ_setup(
             environ={
                 "PALLAS_CACHE_REMOTE": "s3://bucket/path/",
                 "PALLAS_CACHE_LOCAL": "/path",
             }
         )
-        self.assert_cache_remote_and_local(athena)
-
-    def assert_cache_remote_and_local(self, athena):
         assert athena.cache.local.uri == "file:/path/"
         assert athena.cache.remote.uri == "s3://bucket/path/"

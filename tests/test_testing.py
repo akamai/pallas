@@ -28,7 +28,7 @@ def athena_fixture(fake):
     return Athena(fake)
 
 
-class TestAthenaFake:
+class TestFakeProxy:
     def test_submit(self, athena, fake):
         query = athena.submit("SELECT ...")
         assert query.execution_id == "query-1"
