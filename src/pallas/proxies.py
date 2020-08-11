@@ -78,7 +78,7 @@ class AthenaProxy(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_query_results(self, execution_id: str) -> QueryResults:
+    def get_query_results(self, info: QueryInfo) -> QueryResults:
         """
         Retrieve results of a query execution.
 
@@ -146,7 +146,8 @@ class Boto3Proxy(AthenaProxy):
         logger.info(f"Athena QueryExecution: {info}")
         return info
 
-    def get_query_results(self, execution_id: str) -> QueryResults:
+    def get_query_results(self, info: QueryInfo) -> QueryResults:
+        execution_id = info.execution_id
         params = dict(QueryExecutionId=execution_id)
         logger.info(f"Athena GetQueryResults: QueryExecutionId={execution_id!r}")
         response = self._athena_client.get_query_results(**params)
@@ -154,7 +155,7 @@ class Boto3Proxy(AthenaProxy):
         column_types = _read_column_types(response)
         if response.get("NextToken"):
             logger.info("Athena ResultSet paginated. Will download from S3.")
-            data = self._download_data(execution_id)
+            data = self._download_data(info)
         else:
             data = _read_data(response)
             logger.info(
@@ -167,8 +168,8 @@ class Boto3Proxy(AthenaProxy):
         logger.info(f"Athena StopQueryExecution: QueryExecutionId={execution_id!r}")
         self._athena_client.stop_query_execution(QueryExecutionId=execution_id)
 
-    def _download_data(self, execution_id: str) -> Sequence[Row]:
-        output_location = self.get_query_execution(execution_id).output_location
+    def _download_data(self, info: QueryInfo) -> Sequence[Row]:
+        output_location = info.output_location
         bucket, key = s3_parse_uri(output_location)
         params = dict(Bucket=bucket, Key=key)
         logger.info(f"S3 GetObject:" f" Bucket={bucket!r} Key={key!r}")

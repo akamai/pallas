@@ -29,7 +29,6 @@ def athena_fixture(fake):
 
 
 class TestAthenaFake:
-
     def test_submit(self, athena, fake):
         query = athena.submit("SELECT ...")
         assert query.execution_id == "query-1"

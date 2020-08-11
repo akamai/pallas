@@ -68,9 +68,9 @@ class FakeProxy(AthenaProxy):
         self._request_log.append("GetQueryExecution")
         return self._fake_query_info(execution_id, self._sql[execution_id])
 
-    def get_query_results(self, execution_id: str) -> QueryResults:
+    def get_query_results(self, info: QueryInfo) -> QueryResults:
         self._request_log.append("GetQueryResults")
-        return self._results[execution_id]
+        return self._results[info.execution_id]
 
     def stop_query_execution(self, execution_id: str) -> None:
         self._request_log.append("StopQueryExecution")

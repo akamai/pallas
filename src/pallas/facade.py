@@ -87,12 +87,16 @@ class Query:
 
         Waits until this query execution finishes and downloads results.
         """
+        # When a user calls athena.get_query(execution_id).get_results(),
+        # we have to look into the cache withou knowing what SQL was executed,
+        # so whether the query is cacheable.
         results = self._cache.load_results(self._execution_id)
         if results is not None:
             return results
         self.join()
-        results = self._client.get_query_results(self._execution_id)
-        use_cache = is_select(self.get_info().sql)
+        info = self.get_info()
+        results = self._client.get_query_results(info)
+        use_cache = is_select(info.sql)
         if use_cache:
             self._cache.save_results(self._execution_id, results)
         return results
@@ -119,9 +123,9 @@ class Query:
             except KeyboardInterrupt:
                 if not self.kill_on_interrupt:
                     raise
-                self.kill()
                 # Catch only the first KeyboardInterrupt
                 self.kill_on_interrupt = False
+                self.kill()
                 self.join()
 
 
