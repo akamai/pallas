@@ -17,9 +17,9 @@ from __future__ import annotations
 import time
 from typing import Iterable, Optional
 
-from pallas.base import AthenaProxy
 from pallas.caching import AthenaCache
 from pallas.info import QueryInfo
+from pallas.proxies import AthenaProxy
 from pallas.results import QueryResults
 from pallas.sql import is_select, normalize_sql, quote
 from pallas.utils import Fibonacci
@@ -127,7 +127,9 @@ class Query:
 
 class Athena:
     """
-    Athena client
+    Athena client.
+
+    Provides methods to execute SQL queries in AWS Athena.
     """
 
     quote = staticmethod(quote)

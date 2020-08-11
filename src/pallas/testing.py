@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence
 
-from pallas.base import AthenaProxy
 from pallas.info import QueryInfo
+from pallas.proxies import AthenaProxy
 from pallas.results import QueryResults
 
 

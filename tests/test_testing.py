@@ -29,8 +29,6 @@ def athena_fixture(fake):
 
 
 class TestAthenaFake:
-    def test_repr(self, fake):
-        assert repr(fake) == "<AthenaFake>"
 
     def test_submit(self, athena, fake):
         query = athena.submit("SELECT ...")

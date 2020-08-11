@@ -15,21 +15,18 @@
 """
 Proxies to AWS Athena APIs.
 
-Classes implemented in this module are the core of the Pallas library.
-They issue actual requests using boto3.
-
-Other clients are implemented as decorators wrapping the core
-and offering same interface.
+The proxies are internal classes by the :class:`.Athena` client
+to issue requests to AWS.
 """
 
 from __future__ import annotations
 
 import logging
+from abc import ABCMeta, abstractmethod
 from typing import Any, Dict, Mapping, Optional, Sequence, cast
 
 import boto3
 
-from pallas.base import AthenaProxy
 from pallas.csv import read_csv
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
@@ -44,21 +41,63 @@ ColumnTypes = Sequence[str]
 Row = Sequence[Optional[str]]
 
 
-class Boto3Proxy(AthenaProxy):
+class AthenaProxy(metaclass=ABCMeta):
     """
     Proxy to AWS Athena.
 
-    This is the core implementation of the :class:`.Athena` interface.
-    It executes queries via AWS APIs using boto3 library.
+    This is an internal interface that is used by the :class:`.Athena` client.
+    The :class:`.Boto3Proxy` implementation will be used in most cases,
+    but it can be replaced by :class:`.AthenaFake` for testing.
+    """
 
-    It can be decorated by wrappers to provide additional functionality.
+    @abstractmethod
+    def start_query_execution(
+        self,
+        sql: str,
+        *,
+        database: Optional[str] = None,
+        workgroup: Optional[str] = None,
+        output_location: Optional[str] = None,
+    ) -> str:
+        """
+        Submit a query.
 
-    :param region: an AWS region.
-        By default, a region from AWS config is used.
-    :param athena_client: a boto3 client to use.
-        By default, a new client is constructed.
-    :param s3_client: a boto3 client to use.
-        By default, a new client is constructed.
+        :param sql: an SQL query to be executed
+        :param database: a name of Athena database to be queried
+        :param workgroup: a name of Athena workgroup
+        :param output_location: URI of output location on S3
+        :return: execution_id
+        """
+
+    @abstractmethod
+    def get_query_execution(self, execution_id: str) -> QueryInfo:
+        """
+        Retrieve information about a query execution.
+
+        Returns a status of the query with other information.
+        """
+
+    @abstractmethod
+    def get_query_results(self, execution_id: str) -> QueryResults:
+        """
+        Retrieve results of a query execution.
+
+        Waits until the query execution finishes and downloads results.
+        """
+
+    @abstractmethod
+    def stop_query_execution(self, execution_id: str) -> None:
+        """
+        Kill a query execution.
+        """
+
+
+class Boto3Proxy(AthenaProxy):
+    """
+    Proxy to AWS Athena using the boto3 library.
+
+    This is an internal class that is used by the :class:`.Athena` client.
+    It can be replaced by :class:`.AthenaFake` for testing.
     """
 
     _athena_client: Any  # boto3 Athena client
