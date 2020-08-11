@@ -15,7 +15,7 @@
 import pytest
 
 from pallas import Athena
-from pallas.normalization import normalize_sql
+from pallas.sql import normalize_sql
 from pallas.testing import AthenaFake
 
 NORMALIZED_SQL = """\
@@ -76,7 +76,6 @@ def athena_fixture(fake):
 
 
 class TestAthenaNormalization:
-
     def test_database(self, athena):
         assert athena.database == "test_database"
 

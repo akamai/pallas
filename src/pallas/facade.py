@@ -20,9 +20,8 @@ from typing import Optional
 from pallas.base import AthenaClient
 from pallas.caching import AthenaCache, is_cacheable
 from pallas.info import QueryInfo
-from pallas.normalization import normalize_sql
 from pallas.results import QueryResults
-from pallas.sql import quote
+from pallas.sql import normalize_sql, quote
 from pallas.storage import Storage
 from pallas.utils import Fibonacci
 

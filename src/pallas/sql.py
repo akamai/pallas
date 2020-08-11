@@ -24,6 +24,7 @@ import base64
 import datetime as dt
 import math
 import numbers
+import textwrap
 from decimal import Decimal
 from typing import Union
 
@@ -94,3 +95,20 @@ def quote(value: SQL_SCALAR) -> str:
     if isinstance(value, bytes):
         return _quote_bytes(value)
     raise TypeError(f"Cannot quote {type(value)}.")
+
+
+def normalize_sql(sql: str) -> str:
+    """
+    Normalizes an SQL query.
+
+    Query normalization can improve caching.
+
+    Following normalization operations are done:
+    - Common indentation is removed.
+    - Heading and trailing new lines are removed.
+    - Trailing whitespace is removed from end of lines.
+    - Line endings are normalized to LF
+    """
+    lines = sql.splitlines()
+    joined = "\n".join(line.rstrip() for line in lines)
+    return textwrap.dedent(joined).strip()
