@@ -76,7 +76,7 @@ class AthenaClient(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str) -> str:
         """
         Submit a query.
 

@@ -113,7 +113,7 @@ class AthenaProxy(AthenaClient):
     def output_location(self) -> Optional[str]:
         return self._output_location
 
-    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str) -> str:
         params: Dict[str, Any] = dict(QueryString=sql)
         if self._database is not None:
             params.update(QueryExecutionContext={"Database": self._database})

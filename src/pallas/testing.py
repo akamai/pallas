@@ -50,7 +50,7 @@ class AthenaFake(AthenaClient):
     def request_log(self) -> List[str]:
         return self._request_log
 
-    def start_query_execution(self, sql: str, *, ignore_cache: bool = False) -> str:
+    def start_query_execution(self, sql: str) -> str:
         execution_id = f"query-{len(self._results) + 1}"
         self._request_log.append("StartQueryExecution")
         results = self._fake_query_results()
