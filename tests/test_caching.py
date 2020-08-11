@@ -47,7 +47,9 @@ def remote_athena_fixture(fake, storage):
 
     In remote mode, only query execution IDs are cached.
     """
-    return Athena(fake, storage_remote=storage)
+    athena = Athena(fake)
+    athena.cache.remote = storage
+    return athena
 
 
 @pytest.fixture(name="local_athena")
@@ -57,7 +59,9 @@ def local_athena_fixture(fake, storage):
 
     In local mode, both query execution IDs and results are cached.
     """
-    return Athena(fake, storage_local=storage)
+    athena = Athena(fake)
+    athena.cache.local = storage
+    return athena
 
 
 @pytest.fixture(name="athena", params=["remote", "local"])

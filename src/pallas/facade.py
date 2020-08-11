@@ -22,7 +22,6 @@ from pallas.caching import AthenaCache
 from pallas.info import QueryInfo
 from pallas.results import QueryResults
 from pallas.sql import is_select, normalize_sql, quote
-from pallas.storage import Storage
 from pallas.utils import Fibonacci
 
 
@@ -36,28 +35,23 @@ class Query:
     and :meth:`Athena.get_query` methods.
     """
 
+    _execution_id: str
     _client: AthenaClient
     _cache: AthenaCache
-    _execution_id: str
 
-    kill_on_interrupt: bool
+    #: Whether to kill queries on KeyboardInterrupt
+    kill_on_interrupt: bool = False
 
     backoff: Iterable[int] = Fibonacci(max_value=60)
 
     _finished_info: Optional[QueryInfo] = None
 
     def __init__(
-        self,
-        *,
-        client: AthenaClient,
-        cache: AthenaCache,
-        execution_id: str,
-        kill_on_interrupt: bool = False,
+        self, execution_id: str, *, client: AthenaClient, cache: AthenaCache,
     ) -> None:
-        self._client = client
         self._execution_id = execution_id
+        self._client = client
         self._cache = cache
-        self.kill_on_interrupt = kill_on_interrupt
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: execution_id={self.execution_id!r}>"
@@ -162,14 +156,9 @@ class Athena:
     _client: AthenaClient
     _cache: AthenaCache
 
-    def __init__(
-        self,
-        client: AthenaClient,
-        storage_remote: Optional[Storage] = None,
-        storage_local: Optional[Storage] = None,
-    ) -> None:
+    def __init__(self, client: AthenaClient) -> None:
         self._client = client
-        self._cache = AthenaCache(local=storage_local, remote=storage_remote)
+        self._cache = AthenaCache()
 
     def __repr__(self) -> str:
         parts = []
@@ -223,12 +212,9 @@ class Athena:
         :param execution_id: an Athena query execution ID.
         :return: a query instance
         """
-        return Query(
-            client=self._client,
-            cache=self._cache,
-            execution_id=execution_id,
-            kill_on_interrupt=self.kill_on_interrupt,
-        )
+        query = Query(execution_id, client=self._client, cache=self._cache)
+        query.kill_on_interrupt = self.kill_on_interrupt
+        return query
 
     def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
         """

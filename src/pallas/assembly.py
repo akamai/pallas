@@ -25,12 +25,11 @@ Function defined in this module can assembly the whole object structure.
 from __future__ import annotations
 
 import os
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Union
 
-from pallas.base import AthenaClient
 from pallas.facade import Athena
 from pallas.proxies import AthenaProxy
-from pallas.storage import storage_from_uri
+from pallas.storage import Storage, storage_from_uri
 
 
 def setup(
@@ -39,8 +38,8 @@ def setup(
     workgroup: Optional[str] = None,
     output_location: Optional[str] = None,
     region: Optional[str] = None,
-    cache_remote: Optional[str] = None,
-    cache_local: Optional[str] = None,
+    cache_local: Union[None, str, Storage] = None,
+    cache_remote: Union[None, str, Storage] = None,
     normalize: bool = True,
     kill_on_interrupt: bool = True,
 ) -> Athena:
@@ -57,10 +56,10 @@ def setup(
         Optional if a default location is specified for the *workgroup*.
     :param region: an AWS region.
         By default, region from AWS config is used.
-    :param cache_remote: an URI of a remote cache.
-        Query execution IDs without results are stored to the remote cache.
     :param cache_local: an URI of a local cache.
         Both results and query execution IDs are stored to the local cache.
+    :param cache_remote: an URI of a remote cache.
+        Query execution IDs without results are stored to the remote cache.
     :param normalize: whether to normalize SQL
         Normalizes whitespace to improve caching.
     :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt
@@ -68,10 +67,16 @@ def setup(
     :return: an Athena instance
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    client: AthenaClient = AthenaProxy(region=region)
-    storage_remote = None if cache_remote is None else storage_from_uri(cache_remote)
-    storage_local = None if cache_local is None else storage_from_uri(cache_local)
-    athena = Athena(client, storage_remote=storage_remote, storage_local=storage_local)
+    client = AthenaProxy(region=region)
+    athena = Athena(client)
+    if isinstance(cache_local, str):
+        athena.cache.local = storage_from_uri(cache_local)
+    else:
+        athena.cache.local = cache_local
+    if isinstance(cache_remote, str):
+        athena.cache.remote = storage_from_uri(cache_remote)
+    else:
+        athena.cache.remote = cache_remote
     athena.database = database
     athena.workgroup = workgroup
     athena.output_location = output_location

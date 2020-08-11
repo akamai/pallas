@@ -50,12 +50,8 @@ class AthenaCache:
     cached results without internet connection.
     """
 
-    local: Optional[Storage]
-    remote: Optional[Storage]
-
-    def __init__(self, *, local: Optional[Storage], remote: Optional[Storage]) -> None:
-        self.local = local
-        self.remote = remote
+    local: Optional[Storage] = None
+    remote: Optional[Storage] = None
 
     def load_execution_id(self, database: Optional[str], sql: str) -> Optional[str]:
         key = self._get_execution_key(database, sql)
