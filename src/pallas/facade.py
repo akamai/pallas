@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import copy
 import time
 from typing import Iterable, Optional
 
@@ -193,6 +194,31 @@ class Athena:
     @property
     def cache(self) -> AthenaCache:
         return self._cache
+
+    def using(
+        self,
+        *,
+        cache_enabled: Optional[bool] = None,
+        cache_read: Optional[bool] = None,
+        cache_write: Optional[bool] = None,
+    ) -> Athena:
+        """
+        Crate a new instance with updated configuration.
+
+        :param cache_enabled: Set to False to disable caching completely.
+        :param cache_read: Set to False to disable reading the cache.
+        :param cache_write: Set to False to disable writing the cache.
+        :return: an update copy of this instance
+        """
+        other = copy.copy(self)
+        other._cache = copy.copy(self._cache)
+        if cache_enabled is not None:
+            other._cache.enabled = cache_enabled
+        if cache_read is not None:
+            other._cache.read = cache_read
+        if cache_write is not None:
+            other._cache.write = cache_write
+        return other
 
     def submit(
         self,

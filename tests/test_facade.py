@@ -74,6 +74,20 @@ class TestAthena:
         query = athena.submit(" SELECT 1 ")
         assert query.get_info().sql == " SELECT 1 "
 
+    def test_using(self, athena):
+        other_athena = athena.using(cache_enabled=False)
+        assert other_athena.cache.enabled is False
+        assert other_athena.cache.read is True
+        assert other_athena.cache.write is True
+        other_athena = athena.using(cache_read=False)
+        assert other_athena.cache.enabled is True
+        assert other_athena.cache.read is False
+        assert other_athena.cache.write is True
+        other_athena = athena.using(cache_write=False)
+        assert other_athena.cache.enabled is True
+        assert other_athena.cache.read is True
+        assert other_athena.cache.write is False
+
 
 class TestQuery:
     def test_repr(self, athena):
