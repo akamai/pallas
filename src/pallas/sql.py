@@ -18,10 +18,14 @@ SQL helpers.
 Implements quoting compatible with Athena.
 """
 
+from __future__ import annotations
+
 import base64
 import datetime as dt
 import math
 import numbers
+import re
+import textwrap
 from decimal import Decimal
 from typing import Union
 
@@ -92,3 +96,37 @@ def quote(value: SQL_SCALAR) -> str:
     if isinstance(value, bytes):
         return _quote_bytes(value)
     raise TypeError(f"Cannot quote {type(value)}.")
+
+
+_comment_1 = r"--[^\n]*\n"
+_comment_2 = r"/\*([^*]|\*(?!/))*\*/"
+
+SELECT_RE = re.compile(
+    rf"(\s+|{_comment_1}|{_comment_2})*(SELECT|WITH)\b", re.IGNORECASE
+)
+
+
+def is_select(sql: str) -> bool:
+    """
+    Return whether an SQL statement is SELECT.
+
+    Only SELECT statements are considered cacheable.
+    """
+    return SELECT_RE.match(sql) is not None
+
+
+def normalize_sql(sql: str) -> str:
+    """
+    Normalizes an SQL query.
+
+    Query normalization can improve caching.
+
+    Following normalization operations are done:
+    - Common indentation is removed.
+    - Heading and trailing new lines are removed.
+    - Trailing whitespace is removed from end of lines.
+    - Line endings are normalized to LF
+    """
+    lines = sql.splitlines()
+    joined = "\n".join(line.rstrip() for line in lines)
+    return textwrap.dedent(joined).strip()

@@ -19,44 +19,36 @@ from decimal import Decimal
 
 import pytest
 
+from pallas import Athena
 from pallas.exceptions import AthenaQueryError
-from pallas.proxies import AthenaProxy
+from pallas.proxies import Boto3Proxy
 
 
 @pytest.fixture
 def athena(region_name, athena_database, athena_workgroup, s3_tmp_uri):
-    return AthenaProxy(
-        region=region_name,
-        database=athena_database,
-        workgroup=athena_workgroup,
-        output_location=f"{s3_tmp_uri}/output",
-    )
+    proxy = Boto3Proxy(region=region_name)
+    athena = Athena(proxy)
+    athena.database = athena_database
+    athena.workgroup = athena_workgroup
+    athena.output_location = s3_tmp_uri
+    return athena
 
 
 # Should not be to trivial.
 # Test must be able to submit a query,
 # and check its status or kill it before the query finishes.
-EXAMPLE_SQL = """\
-SELECT * FROM
-    (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t1 (v1),
-    (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t2 (v2)
-ORDER BY
-    v1, v2\
+EXAMPLE_SQL = textwrap.dedent(
+    """\
+    SELECT * FROM
+        (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t1 (v1),
+        (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t2 (v2)
+    ORDER BY
+        v1, v2\
 """
+)
 
 
-class TestAthenaProxy:
-    def test_properties(self, athena, athena_database, s3_tmp_uri):
-        assert athena.database == athena_database
-        assert athena.output_location == f"{s3_tmp_uri}/output"
-
-    def test_repr(self, athena):
-        assert repr(athena) == (
-            f"<AthenaProxy:"
-            f" database={athena.database!r},"
-            f" output_location={athena.output_location!r}>"
-        )
-
+class TestBoto3Proxy:
     def test_success(self, athena):
         query = athena.submit(EXAMPLE_SQL)
         # Running

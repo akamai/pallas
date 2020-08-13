@@ -14,84 +14,83 @@
 
 import pytest
 
-from pallas.testing import AthenaFake
+from pallas import Athena
+from pallas.testing import FakeProxy
 
 
-@pytest.fixture(name="fake_athena")
-def fake_athena_fixture():
-    return AthenaFake()
+@pytest.fixture(name="fake")
+def fake_fixture():
+    return FakeProxy()
 
 
-class TestQueryFake:
-    def test_repr(self, fake_athena):
-        assert repr(fake_athena) == "<AthenaFake>"
+@pytest.fixture(name="athena")
+def athena_fixture(fake):
+    return Athena(fake)
 
-    def test_query_repr(self, fake_athena):
-        query = fake_athena.submit("SELECT 1")
-        assert repr(query) == "<QueryFake: execution_id='query-1'>"
 
-    def test_submit(self, fake_athena):
-        query = fake_athena.submit("SELECT ...")
+class TestFakeProxy:
+    def test_submit(self, athena, fake):
+        query = athena.submit("SELECT ...")
         assert query.execution_id == "query-1"
-        assert fake_athena.request_log == ["StartQueryExecution"]
+        assert fake.request_log == ["StartQueryExecution"]
 
-    def test_submit_multiple(self, fake_athena):
-        query1 = fake_athena.submit("SELECT ...")
-        query2 = fake_athena.submit("SELECT ...")
+    def test_submit_multiple(self, athena, fake):
+        query1 = athena.submit("SELECT ...")
+        query2 = athena.submit("SELECT ...")
         assert query1.execution_id == "query-1"
         assert query2.execution_id == "query-2"
-        assert fake_athena.request_log == ["StartQueryExecution", "StartQueryExecution"]
+        assert fake.request_log == ["StartQueryExecution", "StartQueryExecution"]
 
-    def test_get_query(self, fake_athena):
-        query1 = fake_athena.submit("SELECT ...")
-        query2 = fake_athena.get_query("query-1")
+    def test_get_query(self, athena):
+        query1 = athena.submit("SELECT ...")
+        query2 = athena.get_query("query-1")
         assert query2.execution_id == query1.execution_id
 
-    def test_query_info(self, fake_athena):
-        query = fake_athena.submit("SELECT ...")
-        fake_athena.request_log.clear()
+    def test_query_info(self, athena, fake):
+        query = athena.submit("SELECT ...")
+        fake.request_log.clear()
         info = query.get_info()
         assert info.execution_id == "query-1"
         assert info.sql == "SELECT ..."
         assert info.database is None
         assert info.finished
         assert info.succeeded
-        assert fake_athena.request_log == ["GetQueryExecution"]
+        assert fake.request_log == ["GetQueryExecution"]
 
-    def test_query_info_remembered(self, fake_athena):
-        query = fake_athena.submit("SELECT ...")
-        fake_athena.request_log.clear()
+    def test_query_info_remembered(self, athena, fake):
+        query = athena.submit("SELECT ...")
+        fake.request_log.clear()
         query.get_info()
         query.get_info()
-        assert fake_athena.request_log == ["GetQueryExecution"]
+        assert fake.request_log == ["GetQueryExecution"]
 
-    def test_query_info_remembered_not_shared(self, fake_athena):
-        query = fake_athena.submit("SELECT ...")
-        fake_athena.request_log.clear()
+    def test_query_info_remembered_not_shared(self, athena, fake):
+        query = athena.submit("SELECT ...")
+        fake.request_log.clear()
         query.get_info()
-        fake_athena.get_query(query.execution_id).get_info()
-        assert fake_athena.request_log == ["GetQueryExecution", "GetQueryExecution"]
+        athena.get_query(query.execution_id).get_info()
+        assert fake.request_log == ["GetQueryExecution", "GetQueryExecution"]
 
-    def test_default_query_results(self, fake_athena):
-        query = fake_athena.submit("SELECT ...")
+    def test_default_query_results(self, athena):
+        query = athena.submit("SELECT ...")
         results = query.get_results()
         assert list(results) == []
 
-    def test_custom_query_results(self, fake_athena):
-        fake_athena.column_names = "id", "name"
-        fake_athena.data = [("1", "foo"), ("2", "bar")]
-        query = fake_athena.submit("SELECT ...")
+    def test_custom_query_results(self, athena, fake):
+        fake.column_names = "id", "name"
+        fake.data = [("1", "foo"), ("2", "bar")]
+        query = athena.submit("SELECT ...")
         results = query.get_results()
         assert list(results) == [
             {"id": "1", "name": "foo"},
             {"id": "2", "name": "bar"},
         ]
 
-    def test_custom_query_results_with_custom_types(self, fake_athena):
-        fake_athena.column_names = "id", "name"
-        fake_athena.column_types = "integer", "varchar"
-        fake_athena.data = [("1", "foo"), ("2", "bar")]
-        query = fake_athena.submit("SELECT ...")
+    def test_custom_query_results_with_custom_types(self, athena, fake):
+        fake.column_names = "id", "name"
+        fake.column_types = "integer", "varchar"
+        fake.data = [("1", "foo"), ("2", "bar")]
+        query = athena.submit("SELECT ...")
         results = query.get_results()
         assert list(results) == [
             {"id": 1, "name": "foo"},

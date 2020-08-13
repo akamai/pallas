@@ -12,35 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from contextlib import contextmanager
 
 import pytest
 
+from pallas import Athena
 from pallas.exceptions import AthenaQueryError
-from pallas.interruptions import AthenaKillOnInterruptWrapper
-from pallas.testing import AthenaFake, QueryFake
+from pallas.testing import FakeProxy
 
 
-class InterruptQueryFake(QueryFake):
-    _interrupted: bool = False
-
-    def join(self) -> None:
-        if not self._interrupted:
-            self._interrupted = True
-            raise KeyboardInterrupt
-        super().join()
+def fake_sleep(seconds):
+    raise KeyboardInterrupt
 
 
-class InterruptAthenaFake(AthenaFake):
-
-    state = "CANCELLED"
-    query_cls = InterruptQueryFake
+@pytest.fixture(name="fake")
+def fake_fixture():
+    fake = FakeProxy()
+    fake.state = "RUNNING"
+    return fake
 
 
 @pytest.fixture(name="athena")
-def athena_fixture():
-    fake = InterruptAthenaFake()
-    return AthenaKillOnInterruptWrapper(fake)
+def athena_fixture(fake):
+    orig_sleep = time.sleep
+    time.sleep = fake_sleep
+    athena = Athena(fake)
+    athena.kill_on_interrupt = True
+    yield athena
+    time.sleep = orig_sleep
 
 
 @contextmanager
@@ -57,35 +57,67 @@ def no_keyboard_interrupt():
         raise AssertionError("Unexpected KeyboardInterrupt")
 
 
-class TestAthenaKillOnInterruptWrapper:
-    def test_execute(self, athena):
+class TestAthenaKillOnInterrupt:
+    def test_execute_kill_on_interrupt(self, athena, fake):
         with no_keyboard_interrupt():
             with pytest.raises(AthenaQueryError):
                 athena.execute("SELECT 1")
-            assert athena.wrapped.request_log == [
+            assert fake.request_log == [
                 "StartQueryExecution",
+                "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_get_results(self, athena):
+    def test_execute_do_not_kill_on_interrupt(self, athena, fake):
+        athena.kill_on_interrupt = False
+        with pytest.raises(KeyboardInterrupt):
+            athena.execute("SELECT 1")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+        ]
+
+    def test_get_results_kill_on_interrupt(self, athena, fake):
         with no_keyboard_interrupt():
             query = athena.submit("SELECT 1")
-            athena.wrapped.request_log.clear()
+            fake.request_log.clear()
             with pytest.raises(AthenaQueryError):
                 query.get_results()
-            assert athena.wrapped.request_log == [
+            assert fake.request_log == [
+                "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_join(self, athena):
+    def test_get_results_do_not_kill_on_interrupt(self, athena, fake):
+        athena.kill_on_interrupt = False
+        query = athena.submit("SELECT 1")
+        fake.request_log.clear()
+        with pytest.raises(KeyboardInterrupt):
+            query.get_results()
+        assert fake.request_log == [
+            "GetQueryExecution",
+        ]
+
+    def test_join_kill_on_interrupt(self, athena, fake):
         with no_keyboard_interrupt():
             query = athena.submit("SELECT 1")
-            athena.wrapped.request_log.clear()
+            fake.request_log.clear()
             with pytest.raises(AthenaQueryError):
                 query.join()
-            assert athena.wrapped.request_log == [
+            assert fake.request_log == [
+                "GetQueryExecution",
                 "StopQueryExecution",
+                "GetQueryExecution",
+            ]
+
+    def test_join_do_not_kill_on_interrupt(self, athena, fake):
+        athena.kill_on_interrupt = False
+        query = athena.submit("SELECT 1")
+        fake.request_log.clear()
+        with pytest.raises(KeyboardInterrupt):
+            query.join()
+            assert fake.request_log == [
                 "GetQueryExecution",
             ]

@@ -13,26 +13,17 @@
 # limitations under the License.
 
 """
-Facade that can setup an Athena clients from configuration.
-
-Full-features Athena client is made a layered composition of objects.
-The core is an :class:`.AthenaProxy` instance that issues requests to AWS.
-It is wrapped by decorators for extra functionality like caching.
-
-Function defined in this module can assembly the whole object structure.
+Methods for setting up Athena clients.
 """
 
 from __future__ import annotations
 
 import os
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Union
 
-from pallas.base import Athena
-from pallas.caching import AthenaCachingWrapper
-from pallas.interruptions import AthenaKillOnInterruptWrapper
-from pallas.normalization import AthenaNormalizationWrapper
-from pallas.proxies import AthenaProxy
-from pallas.storage import storage_from_uri
+from pallas.facade import Athena
+from pallas.proxies import Boto3Proxy
+from pallas.storage import Storage, storage_from_uri
 
 
 def setup(
@@ -41,15 +32,13 @@ def setup(
     workgroup: Optional[str] = None,
     output_location: Optional[str] = None,
     region: Optional[str] = None,
-    cache_remote: Optional[str] = None,
-    cache_local: Optional[str] = None,
+    cache_local: Union[None, str, Storage] = None,
+    cache_remote: Union[None, str, Storage] = None,
     normalize: bool = True,
     kill_on_interrupt: bool = True,
 ) -> Athena:
     """
-    Setup :class:`.Athena` instance.
-
-    Initializes :class:`.AthenaProxy` and decorates it by caching wrappers.
+    Setup an :class:`.Athena` client.
 
     :param database: a name of Athena database.
         If omitted, database should be specified in SQL.
@@ -59,33 +48,29 @@ def setup(
         Optional if a default location is specified for the *workgroup*.
     :param region: an AWS region.
         By default, region from AWS config is used.
-    :param cache_remote: an URI of a remote cache.
-        Query execution IDs without results are stored to the remote cache.
     :param cache_local: an URI of a local cache.
         Both results and query execution IDs are stored to the local cache.
-    :param normalize: whether to normalize SQL
-        Normalizes whitespace to improve caching.
-    :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt
-        Kills query when interrupted during waiting.
-    :return: an Athena instance
+    :param cache_remote: an URI of a remote cache.
+        Query execution IDs without results are stored to the remote cache.
+    :param normalize: whether to normalize SQL queries.
+    :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt.
+    :return: an Athena instance.
         A :class:`.AthenaProxy` instance wrapped necessary in decorators.
     """
-    athena: Athena = AthenaProxy(
-        database=database,
-        workgroup=workgroup,
-        output_location=output_location,
-        region=region,
-    )
-    if cache_remote is not None:
-        storage = storage_from_uri(cache_remote)
-        athena = AthenaCachingWrapper(athena, storage=storage, cache_results=False)
-    if cache_local is not None:
-        storage = storage_from_uri(cache_local)
-        athena = AthenaCachingWrapper(athena, storage=storage, cache_results=True)
-    if normalize:
-        athena = AthenaNormalizationWrapper(athena)
-    if kill_on_interrupt:
-        athena = AthenaKillOnInterruptWrapper(athena)
+    athena = Athena(Boto3Proxy(region=region))
+    if isinstance(cache_local, str):
+        athena.cache.local = storage_from_uri(cache_local)
+    else:
+        athena.cache.local = cache_local
+    if isinstance(cache_remote, str):
+        athena.cache.remote = storage_from_uri(cache_remote)
+    else:
+        athena.cache.remote = cache_remote
+    athena.database = database
+    athena.workgroup = workgroup
+    athena.output_location = output_location
+    athena.normalize = normalize
+    athena.kill_on_interrupt = kill_on_interrupt
     return athena
 
 
@@ -93,7 +78,7 @@ def environ_setup(
     environ: Optional[Mapping[str, str]] = None, *, prefix: str = "PALLAS"
 ) -> Athena:
     """
-    Setup :class:`.Athena` instance from environment variables.
+    Setup an :class:`.Athena` client from environment variables.
 
     Reads the following environment variables: ::
 
@@ -108,9 +93,8 @@ def environ_setup(
 
     :param environ: A mapping object representing the string environment.
         Defaults to ``os.environ``.
-    :param prefix: Prefix of environment variables.
-    :return: an Athena instance
-        A :class:`.AthenaProxy` instance wrapped necessary in decorators.
+    :param prefix: A prefix of environment variables
+    :return: an Athena client
     """
     if environ is None:
         environ = os.environ

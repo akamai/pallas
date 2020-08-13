@@ -18,7 +18,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pallas.base import Athena
+from pallas import Athena
+from pallas.sql import is_select, normalize_sql
 
 
 @pytest.mark.parametrize(
@@ -58,3 +59,99 @@ def test_quote_value(value, quoted):
 def test_quote_invalid(value):
     with pytest.raises(TypeError):
         Athena.quote(value)
+
+
+class TestIsSelect:
+    def test_select(self):
+        assert is_select("SELECT 1")
+
+    def test_select_lowercase(self):
+        assert is_select("select 1")
+
+    def test_with_select(self):
+        assert is_select("WITH (...) AS t SELECT ...")
+
+    def test_with_select_lowercase(self):
+        assert is_select("with (...) AS t select ...")
+
+    def test_insert(self):
+        assert not is_select("INSERT ... AS SELECT")
+
+    def test_create(self):
+        assert not is_select("CREATE TABLE AS ... SELECT")
+
+    def test_select_without_whitesplace(self):
+        assert is_select("SELECT*FROM ...")
+
+    def test_single_line_comments(self):
+        assert is_select(
+            """
+            -- Comment 1
+            -- Comment 2
+            SELECT
+        """
+        )
+
+    def test_multi_line_comments(self):
+        assert is_select(
+            """
+            /*
+            Comment 1
+            Comment 2
+            */
+            SELECT
+        """
+        )
+
+    def test_multi_line_comment_escaped(self):
+        assert is_select(
+            r"""
+            /* *\/ */
+            SELECT
+        """
+        )
+
+
+NORMALIZED_SQL = """\
+SELECT
+    c1, c2
+FROM
+    t\
+"""
+
+
+class TestNormalizeSQL:
+    def test_dedent(self):
+        sql = normalize_sql(
+            """
+            SELECT
+                c1, c2
+            FROM
+                t
+        """
+        )
+        assert sql == NORMALIZED_SQL
+
+    def test_trailing_whitespace(self):
+        sql = normalize_sql(
+            """\N{space}
+            SELECT\N{space}\N{space}\N{space}
+                c1, c2\N{space}
+            FROM\N{space}
+                t\N{space}
+        """
+        )
+        assert sql == NORMALIZED_SQL
+
+    def test_empty_lines(self):
+        # Leading and trailing new lines are removed.
+        # Other new lines are normalized to LF
+        sql = normalize_sql(
+            """\n\n\n
+            SELECT\n\N{space}\N{space}\N{space}\n\r\n
+                c1, c2
+            FROM
+                t\n\n\n
+        """
+        )
+        assert sql == NORMALIZED_SQL.replace("SELECT", "SELECT\n\n\n")

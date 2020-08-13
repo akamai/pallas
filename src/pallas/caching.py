@@ -13,189 +13,155 @@
 # limitations under the License.
 
 """
-Decorators for caching Athena queries.
+Caching of Athena queries.
 """
 
 from __future__ import annotations
 
 import hashlib
 import logging
-import re
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlencode
 
-from pallas.base import Athena, AthenaWrapper, Query, QueryWrapper
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage
 
 logger = logging.getLogger("pallas")
 
 
-_comment_1 = r"--[^\n]*\n"
-_comment_2 = r"/\*([^*]|\*(?!/))*\*/"
-
-SELECT_RE = re.compile(
-    rf"(\s+|{_comment_1}|{_comment_2})*(SELECT|WITH)\b", re.IGNORECASE
-)
-
-
-def is_cacheable(sql: str) -> bool:
+class AthenaCache:
     """
-    Return whether an SQL statement can be cached.
-
-    Only SELECT statements are considered cacheable.
-    """
-    return SELECT_RE.match(sql) is not None
-
-
-class AthenaCachingWrapper(AthenaWrapper):
-    """
-    Athena wrapper that caches query IDs and optionally results.
+    Caches queries and its results.
 
     Athena always stores results in S3, so it is possible
     to retrieve past results without manually copying data.
 
-    The caching wrapper can work two modes,
-    depending on *cache_results* setting:
+    This class can hold a reference to two instances of cache storage:
 
-    1) Remote mode - cache query execution IDs.
-    2) Local mode - Cache query execution IDs and query results.
+    - local, which caches both query execution IDs and query results
+    - remote, which cache query execution IDs only.
 
-    I the remote mode, cache is used to recover query execution IDs
-    that are necessary for downloading results of past queries.
+    It is possible to configure one the backends, both of them,
+    or none of them.
 
-    In the local mode, results are stored to cache too.
-    If the cache storage is local then it is possible to retrieve
-    cached results without internet connection.
+    Queries cached in the local storage can be executed without
+    an internet connection.
+    Queries cached in the remote storage are not executed twice,
+    but results have to be downloaded from AWS.
+
+    In theory, it is possible to use remote backend for the local
+    cache (or vice versa), but we assume that the local cache
+    is actually stored locally
     """
 
-    _storage: Storage
+    local: Optional[Storage] = None
+    remote: Optional[Storage] = None
 
-    def __init__(
-        self, wrapped: Athena, *, storage: Storage, cache_results: bool = True
+    def load_execution_id(self, database: Optional[str], sql: str) -> Optional[str]:
+        """
+        Retrieve cached query execution ID for the given SQL.
+
+        Looks into both the local and the remote storage.
+        """
+        key = self._get_execution_key(database, sql)
+        for storage in self._execution_storages:
+            try:
+                execution_id = storage.get(key)
+            except NotFoundError:
+                continue
+            logger.info(
+                f"Query execution loaded from cache {storage}{key}:"
+                f" QueryExecutionId={execution_id!r}"
+            )
+            return execution_id
+        return None
+
+    def save_execution_id(
+        self, database: Optional[str], sql: str, execution_id: str
     ) -> None:
-        super().__init__(wrapped)
-        self._storage = storage
-        self._cache_results = cache_results
+        """
+        Store cached query execution ID for the given SQL.
 
-    def __repr__(self) -> str:
-        return (
-            f"<{type(self).__name__}: {self.wrapped!r} cached at {self.storage.uri!r}>"
-        )
+        Updates both the local and the remote storage.
+        """
+        key = self._get_execution_key(database, sql)
+        for storage in reversed(self._execution_storages):
+            storage.set(key, execution_id)
+            logger.info(
+                f"Query execution saved to cache {storage}{key}:"
+                f" QueryExecutionId={execution_id!r}"
+            )
+
+    def has_results(self, execution_id: str) -> bool:
+        """
+        Checks whether results are cached for the given execution ID.
+
+        Looks into the local storage only.
+        """
+        key = self._get_results_key(execution_id)
+        for storage in self._results_storages:
+            if not storage.has(key):
+                continue
+            logger.info(
+                f"Query results are available in cache {storage}{key}:"
+                f" QueryExecutionId={execution_id!r}"
+            )
+            return True
+        return False
+
+    def load_results(self, execution_id: str) -> Optional[QueryResults]:
+        """
+        Retrieve cached results for the given execution ID.
+
+        Looks into the local storage only.
+        """
+        key = self._get_results_key(execution_id)
+        for storage in self._results_storages:
+            try:
+                with storage.reader(key) as stream:
+                    results = QueryResults.load(stream)
+            except NotFoundError:
+                continue
+            logger.info(
+                f"Query results loaded from cache {storage}{key}:"
+                f" QueryExecutionId={execution_id!r}: {len(results)} rows"
+            )
+            return results
+        return None
+
+    def save_results(self, execution_id: str, results: QueryResults) -> None:
+        """
+        Store cached results for the given SQL.
+
+        Updates the local storage only.
+        """
+        key = self._get_results_key(execution_id)
+        for storage in reversed(self._results_storages):
+            with storage.writer(key) as stream:
+                results.save(stream)
+            logger.info(
+                f"Query results saved to cache {storage}{key}:"
+                f" QueryExecutionId={execution_id!r}: {len(results)} rows"
+            )
 
     @property
-    def storage(self) -> Storage:
-        return self._storage
+    def _execution_storages(self) -> List[Storage]:
+        candidates = [self.local, self.remote]
+        return [s for s in candidates if s is not None]
 
     @property
-    def cache_results(self) -> bool:
-        return self._cache_results
+    def _results_storages(self) -> List[Storage]:
+        candidates = [self.local]
+        return [s for s in candidates if s is not None]
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
-        sql_cacheable = is_cacheable(sql)
-        if sql_cacheable and not ignore_cache:
-            execution_id = self._load_execution_id(sql)
-            if execution_id is not None:
-                return self.get_query(execution_id)
-        query = super().submit(sql, ignore_cache=ignore_cache)
-        if sql_cacheable:
-            self._save_execution_id(sql, query.execution_id)
-            query = self._wrap_query(query)
-        return query
-
-    def get_query(self, execution_id: str) -> Query:
-        query = super().get_query(execution_id)
-        return self._wrap_query(query)
-
-    def _wrap_query(self, query: Query) -> Query:
-        if self._cache_results:
-            query = QueryCachingWrapper(query, self._storage)
-        return query
-
-    def _load_execution_id(self, sql: str) -> Optional[str]:
-        key = self._get_cache_key(sql)
-        try:
-            execution_id = self._storage.get(key)
-        except NotFoundError:
-            return None
-        logger.info(
-            f"Query execution loaded from cache {self._storage}{key}:"
-            f" QueryExecutionId={execution_id!r}"
-        )
-        return execution_id
-
-    def _save_execution_id(self, sql: str, execution_id: str) -> None:
-        key = self._get_cache_key(sql)
-        self._storage.set(key, execution_id)
-        logger.info(
-            f"Query execution saved to cache {self._storage}{key}:"
-            f" QueryExecutionId={execution_id!r}"
-        )
-
-    def _get_cache_key(self, sql: str) -> str:
+    def _get_execution_key(self, database: Optional[str], sql: str) -> str:
         parts = {}
-        if self.database is not None:
-            parts["database"] = self.database
+        if database is not None:
+            parts["database"] = database
         parts["sql"] = sql
         encoded = urlencode(parts).encode("utf-8")
         hash = hashlib.sha256(encoded).hexdigest()
         return f"query-{hash}"
 
-
-class QueryCachingWrapper(QueryWrapper):
-    """
-    Query wrapper that caches query results.
-    """
-
-    _storage: Storage
-
-    def __init__(self, wrapped: Query, storage: Storage) -> None:
-        super().__init__(wrapped)
-        self._storage = storage
-
-    def get_results(self) -> QueryResults:
-        results = self._load_results()
-        if results is not None:
-            return results
-        results = super().get_results()
-        # When an old query is accessed using its execution ID,
-        # we have to retrieve its SQL to determine whether it can be cached.
-        # Network should not be used until a cache is checked.
-        # Getting the SQL here should not produce an additional request.
-        if is_cacheable(self.get_info().sql):
-            self._save_results(results)
-        return results
-
-    def join(self) -> None:
-        if self._has_results():
-            # If we have results then we can assume that query has finished.
-            return
-        super().join()
-
-    def _has_results(self) -> bool:
-        return self._storage.has(self._get_cache_key())
-
-    def _load_results(self) -> Optional[QueryResults]:
-        key = self._get_cache_key()
-        try:
-            with self._storage.reader(key) as stream:
-                results = QueryResults.load(stream)
-        except NotFoundError:
-            return None
-        logger.info(
-            f"Query results loaded from cache {self._storage}{key}:"
-            f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
-        )
-        return results
-
-    def _save_results(self, results: QueryResults) -> None:
-        key = self._get_cache_key()
-        with self._storage.writer(key) as stream:
-            results.save(stream)
-        logger.info(
-            f"Query results saved to cache {self._storage}{key}:"
-            f" QueryExecutionId={self.execution_id!r}: {len(results)} rows"
-        )
-
-    def _get_cache_key(self) -> str:
-        return f"results-{self.execution_id}"
+    def _get_results_key(self, execution_id: str) -> str:
+        return f"results-{execution_id}"

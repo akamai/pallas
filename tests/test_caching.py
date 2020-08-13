@@ -14,12 +14,17 @@
 
 import pytest
 
-from pallas.caching import AthenaCachingWrapper, is_cacheable
-from pallas.storage import MemoryStorage
-from pallas.testing import AthenaFake
+from pallas import Athena
+from pallas.storage.memory import MemoryStorage
+from pallas.testing import FakeProxy
 
 FAKE_DATA = [("1", "foo", None)]
 ANOTHER_FAKE_DATA = [("2", "bar", None)]
+
+
+@pytest.fixture(name="storage")
+def storage_fixture():
+    return MemoryStorage()
 
 
 @pytest.fixture(name="fake")
@@ -27,36 +32,38 @@ def fake_athena_fixture():
     """
     Athena mock decorated by caching wrapper.
     """
-    fake = AthenaFake()
+    fake = FakeProxy()
     fake.column_names = "id", "name", "value"
     fake.column_types = "integer", "varchar", "double"
     fake.data = FAKE_DATA
     return fake
 
 
-@pytest.fixture(name="remote_athena")
-def caching_athena_fixture(fake):
-    """
-    Caching wrapper in remote mode.
-
-    In remote mode, only query execution IDs are cached.
-    """
-    storage = MemoryStorage()
-    return AthenaCachingWrapper(fake, storage=storage, cache_results=False)
-
-
 @pytest.fixture(name="local_athena")
-def local_athena_fixture(fake):
+def local_athena_fixture(fake, storage):
     """
     Caching wrapper in local mode.
 
     In local mode, both query execution IDs and results are cached.
     """
-    storage = MemoryStorage()
-    return AthenaCachingWrapper(fake, storage=storage)
+    athena = Athena(fake)
+    athena.cache.local = storage
+    return athena
 
 
-@pytest.fixture(name="athena", params=["remote", "local"])
+@pytest.fixture(name="remote_athena")
+def remote_athena_fixture(fake, storage):
+    """
+    Caching wrapper in remote mode.
+
+    In remote mode, only query execution IDs are cached.
+    """
+    athena = Athena(fake)
+    athena.cache.remote = storage
+    return athena
+
+
+@pytest.fixture(name="athena", params=["local", "remote"])
 def athena_fixture(request):
     """
     Yields caching wrapper in both remote and local mode.
@@ -72,173 +79,107 @@ def assert_another_query_results(results):
     assert list(results) == [{"id": 2, "name": "bar", "value": None}]
 
 
-class TestIsCacheable:
-    def test_select(self):
-        assert is_cacheable("SELECT 1")
-
-    def test_select_lowercase(self):
-        assert is_cacheable("select 1")
-
-    def test_with_select(self):
-        assert is_cacheable("WITH (...) AS t SELECT ...")
-
-    def test_with_select_lowercase(self):
-        assert is_cacheable("with (...) AS t select ...")
-
-    def test_insert(self):
-        assert not is_cacheable("INSERT ... AS SELECT")
-
-    def test_create(self):
-        assert not is_cacheable("CREATE TABLE AS ... SELECT")
-
-    def test_select_without_whitesplace(self):
-        assert is_cacheable("SELECT*FROM ...")
-
-    def test_single_line_comments(self):
-        assert is_cacheable(
-            """
-            -- Comment 1
-            -- Comment 2
-            SELECT
-        """
-        )
-
-    def test_multi_line_comments(self):
-        assert is_cacheable(
-            """
-            /*
-            Comment 1
-            Comment 2
-            */
-            SELECT
-        """
-        )
-
-    def test_multi_line_comment_escaped(self):
-        assert is_cacheable(
-            r"""
-            /* *\/ */
-            SELECT
-        """
-        )
-
-
-class TestAthenaCachingWrapper:
+class TestAthenaCache:
 
     # Test execute method
 
-    def test_repr(self, athena):
-        assert (
-            repr(athena) == "<AthenaCachingWrapper: <AthenaFake> cached at 'memory:'>"
-        )
-
-    def test_remote_query_repr(self, remote_athena):
-        query = remote_athena.submit("SELECT 1")
-        assert repr(query) == "<QueryFake: execution_id='query-1'>"
-
-    def test_local_query_repr(self, local_athena):
-        query = local_athena.submit("SELECT 1")
-        assert repr(query) == (
-            "<QueryCachingWrapper: <QueryFake: execution_id='query-1'>>"
-        )
-
-    def test_execute_one_query(self, athena):
+    def test_execute_one_query(self, athena, fake):
         """Test execution of a query not in cache."""
         results = athena.execute("SELECT 1 id, 'foo' name")
-        assert athena.wrapped.request_log == [
+        assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_query_results(results)
 
-    def test_remote_execute_one_query_cache_size(self, remote_athena):
-        """Test that query ID is written to cache."""
-        remote_athena.execute("SELECT 1 id, 'foo' name")
-        assert remote_athena.storage.size() == 1
-
-    def test_local_execute_one_query_cache_size(self, local_athena):
+    def test_local_execute_one_query_cache_size(self, local_athena, storage):
         """Test that query ID and results are written to cache."""
         local_athena.execute("SELECT 1 id, 'foo' name")
-        assert local_athena.storage.size() == 2
+        assert storage.size() == 2
 
-    def test_execute_one_query_not_select(self, athena):
+    def test_remote_execute_one_query_cache_size(self, remote_athena, storage):
+        """Test that query ID is written to cache."""
+        remote_athena.execute("SELECT 1 id, 'foo' name")
+        assert storage.size() == 1
+
+    def test_execute_one_query_not_select(self, athena, fake, storage):
         """Test execution of a query that should not be cached."""
         results = athena.execute("CREATE TABLE ...")
-        assert athena.wrapped.request_log == [
+        assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_query_results(results)
-        assert athena.storage.size() == 0
+        assert storage.size() == 0
 
-    def test_remote_execute_second_query_same_sql(self, remote_athena):
-        """Test execution of a query in cache."""
-        remote_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
-        remote_athena.wrapped.request_log.clear()
-        results = remote_athena.execute("SELECT 1 id, 'foo' name")
-        assert remote_athena.wrapped.request_log == [
-            "GetQueryExecution",
-            "GetQueryResults",
-        ]
-        assert_query_results(results)
-        assert remote_athena.storage.size() == 1
-
-    def test_local_execute_second_query(self, local_athena):
+    def test_local_execute_second_query(self, local_athena, fake, storage):
         """Test execution of a query in cache."""
         local_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
-        local_athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         results = local_athena.execute("SELECT 1 id, 'foo' name")
-        assert local_athena.wrapped.request_log == []
+        assert fake.request_log == []
         assert_query_results(results)
-        assert local_athena.storage.size() == 2
+        assert storage.size() == 2
 
-    def test_execute_second_query_not_select(self, athena):
+    def test_remote_execute_second_query_same_sql(self, remote_athena, fake, storage):
+        """Test execution of a query in cache."""
+        remote_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
+        fake.request_log.clear()
+        results = remote_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert_query_results(results)
+        assert storage.size() == 1
+
+    def test_execute_second_query_not_select(self, athena, fake, storage):
         """Test that only SELECT queries are cached."""
         athena.execute("CREATE TABLE ...")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         results = athena.execute("CREATE TABLE ...")
-        assert athena.wrapped.request_log == [
+        assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_query_results(results)
-        assert athena.storage.size() == 0
+        assert storage.size() == 0
 
-    def test_execute_second_query_ignore_cache(self, athena):
+    def test_execute_second_query_ignore_cache(self, athena, fake, storage):
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
-        assert athena.wrapped.request_log == [
+        assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_query_results(results)
 
-    def test_execute_second_query_different_sql(self, athena):
+    def test_execute_second_query_different_sql(self, athena, fake, storage):
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
-        athena.wrapped.request_log.clear()
-        athena.wrapped.data = ANOTHER_FAKE_DATA
+        fake.request_log.clear()
+        fake.data = ANOTHER_FAKE_DATA
         results = athena.execute("SELECT 2 id, 'bar' name")  # different SQL
-        assert athena.wrapped.request_log == [
+        assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_another_query_results(results)
 
-    def test_execute_second_query_different_database(self, athena):
+    def test_execute_second_query_different_database(self, athena, fake, storage):
         """Test that cache is unique to a database."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
-        athena.wrapped.request_log.clear()
-        athena.wrapped.database = "other"
+        fake.request_log.clear()
+        athena.database = "other"
         results = athena.execute("SELECT 1 id, 'foo' name")
-        assert athena.wrapped.request_log == [
+        assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
@@ -247,231 +188,231 @@ class TestAthenaCachingWrapper:
 
     # Test athena.submit() method
 
-    def test_submit_one_query(self, athena):
+    def test_submit_one_query(self, athena, fake, storage):
         """Test that the caching wrapper submits a query if not in cache."""
         athena.submit("SELECT 1 id, 'foo' name")
-        assert athena.wrapped.request_log == ["StartQueryExecution"]
-        assert athena.storage.size() == 1
+        assert fake.request_log == ["StartQueryExecution"]
+        assert storage.size() == 1
 
-    def test_submit_one_query_not_select(self, athena):
+    def test_submit_one_query_not_select(self, athena, fake, storage):
         """Test that the caching wrapper submits a query if not in cache."""
         athena.submit("CREATE TABLE ...")
-        assert athena.wrapped.request_log == ["StartQueryExecution"]
-        assert athena.storage.size() == 0
+        assert fake.request_log == ["StartQueryExecution"]
+        assert storage.size() == 0
 
-    def test_submit_second_query(self, athena):
+    def test_submit_second_query(self, athena, fake, storage):
         """Test that one query is submitted only once."""
         athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         athena.submit("SELECT 1 id, 'foo' name")
-        assert athena.wrapped.request_log == []
-        assert athena.storage.size() == 1
+        assert fake.request_log == []
+        assert storage.size() == 1
 
-    def test_submit_second_query_not_select(self, athena):
+    def test_submit_second_query_not_select(self, athena, fake, storage):
         """Test that only SELECT queries are cached."""
         athena.submit("CREATE TABLE ...")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         athena.submit("CREATE TABLE ...")
-        assert athena.wrapped.request_log == ["StartQueryExecution"]
-        assert athena.storage.size() == 0
+        assert fake.request_log == ["StartQueryExecution"]
+        assert storage.size() == 0
 
-    def test_submit_second_query_ignore_cache(self, athena):
+    def test_submit_second_query_ignore_cache(self, athena, fake, storage):
         """Test that cache read can be skipped."""
         athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
-        assert athena.wrapped.request_log == ["StartQueryExecution"]
-        assert athena.storage.size() == 1
+        assert fake.request_log == ["StartQueryExecution"]
+        assert storage.size() == 1
 
-    def test_submit_second_query_different_sql(self, athena):
+    def test_submit_second_query_different_sql(self, athena, fake, storage):
         """Test that cache is unique to a query."""
         athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
-        athena.wrapped.data = ANOTHER_FAKE_DATA
+        fake.request_log.clear()
+        fake.data = ANOTHER_FAKE_DATA
         athena.submit("SELECT 2 id, 'bar' name")
-        assert athena.wrapped.request_log == ["StartQueryExecution"]
-        assert athena.storage.size() == 2
+        assert fake.request_log == ["StartQueryExecution"]
+        assert storage.size() == 2
 
     # Test athena.get_query() method
 
-    def test_get_uncached_query_get_results(self, athena):
+    def test_get_uncached_query_get_results(self, athena, fake, storage):
         """Test getting query not in cache."""
         athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         query_results = athena.get_query("query-1").get_results()
-        assert athena.wrapped.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
-    def test_remote_uncached_query_get_results_cache_size(self, remote_athena):
-        """Test that results are not cached."""
-        remote_athena.submit("SELECT 1 id, 'foo' name")
-        remote_athena.get_query("query-1").get_results()
-        assert remote_athena.storage.size() == 1
-
-    def test_local_uncached_query_get_results_cache_size(self, local_athena):
+    def test_local_uncached_query_get_results_cache_size(self, local_athena, storage):
         """Test that results are not cached."""
         local_athena.submit("SELECT 1 id, 'foo' name")
         local_athena.get_query("query-1").get_results()
-        assert local_athena.storage.size() == 2
+        assert storage.size() == 2
 
-    def test_remote_get_cached_query_get_results(self, remote_athena):
+    def test_remote_uncached_query_get_results_cache_size(self, remote_athena, storage):
+        """Test that results are not cached."""
+        remote_athena.submit("SELECT 1 id, 'foo' name")
+        remote_athena.get_query("query-1").get_results()
+        assert storage.size() == 1
+
+    def test_local_get_cached_query_get_results(self, local_athena, fake, storage):
+        """Test getting query in cache when results are cached."""
+        local_athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        query_results = local_athena.get_query("query-1").get_results()
+        assert fake.request_log == []
+        assert_query_results(query_results)
+        assert storage.size() == 2
+
+    def test_remote_get_cached_query_get_results(self, remote_athena, fake, storage):
         """Test getting query in cache when results are not cached."""
         remote_athena.execute("SELECT 1 id, 'foo' name")
-        remote_athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         query_results = remote_athena.get_query("query-1").get_results()
-        assert remote_athena.wrapped.request_log == [
+        assert fake.request_log == [
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_query_results(query_results)
-        assert remote_athena.storage.size() == 1
+        assert storage.size() == 1
 
-    def test_local_get_cached_query_get_results(self, local_athena):
-        """Test getting query in cache when results are cached."""
-        local_athena.execute("SELECT 1 id, 'foo' name")
-        local_athena.wrapped.request_log.clear()
-        query_results = local_athena.get_query("query-1").get_results()
-        assert local_athena.wrapped.request_log == []
-        assert_query_results(query_results)
-        assert local_athena.storage.size() == 2
-
-    def test_get_query_get_results_not_select(self, athena):
+    def test_get_query_get_results_not_select(self, athena, storage):
         """Test that results are cached for SELECT queries onlys."""
         athena.submit("CREATE TABLE ...")
         athena.get_query("query-1").get_results()
-        assert athena.storage.size() == 0
+        assert storage.size() == 0
 
     # Test query.get_info() method
 
-    def test_query_info(self, athena):
+    def test_query_info(self, athena, fake):
         """Test obtaining information about a query."""
         query = athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         info = query.get_info()
         assert info.execution_id == "query-1"
         assert info.sql == "SELECT 1 id, 'foo' name"
-        assert athena.wrapped.request_log == ["GetQueryExecution"]
+        assert fake.request_log == ["GetQueryExecution"]
 
     # Test query.get_results() method
 
-    def test_get_results_one_query(self, athena):
+    def test_get_results_one_query(self, athena, fake, storage):
         """Test getting results query not in cache."""
         query = athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         query_results = query.get_results()
-        assert athena.wrapped.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
         assert_query_results(query_results)
 
-    def test_remote_get_second_results_one_query(self, remote_athena):
-        """Test getting results twice results not cached."""
-        query = remote_athena.submit("SELECT 1 id, 'foo' name")
-        query.get_results()
-        remote_athena.wrapped.request_log.clear()
-        query_results = query.get_results()
-        assert remote_athena.wrapped.request_log == [
-            "GetQueryResults",
-        ]
-        assert_query_results(query_results)
-
-    def test_local_get_second_results_one_query(self, local_athena):
+    def test_local_get_second_results_one_query(self, local_athena, fake):
         """Test getting results twice results cached."""
         query = local_athena.submit("SELECT 1 id, 'foo' name")
         query.get_results()
-        local_athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         query_results = query.get_results()
-        assert local_athena.wrapped.request_log == []
+        assert fake.request_log == []
         assert_query_results(query_results)
 
-    def test_remote_get_results_second_query_same_sql(self, remote_athena):
-        """Test getting results query in cache results not cached."""
-        remote_athena.execute("SELECT 1 id, 'foo' name")
-        second_query = remote_athena.submit("SELECT 1 id, 'foo' name")
-        remote_athena.wrapped.request_log.clear()
-        second_query_results = second_query.get_results()
-        assert remote_athena.wrapped.request_log == [
-            "GetQueryExecution",
+    def test_remote_get_second_results_one_query(self, remote_athena, fake):
+        """Test getting results twice results not cached."""
+        query = remote_athena.submit("SELECT 1 id, 'foo' name")
+        query.get_results()
+        fake.request_log.clear()
+        query_results = query.get_results()
+        assert fake.request_log == [
             "GetQueryResults",
         ]
-        assert_query_results(second_query_results)
+        assert_query_results(query_results)
 
-    def test_local_get_results_second_query_same_sql(self, local_athena):
+    def test_local_get_results_second_query_same_sql(self, local_athena, fake):
         """Test getting results query in cache results cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")
         second_query = local_athena.submit("SELECT 1 id, 'foo' name")
-        local_athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         second_query_results = second_query.get_results()
-        assert local_athena.wrapped.request_log == []
+        assert fake.request_log == []
         assert_query_results(second_query_results)
 
-    def test_get_results_second_query_different_sql(self, athena):
-        """Test that cache is unique to a query."""
-        athena.execute("SELECT 1 id, 'foo' name")
-        athena.wrapped.data = ANOTHER_FAKE_DATA
-        second_query = athena.submit("SELECT 2 id, 'bar' name")
-        athena.wrapped.request_log.clear()
+    def test_remote_get_results_second_query_same_sql(self, remote_athena, fake):
+        """Test getting results query in cache results not cached."""
+        remote_athena.execute("SELECT 1 id, 'foo' name")
+        second_query = remote_athena.submit("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
         second_query_results = second_query.get_results()
-        assert athena.wrapped.request_log == ["GetQueryExecution", "GetQueryResults"]
-        assert_another_query_results(second_query_results)
-
-    def test_local_get_uncached_results_second_query_same_sql(self, local_athena):
-        """Test that the second query downloads data if the first does not."""
-        local_athena.submit("SELECT 1 id, 'foo' name")  # Does not download results.
-        second_query = local_athena.submit("SELECT 1 id, 'foo' name")
-        local_athena.wrapped.request_log.clear()
-        second_query_results = second_query.get_results()
-        assert local_athena.wrapped.request_log == [
+        assert fake.request_log == [
             "GetQueryExecution",
             "GetQueryResults",
         ]
         assert_query_results(second_query_results)
 
-    def test_local_get_cached_results_first_query_same_sql(self, local_athena):
+    def test_get_results_second_query_different_sql(self, athena, fake):
+        """Test that cache is unique to a query."""
+        athena.execute("SELECT 1 id, 'foo' name")
+        fake.data = ANOTHER_FAKE_DATA
+        second_query = athena.submit("SELECT 2 id, 'bar' name")
+        fake.request_log.clear()
+        second_query_results = second_query.get_results()
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert_another_query_results(second_query_results)
+
+    def test_local_get_uncached_results_second_query_same_sql(self, local_athena, fake):
+        """Test that the second query downloads data if the first does not."""
+        local_athena.submit("SELECT 1 id, 'foo' name")  # Does not download results.
+        second_query = local_athena.submit("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        second_query_results = second_query.get_results()
+        assert fake.request_log == [
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert_query_results(second_query_results)
+
+    def test_local_get_cached_results_first_query_same_sql(self, local_athena, fake):
         """Test that first query can use cache from the second query."""
         first_query = local_athena.submit("SELECT 1 id, 'foo' name")
         local_athena.execute("SELECT 1 id, 'foo' name")
-        local_athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         first_query_results = first_query.get_results()
-        assert local_athena.wrapped.request_log == []
+        assert fake.request_log == []
         assert_query_results(first_query_results)
 
     # Test query.kill() method
 
-    def test_kill(self, athena):
+    def test_kill(self, athena, fake):
         query = athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         query.kill()
-        assert athena.wrapped.request_log == ["StopQueryExecution"]
+        assert fake.request_log == ["StopQueryExecution"]
 
     # Test query.join() method
 
-    def test_join_one_query(self, athena):
+    def test_join_one_query(self, athena, fake):
         """Test waiting for a query not cached."""
         query = athena.submit("SELECT 1 id, 'foo' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         query.join()
-        assert athena.wrapped.request_log == ["GetQueryExecution"]
+        assert fake.request_log == ["GetQueryExecution"]
 
-    def test_remote_join_second_query_query_same_sql(self, remote_athena):
-        """Test waiting for a query cached results not cached."""
-        remote_athena.execute("SELECT 1 id, 'foo' name")
-        second_query = remote_athena.submit("SELECT 1 id, 'foo' name")
-        remote_athena.wrapped.request_log.clear()
-        second_query.join()
-        assert remote_athena.wrapped.request_log == ["GetQueryExecution"]
-
-    def test_local_join_second_query_query_same_sql(self, local_athena):
+    def test_local_join_second_query_query_same_sql(self, local_athena, fake):
         """Test waiting for a query cached results not cached."""
         local_athena.execute("SELECT 1 id, 'foo' name")
         second_query = local_athena.submit("SELECT 1 id, 'foo' name")
-        local_athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         second_query.join()
-        assert local_athena.wrapped.request_log == []
+        assert fake.request_log == []
 
-    def test_join_second_query_query_different_sql(self, athena):
+    def test_remote_join_second_query_query_same_sql(self, remote_athena, fake):
+        """Test waiting for a query cached results not cached."""
+        remote_athena.execute("SELECT 1 id, 'foo' name")
+        second_query = remote_athena.submit("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        second_query.join()
+        assert fake.request_log == ["GetQueryExecution"]
+
+    def test_join_second_query_query_different_sql(self, athena, fake):
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")
-        athena.wrapped.data = ANOTHER_FAKE_DATA
+        fake.data = ANOTHER_FAKE_DATA
         second_query = athena.submit("SELECT 2 id, 'bar' name")
-        athena.wrapped.request_log.clear()
+        fake.request_log.clear()
         second_query.join()
-        assert athena.wrapped.request_log == ["GetQueryExecution"]
+        assert fake.request_log == ["GetQueryExecution"]
