@@ -14,7 +14,9 @@
 
 from __future__ import annotations
 
+import copy
 import time
+import warnings
 from typing import Iterable, Optional
 
 from pallas.caching import AthenaCache
@@ -194,6 +196,31 @@ class Athena:
     def cache(self) -> AthenaCache:
         return self._cache
 
+    def using(
+        self,
+        *,
+        cache_enabled: Optional[bool] = None,
+        cache_read: Optional[bool] = None,
+        cache_write: Optional[bool] = None,
+    ) -> Athena:
+        """
+        Crate a new instance with updated configuration.
+
+        :param cache_enabled: Set to False to disable caching completely.
+        :param cache_read: Set to False to disable reading the cache.
+        :param cache_write: Set to False to disable writing the cache.
+        :return: an update copy of this instance
+        """
+        other = copy.copy(self)
+        other._cache = copy.copy(self._cache)
+        if cache_enabled is not None:
+            other._cache.enabled = cache_enabled
+        if cache_read is not None:
+            other._cache.read = cache_read
+        if cache_write is not None:
+            other._cache.write = cache_write
+        return other
+
     def submit(
         self,
         operation: str,
@@ -212,12 +239,19 @@ class Athena:
             Can contain %s or %(key)s placeholders for substitution by *parameters*
         :param parameters: parameters to substitute in *operation*.
             All parameters are quoted appropriately.
-        :param ignore_cache: do not load cached results
+        :param ignore_cache: deprecated, do not use
         :return: a query instance
         """
+        if ignore_cache:
+            warnings.warn(
+                "The athena.submit(..., ignore_cache=True) parameter is deprecated."
+                " Use athena.using(cache_read=False).submit(...) instead.",
+                FutureWarning,
+            )
+            return self.using(cache_read=False).submit(operation, parameters)
         sql = self._get_sql(operation, parameters)
         should_cache = is_select(sql)
-        if should_cache and not ignore_cache:
+        if should_cache:
             execution_id = self._cache.load_execution_id(self.database, sql)
             if execution_id is not None:
                 return self.get_query(execution_id)
@@ -257,10 +291,20 @@ class Athena:
 
         This is a blocking method that waits until query finishes.
 
-        :param sql: SQL query to be executed
-        :param ignore_cache: do not load cached results
+        :param operation: an SQL query to be executed
+            Can contain %s or %(key)s placeholders for substitution by *parameters*
+        :param parameters: parameters to substitute in *operation*.
+            All parameters are quoted appropriately.
+        :param ignore_cache: deprecated, do not use
         :return: query results
         """
+        if ignore_cache:
+            warnings.warn(
+                "The athena.execute(..., ignore_cache=True) parameter is deprecated."
+                " Use athena.using(cache_read=False).execute(...) instead.",
+                FutureWarning,
+            )
+            return self.using(cache_read=False).execute(operation, parameters)
         return self.submit(
             operation, parameters, ignore_cache=ignore_cache
         ).get_results()

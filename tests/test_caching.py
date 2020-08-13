@@ -152,7 +152,8 @@ class TestAthenaCache:
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
         fake.request_log.clear()
-        results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
+        with pytest.warns(FutureWarning):
+            results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
         assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
@@ -220,7 +221,8 @@ class TestAthenaCache:
         """Test that cache read can be skipped."""
         athena.submit("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
-        athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
+        with pytest.warns(FutureWarning):
+            athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
         assert fake.request_log == ["StartQueryExecution"]
         assert storage.size() == 1
 
@@ -416,3 +418,81 @@ class TestAthenaCache:
         fake.request_log.clear()
         second_query.join()
         assert fake.request_log == ["GetQueryExecution"]
+
+    # Test configuration
+
+    def test_cache_disabled_first_query(self, athena, fake, storage):
+        athena.cache.enabled = False
+        athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert storage.size() == 0
+
+    def test_cache_disabled_second_query(self, athena, fake):
+        athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        athena.cache.enabled = False
+        athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+
+    def test_local_cache_read_disabled_first_query(self, local_athena, fake, storage):
+        local_athena.cache.read = False
+        local_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert storage.size() == 2
+
+    def test_remote_cache_read_disabled_first_query(self, remote_athena, fake, storage):
+        remote_athena.cache.read = False
+        remote_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert storage.size() == 1
+
+    def test_cache_read_disabled_second_query(self, athena, fake):
+        athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        athena.cache.read = False
+        athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+
+    def test_cache_write_disabled_first_query(self, athena, fake, storage):
+        athena.cache.write = False
+        athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "StartQueryExecution",
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert storage.size() == 0
+
+    def test_local_cache_write_disabled_second_query(self, local_athena, fake):
+        local_athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        local_athena.cache.write = False
+        local_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == []
+
+    def test_remote_cache_write_disabled_second_query(self, remote_athena, fake):
+        remote_athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        remote_athena.cache.write = False
+        remote_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
