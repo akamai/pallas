@@ -208,6 +208,7 @@ $ tox
 
 ### v0.4.dev
 * Add support for parametrized queries.
+* More options for cache configuration.
 * Allow to override configuration of the Athena class after it is initialized.
 * Refactored implementation from layered decorators to one class using specialized  helpers.
 
