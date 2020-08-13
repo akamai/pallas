@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import copy
 import time
+import warnings
 from typing import Iterable, Optional
 
 from pallas.caching import AthenaCache
@@ -238,12 +239,19 @@ class Athena:
             Can contain %s or %(key)s placeholders for substitution by *parameters*
         :param parameters: parameters to substitute in *operation*.
             All parameters are quoted appropriately.
-        :param ignore_cache: do not load cached results
+        :param ignore_cache: deprecated, do not use
         :return: a query instance
         """
+        if ignore_cache:
+            warnings.warn(
+                "The athena.submit(..., ignore_cache=True) parameter is deprecated."
+                " Use athena.using(cache_read=False).submit(...) instead.",
+                FutureWarning,
+            )
+            return self.using(cache_read=False).submit(operation, parameters)
         sql = self._get_sql(operation, parameters)
         should_cache = is_select(sql)
-        if should_cache and not ignore_cache:
+        if should_cache:
             execution_id = self._cache.load_execution_id(self.database, sql)
             if execution_id is not None:
                 return self.get_query(execution_id)
@@ -283,10 +291,20 @@ class Athena:
 
         This is a blocking method that waits until query finishes.
 
-        :param sql: SQL query to be executed
-        :param ignore_cache: do not load cached results
+        :param operation: an SQL query to be executed
+            Can contain %s or %(key)s placeholders for substitution by *parameters*
+        :param parameters: parameters to substitute in *operation*.
+            All parameters are quoted appropriately.
+        :param ignore_cache: deprecated, do not use
         :return: query results
         """
+        if ignore_cache:
+            warnings.warn(
+                "The athena.execute(..., ignore_cache=True) parameter is deprecated."
+                " Use athena.using(cache_read=False).execute(...) instead.",
+                FutureWarning,
+            )
+            return self.using(cache_read=False).execute(operation, parameters)
         return self.submit(
             operation, parameters, ignore_cache=ignore_cache
         ).get_results()

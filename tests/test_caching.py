@@ -152,7 +152,8 @@ class TestAthenaCache:
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
         fake.request_log.clear()
-        results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
+        with pytest.warns(FutureWarning):
+            results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
         assert fake.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
@@ -220,7 +221,8 @@ class TestAthenaCache:
         """Test that cache read can be skipped."""
         athena.submit("SELECT 1 id, 'foo' name")
         fake.request_log.clear()
-        athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
+        with pytest.warns(FutureWarning):
+            athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
         assert fake.request_log == ["StartQueryExecution"]
         assert storage.size() == 1
 
