@@ -41,9 +41,10 @@ EXAMPLE_SQL = textwrap.dedent(
     """\
     SELECT * FROM
         (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t1 (v1),
-        (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t2 (v2)
+        (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t2 (v2),
+        (VALUES 0, 1, 2, 3, 4, 5, 6, 7, 8, 9) AS t3 (v3)
     ORDER BY
-        v1, v2\
+        v1, v2, v3\
 """
 )
 
