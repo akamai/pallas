@@ -57,12 +57,23 @@ class AthenaCache:
     local: Optional[Storage] = None
     remote: Optional[Storage] = None
 
+    #: Can be set to False to disable caching completely.
+    enabled: bool = True
+
+    #: Can be set to False to disable reading the cache.
+    read: bool = True
+
+    #: Can be set to False to disable writing the cache.
+    write: bool = True
+
     def load_execution_id(self, database: Optional[str], sql: str) -> Optional[str]:
         """
         Retrieve cached query execution ID for the given SQL.
 
         Looks into both the local and the remote storage.
         """
+        if not (self.enabled and self.read):
+            return None
         key = self._get_execution_key(database, sql)
         for storage in self._execution_storages:
             try:
@@ -84,6 +95,8 @@ class AthenaCache:
 
         Updates both the local and the remote storage.
         """
+        if not (self.enabled and self.write):
+            return
         key = self._get_execution_key(database, sql)
         for storage in reversed(self._execution_storages):
             storage.set(key, execution_id)
@@ -98,6 +111,8 @@ class AthenaCache:
 
         Looks into the local storage only.
         """
+        if not (self.enabled and self.read):
+            return False
         key = self._get_results_key(execution_id)
         for storage in self._results_storages:
             if not storage.has(key):
@@ -115,6 +130,8 @@ class AthenaCache:
 
         Looks into the local storage only.
         """
+        if not (self.enabled and self.read):
+            return None
         key = self._get_results_key(execution_id)
         for storage in self._results_storages:
             try:
@@ -135,6 +152,8 @@ class AthenaCache:
 
         Updates the local storage only.
         """
+        if not (self.enabled and self.write):
+            return
         key = self._get_results_key(execution_id)
         for storage in reversed(self._results_storages):
             with storage.writer(key) as stream:
