@@ -21,7 +21,13 @@ from pallas.caching import AthenaCache
 from pallas.info import QueryInfo
 from pallas.proxies import AthenaProxy
 from pallas.results import QueryResults
-from pallas.sql import is_select, normalize_sql, quote
+from pallas.sql import (
+    PARAMETERS,
+    is_select,
+    normalize_sql,
+    quote,
+    substitute_parameters,
+)
 from pallas.utils import Fibonacci
 
 
@@ -90,7 +96,7 @@ class Query:
         Waits until this query execution finishes and downloads results.
         """
         # When a user calls athena.get_query(execution_id).get_results(),
-        # we have to look into the cache withou knowing what SQL was executed,
+        # we have to look into the cache without knowing what SQL was executed,
         # so whether the query is cacheable.
         results = self._cache.load_results(self._execution_id)
         if results is not None:
@@ -188,7 +194,13 @@ class Athena:
     def cache(self) -> AthenaCache:
         return self._cache
 
-    def submit(self, sql: str, *, ignore_cache: bool = False) -> Query:
+    def submit(
+        self,
+        operation: str,
+        parameters: PARAMETERS = None,
+        *,
+        ignore_cache: bool = False,
+    ) -> Query:
         """
         Submit a query and return.
 
@@ -196,12 +208,14 @@ class Athena:
         Returns a :class:`Query` instance for monitoring query execution
         and downloading results later.
 
-        :param sql: an SQL query to be executed
+        :param operation: an SQL query to be executed
+            Can contain %s or %(key)s placeholders for substitution by *parameters*
+        :param parameters: parameters to substitute in *operation*.
+            All parameters are quoted appropriately.
         :param ignore_cache: do not load cached results
         :return: a query instance
         """
-        if self.normalize:
-            sql = normalize_sql(sql)
+        sql = self._get_sql(operation, parameters)
         should_cache = is_select(sql)
         if should_cache and not ignore_cache:
             execution_id = self._cache.load_execution_id(self.database, sql)
@@ -231,7 +245,13 @@ class Athena:
         query.kill_on_interrupt = self.kill_on_interrupt
         return query
 
-    def execute(self, sql: str, *, ignore_cache: bool = False) -> QueryResults:
+    def execute(
+        self,
+        operation: str,
+        parameters: PARAMETERS = None,
+        *,
+        ignore_cache: bool = False,
+    ) -> QueryResults:
         """
         Execute a query and wait for results.
 
@@ -241,4 +261,12 @@ class Athena:
         :param ignore_cache: do not load cached results
         :return: query results
         """
-        return self.submit(sql, ignore_cache=ignore_cache).get_results()
+        return self.submit(
+            operation, parameters, ignore_cache=ignore_cache
+        ).get_results()
+
+    def _get_sql(self, operation: str, parameters: PARAMETERS) -> str:
+        sql = substitute_parameters(operation, parameters)
+        if self.normalize:
+            sql = normalize_sql(sql)
+        return sql

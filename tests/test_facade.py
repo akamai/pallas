@@ -57,6 +57,14 @@ class TestAthena:
             "GetQueryResults",
         ]
 
+    def test_submit_w_parameters(self, athena):
+        query = athena.submit("SELECT %s", ["Joe's"])
+        assert query.get_info().sql == "SELECT 'Joe''s'"
+
+    def test_execute_w_parameters(self, athena):
+        athena.execute("SELECT %s", ["Joe's"])
+        assert athena.get_query("query-1").get_info().sql == "SELECT 'Joe''s'"
+
     def test_normalize(self, athena):
         query = athena.submit(" SELECT 1 ")
         assert query.get_info().sql == "SELECT 1"

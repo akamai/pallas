@@ -102,14 +102,11 @@ athena = pallas.environ_setup()
 Use the `Athena.execute()` method to execute queries:
 
 ```python
-sql = """
-    SELECT * FROM (
-        VALUES (1, 'foo', 3.14), (2, 'bar', NULL)
-    ) AS t (id, name, value)
-"""
-results = athena.execute(sql)
+sql = "SELECT %s id, %s name, %s value"
+results = athena.execute(sql, (1, "foo", 3.14))
 ```
 If you rerun same query, results should be read from cache.
+
 
 Pallas also support non-blocking query execution:
 
@@ -210,6 +207,7 @@ $ tox
 ## Changelog
 
 ### v0.4.dev
+* Add support for parametrized queries.
 * Allow to override configuration of the Athena class after it is initialized.
 * Refactored implementation from layered decorators to one class using specialized  helpers.
 
