@@ -19,11 +19,11 @@ Methods for setting up Athena clients.
 from __future__ import annotations
 
 import os
-from typing import Mapping, Optional, Union
+from typing import Mapping, Optional
 
 from pallas.facade import Athena
 from pallas.proxies import Boto3Proxy
-from pallas.storage import Storage, storage_from_uri
+from pallas.storage import storage_from_uri
 
 
 def setup(
@@ -32,8 +32,8 @@ def setup(
     workgroup: Optional[str] = None,
     output_location: Optional[str] = None,
     region: Optional[str] = None,
-    cache_local: Union[None, str, Storage] = None,
-    cache_remote: Union[None, str, Storage] = None,
+    cache_local: Optional[str] = None,
+    cache_remote: Optional[str] = None,
     normalize: bool = True,
     kill_on_interrupt: bool = True,
 ) -> Athena:
@@ -41,9 +41,9 @@ def setup(
     Setup an :class:`.Athena` client.
 
     :param database: a name of Athena database.
-        If omitted, database should be specified in SQL.
+        If omitted, a database should be specified in SQL.
     :param workgroup: a name of Athena workgroup.
-        If omitted, default workgroup will be used.
+        If omitted, a default workgroup will be used.
     :param output_location: an output location at S3 for query results.
         Optional if a default location is specified for the *workgroup*.
     :param region: an AWS region.
@@ -54,18 +54,13 @@ def setup(
         Query execution IDs without results are stored to the remote cache.
     :param normalize: whether to normalize SQL queries.
     :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt.
-    :return: an Athena instance.
-        A :class:`.AthenaProxy` instance wrapped necessary in decorators.
+    :return: a new instance of Athena client
     """
     athena = Athena(Boto3Proxy(region=region))
-    if isinstance(cache_local, str):
+    if cache_local is not None:
         athena.cache.local = storage_from_uri(cache_local)
-    else:
-        athena.cache.local = cache_local
-    if isinstance(cache_remote, str):
+    if cache_remote is not None:
         athena.cache.remote = storage_from_uri(cache_remote)
-    else:
-        athena.cache.remote = cache_remote
     athena.database = database
     athena.workgroup = workgroup
     athena.output_location = output_location
@@ -94,7 +89,7 @@ def environ_setup(
     :param environ: A mapping object representing the string environment.
         Defaults to ``os.environ``.
     :param prefix: A prefix of environment variables
-    :return: an Athena client
+    :return: a new instance of Athena client
     """
     if environ is None:
         environ = os.environ
