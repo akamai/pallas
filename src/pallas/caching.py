@@ -24,7 +24,7 @@ from typing import List, Optional
 from urllib.parse import urlencode
 
 from pallas.results import QueryResults
-from pallas.storage import NotFoundError, Storage
+from pallas.storage import NotFoundError, Storage, storage_from_uri
 
 logger = logging.getLogger("pallas")
 
@@ -52,19 +52,64 @@ class AthenaCache:
     In theory, it is possible to use remote backend for the local
     cache (or vice versa), but we assume that the local cache
     is actually stored locally
+
+    Instance of this class is returned by the :attr:`.Athena.cache` property.
+    It can be updated to reconfigure the caching.
     """
 
-    local: Optional[Storage] = None
-    remote: Optional[Storage] = None
+    local_storage: Optional[Storage] = None
+    remote_storage: Optional[Storage] = None
 
     #: Can be set to False to disable caching completely.
+    #:
+    #: Can be update to enable or disable the caching.
     enabled: bool = True
 
     #: Can be set to False to disable reading the cache.
+    #:
+    #: Can be update to reconfigure the caching.
     read: bool = True
 
     #: Can be set to False to disable writing the cache.
+    #:
+    #: Can be update to reconfigure the caching.
     write: bool = True
+
+    @property
+    def local(self) -> Optional[str]:
+        """
+        URI of storage for local cache.
+
+        Can be updated to reconfigure the caching.
+        """
+        if self.local_storage is None:
+            return None
+        return self.local_storage.uri
+
+    @local.setter
+    def local(self, uri: Optional[str]) -> None:
+        if uri is None:
+            self.local_storage = None
+        else:
+            self.local_storage = storage_from_uri(uri)
+
+    @property
+    def remote(self) -> Optional[str]:
+        """
+        URI of storage for remote cache.
+
+        Can be updated to reconfigure the caching.
+        """
+        if self.remote_storage is None:
+            return None
+        return self.remote_storage.uri
+
+    @remote.setter
+    def remote(self, uri: Optional[str]) -> None:
+        if uri is None:
+            self.remote_storage = None
+        else:
+            self.remote_storage = storage_from_uri(uri)
 
     def load_execution_id(self, database: Optional[str], sql: str) -> Optional[str]:
         """
@@ -165,12 +210,12 @@ class AthenaCache:
 
     @property
     def _execution_storages(self) -> List[Storage]:
-        candidates = [self.local, self.remote]
+        candidates = [self.local_storage, self.remote_storage]
         return [s for s in candidates if s is not None]
 
     @property
     def _results_storages(self) -> List[Storage]:
-        candidates = [self.local]
+        candidates = [self.local_storage]
         return [s for s in candidates if s is not None]
 
     def _get_execution_key(self, database: Optional[str], sql: str) -> str:
