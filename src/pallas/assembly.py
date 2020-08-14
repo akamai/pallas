@@ -23,7 +23,6 @@ from typing import Mapping, Optional
 
 from pallas.client import Athena
 from pallas.proxies import Boto3Proxy
-from pallas.storage import storage_from_uri
 
 
 def setup(
@@ -62,9 +61,9 @@ def setup(
     """
     athena = Athena(Boto3Proxy(region=region))
     if cache_local is not None:
-        athena.cache.local = storage_from_uri(cache_local)
+        athena.cache.local = cache_local
     if cache_remote is not None:
-        athena.cache.remote = storage_from_uri(cache_remote)
+        athena.cache.remote = cache_remote
     athena.database = database
     athena.workgroup = workgroup
     athena.output_location = output_location

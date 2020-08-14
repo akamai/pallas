@@ -66,6 +66,15 @@ Results of query executions are encapsulated by the :class:`.QueryResults` class
     :members:
 
 
+Caching
+-------
+
+.. module:: pallas.caching
+
+.. autoclass:: AthenaCache
+    :members:
+
+
 Exceptions
 ----------
 

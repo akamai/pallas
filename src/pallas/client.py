@@ -214,6 +214,17 @@ class Athena:
 
     @property
     def cache(self) -> AthenaCache:
+        """
+        Cache implementation.
+
+        It is possible to update properties of the :attr:`.cache`
+        attribute to reconfigure caching in place.
+
+        Alternatively, the :meth:`.using` method can apply
+        a new configuration without affecting an existing instance.
+
+        :rtype: :class:`.AthenaCache`
+        """
         return self._cache
 
     def using(
