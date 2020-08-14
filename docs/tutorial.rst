@@ -27,11 +27,14 @@ If the AWS CLI is able to authenticate then Pallas should work too.
     aws sts get-caller-identity
     aws athena list-databases --catalog-name AwsDataCatalog
 
+.. _AWS credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+.. _boto3: https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
+
 
 Initialization
 --------------
 
-Athena client can be obtained using the :func:`pallas.setup` function.
+An :class:`.Athena` client can be obtained using the :func:`.setup` function.
 All arguments are optional.
 
 .. code-block:: python
@@ -58,7 +61,7 @@ All arguments are optional.
 
 
 To avoid hardcoded configuration values,
-the :func:`pallas.environ_setup` function can be setup from environment variables,
+the :func:`.environ_setup` function can be setup from environment variables,
 corresponding to arguments in the previous example:
 
 .. code-block:: shell
@@ -97,8 +100,6 @@ Use the :meth:`.Athena.execute` method to execute queries:
     sql = "SELECT %s id, %s name, %s value"
     results = athena.execute(sql, (1, "foo", 3.14))
 
-If you rerun same query, results should be read from cache.
-
 Pallas also support non-blocking query execution:
 
 .. code-block:: python
@@ -115,5 +116,29 @@ and can be converted to a Pandas DataFrame:
     df = results.to_df()
 
 
-.. _AWS credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
-.. _boto3: https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
+Caching
+-------
+
+Athena stores query results in S3 and does not delete them, so all past results are cached implicitly.
+To retrieve results of a past query, an ID of the query execution is needed.
+
+Pallas can cache in two modes - remote and local:
+
+- In the remote mode, Pallas stores IDs of query executions.
+  Using that, it can download previous results from S3 when they are available.
+- In the local mode, it copies query results. Thanks to that,
+  queries cached locally can be executed without an internet connection.
+
+Caching configuration can passed to :func:`.setup` or :func:`.environ_setup`,
+or it can be overridden using the :attr:`.Athena.cache` property.
+
+.. code-block:: python
+
+    athena.cache.enabled = True  # Default
+    athena.cache.read = True  # Can be set to False to write but not read the cache
+    athena.cache.write = True  # Can be set to False to read but not write the cache
+    athena.cache.local = "~/Notebooks/.cache/"
+    athena.cache.remote = "s3://..."
+
+Alternatively, the :meth:`.Athena.using` method can override a configuration
+for selected queries only.
