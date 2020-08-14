@@ -21,7 +21,7 @@ from __future__ import annotations
 import os
 from typing import Mapping, Optional
 
-from pallas.facade import Athena
+from pallas.client import Athena
 from pallas.proxies import Boto3Proxy
 from pallas.storage import storage_from_uri
 

@@ -9,7 +9,7 @@ API
 .. autofunction:: environ_setup
 
 
-.. module:: pallas.facade
+.. module:: pallas.client
 
 .. autoclass:: Athena
     :members:
