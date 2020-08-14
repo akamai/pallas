@@ -17,5 +17,15 @@ from __future__ import annotations
 from pallas.assembly import environ_setup, setup
 from pallas.client import Athena, Query
 from pallas.exceptions import AthenaQueryError
+from pallas.info import QueryInfo
+from pallas.results import QueryResults
 
-__all__ = ["environ_setup", "setup", "Athena", "Query", "AthenaQueryError"]
+__all__ = [
+    "environ_setup",
+    "setup",
+    "Athena",
+    "Query",
+    "QueryInfo",
+    "QueryResults",
+    "AthenaQueryError",
+]
