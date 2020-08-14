@@ -1,11 +1,12 @@
 
 Pallas documentation
-==================================
+====================
 
 Pallas makes querying AWS Athena easy.
 
 It is especially valuable for analyses in Jupyter Notebook,
 but it is designed to be generic and usable in any application.
+
 
 Features:
 
@@ -22,6 +23,13 @@ Features:
    (for example DESCRIBE) queries.
  * Optional white space normalization for better caching.
  * Kills queries on KeyboardInterrupt.
+
+
+.. code-block:: python
+
+    import pallas
+    athena = pallas.environ_setup()
+    df = athena.execute("SELECT 'Hello world!").to_df()
 
 
 Table of Contents

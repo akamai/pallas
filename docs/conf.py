@@ -30,7 +30,6 @@ author = "Miloslav Pojman"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
 ]
 
