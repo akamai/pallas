@@ -43,12 +43,19 @@ class Query:
 
     Instances of this class are returned by :meth:`Athena.submit`
     and :meth:`Athena.get_query` methods.
+    You should not need to create this class directly.
+
+    :param execution_id: Athena query execution ID.
+    :param proxy: an internal proxy to execute queries
+    :param cache: a cache instance
     """
 
     #: Delays in seconds between for checking query status.
     backoff: Iterable[int] = Fibonacci(max_value=60)
 
-    #: Whether to kill queries on KeyboardInterrupt
+    #: Whether to kill this query on KeyboardInterrupt
+    #:
+    #: Initially set to :attr:`Athena.kill_on_interrupt`.
     kill_on_interrupt: bool = False
 
     _execution_id: str
@@ -72,7 +79,7 @@ class Query:
         """
         Athena query execution ID.
 
-        This ID can be used to retrieve the query using
+        This ID can be used to retrieve this query later using
         the :meth:`.Athena.get_query()` method.
         """
         return self._execution_id
@@ -96,6 +103,7 @@ class Query:
         Download results of this query execution.
 
         Waits until this query execution finishes and downloads results.
+        Raises :class:`.AthenaQueryError` if the query failed.
         """
         # When a user calls athena.get_query(execution_id).get_results(),
         # we have to look into the cache without knowing what SQL was executed,
@@ -114,12 +122,17 @@ class Query:
     def kill(self) -> None:
         """
         Kill this query execution.
+
+        This is a non-blocking operation.
+        It does not wait until the query is killed.
         """
         self._proxy.stop_query_execution(self._execution_id)
 
     def join(self) -> None:
         """
         Wait until this query execution finishes.
+
+        Raises :class:`.AthenaQueryError` if the query failed.
         """
         # When we have results locally, exit without calling any AWS API.
         if self._cache.has_results(self._execution_id):
@@ -148,23 +161,29 @@ class Athena:
     with an optional caching and other helpers.
 
     Can be used as a blocking or a non-blocking client.
+
+    Use :func:`.setup` or :func:`.environ_setup` to construct
+    this class without touching Pallas internals.
+
+    :param proxy: an internal proxy to execute queries
     """
 
     quote = staticmethod(quote)
 
     #: Name of Athena database to be be queried.
     #:
-    #: Individual queries can override this in SQL.
+    #: Can be overridden in SQL.
     database: Optional[str] = None
 
     #: Name of Athena workgroup.
     #:
     #: Workgroup can set resource limits or override output location.
+    #: When None, defaults to the Athena default workgroup.
     workgroup: Optional[str] = None
 
     #: URI of output location on S3.
     #:
-    #: Can be empty if default location is configured for a workgroup.
+    #: Optional if an output location is specified for :attr:`.workgroup`.
     output_location: Optional[str] = None
 
     #: Whether to normalize queries before execution.
@@ -177,6 +196,7 @@ class Athena:
     _cache: AthenaCache
 
     def __init__(self, proxy: AthenaProxy) -> None:
+
         self._proxy = proxy
         self._cache = AthenaCache()
 
@@ -204,12 +224,15 @@ class Athena:
         cache_write: Optional[bool] = None,
     ) -> Athena:
         """
-        Crate a new instance with updated configuration.
+        Crate a new instance with an updated configuration.
 
-        :param cache_enabled: Set to False to disable caching completely.
-        :param cache_read: Set to False to disable reading the cache.
-        :param cache_write: Set to False to disable writing the cache.
-        :return: an update copy of this instance
+        This method can be useful if you need to override a configuration
+        for one query, but you do not want to affect future queries.
+
+        :param cache_enabled: whether a cache should be used.
+        :param cache_read: whether a cache should be read.
+        :param cache_write: whether a cache should be written.
+        :return: an updated copy of this client
         """
         other = copy.copy(self)
         other._cache = copy.copy(self._cache)
@@ -220,6 +243,39 @@ class Athena:
         if cache_write is not None:
             other._cache.write = cache_write
         return other
+
+    def execute(
+        self,
+        operation: str,
+        parameters: PARAMETERS = None,
+        *,
+        ignore_cache: bool = False,
+    ) -> QueryResults:
+        """
+        Execute a query and return results.
+
+        This is a blocking method that waits until the query finishes.
+
+        Raises :class:`.AthenaQueryError` if the query fails.
+
+        :param operation: an SQL query to be executed
+            Can contain ``%s`` or ``%(key)s`` placeholders for substitution
+            by *parameters*.
+        :param parameters: parameters to substitute in *operation*.
+            All substitute parameters are quoted appropriately.
+        :param ignore_cache: deprecated, do not use.
+        :return: query results
+        """
+        if ignore_cache:
+            warnings.warn(
+                "The athena.execute(..., ignore_cache=True) parameter is deprecated."
+                " Use athena.using(cache_read=False).execute(...) instead.",
+                FutureWarning,
+            )
+            return self.using(cache_read=False).execute(operation, parameters)
+        return self.submit(
+            operation, parameters, ignore_cache=ignore_cache
+        ).get_results()
 
     def submit(
         self,
@@ -236,10 +292,11 @@ class Athena:
         and downloading results later.
 
         :param operation: an SQL query to be executed
-            Can contain %s or %(key)s placeholders for substitution by *parameters*
+            Can contain ``%s`` or ``%(key)s`` placeholders for substitution
+            by *parameters*.
         :param parameters: parameters to substitute in *operation*.
-            All parameters are quoted appropriately.
-        :param ignore_cache: deprecated, do not use
+            All substitute parameters are quoted appropriately.
+        :param ignore_cache: deprecated, do not use.
         :return: a query instance
         """
         if ignore_cache:
@@ -269,8 +326,9 @@ class Athena:
         """
         Get a previously submitted query execution.
 
-        Athena stores results in S3 and does not delete them by default.
-        This method can get past queries to retrieve their results.
+        This method can be used to retrieve a query executed in the past.
+        Because Athena stores results in S3 and does not delete them by default,
+        it is possible to download results until they are manually deleted.
 
         :param execution_id: an Athena query execution ID.
         :return: a query instance
@@ -278,36 +336,6 @@ class Athena:
         query = Query(execution_id, proxy=self._proxy, cache=self._cache)
         query.kill_on_interrupt = self.kill_on_interrupt
         return query
-
-    def execute(
-        self,
-        operation: str,
-        parameters: PARAMETERS = None,
-        *,
-        ignore_cache: bool = False,
-    ) -> QueryResults:
-        """
-        Execute a query and wait for results.
-
-        This is a blocking method that waits until query finishes.
-
-        :param operation: an SQL query to be executed
-            Can contain %s or %(key)s placeholders for substitution by *parameters*
-        :param parameters: parameters to substitute in *operation*.
-            All parameters are quoted appropriately.
-        :param ignore_cache: deprecated, do not use
-        :return: query results
-        """
-        if ignore_cache:
-            warnings.warn(
-                "The athena.execute(..., ignore_cache=True) parameter is deprecated."
-                " Use athena.using(cache_read=False).execute(...) instead.",
-                FutureWarning,
-            )
-            return self.using(cache_read=False).execute(operation, parameters)
-        return self.submit(
-            operation, parameters, ignore_cache=ignore_cache
-        ).get_results()
 
     def _get_sql(self, operation: str, parameters: PARAMETERS) -> str:
         sql = substitute_parameters(operation, parameters)

@@ -38,14 +38,14 @@ All arguments are optional.
 
     import pallas
     athena = pallas.setup(
+        # AWS region, read from ~/.aws/config if not specified.
+        region=None,
         # Athena (AWS Glue) database. Can be overridden in queries.
         database=None,
         # Athena workgroup. Will use default workgroup if omitted.
         workgroup=None,
         # Athena output location, will use workgroup default location if omitted.
         output_location="s3://...",
-        # AWS region, read from ~/.aws/config if not specified.
-        region=None,
         # Optional query execution cache.
         cache_remote="s3://...",
         # Optional query result cache.
@@ -63,10 +63,10 @@ corresponding to arguments in the previous example:
 
 .. code-block:: shell
 
+    export PALLAS_REGION=
     export PALLAS_DATABASE=
     export PALLAS_WORKGROUP=
     export PALLAS_OUTPUT_LOCATION=
-    export PALLAS_REGION=
     export PALLAS_NORMALIZE=true
     export PALLAS_KILL_ON_INTERRUPT=true
     export PALLAS_CACHE_REMOTE=$PALLAS_OUTPUT_LOCATION

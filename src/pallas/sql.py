@@ -80,10 +80,12 @@ def _quote_date(value: dt.date) -> str:
 
 def quote(value: SQL_SCALAR) -> str:
     """
-    Quote scalar method to an SQL expression.
+    Quote a scalar value for an SQL expression.
+
+    Parametrized queries should be preferred to explicit quoting.
 
     :param value: Python value
-    :return: SQL expression
+    :return: an SQL expression
     """
     if value is None:
         return "NULL"
