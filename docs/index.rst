@@ -33,6 +33,7 @@ Table of Contents
     tutorial
     api
     develop
+    alternatives
     license
 
 
