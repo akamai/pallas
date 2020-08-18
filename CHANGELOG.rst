@@ -9,6 +9,8 @@ v0.4.dev
 * More options for cache configuration.
 * Allow to override configuration of the Athena class after it is initialized.
 * Refactored implementation from layered decorators to one class using specialized  helpers.
+* New documentation.
+* All public (documented) functions and classes are available the top-level module.
 
 
 v0.3 (2020-06-18)
