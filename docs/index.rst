@@ -35,6 +35,9 @@ Main features:
 Pallas is hosted at `GitHub <http://github.com/akamai/pallas>`_ and
 it can be installed from `PyPI <https://pypi.org/project/pallas/>`_.
 
+This documentation is available online at `Read the Docs <https://pallas.readthedocs.io/>`_.
+
+
 Table of Contents
 -----------------
 

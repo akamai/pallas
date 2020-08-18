@@ -39,7 +39,8 @@ it can be installed from `PyPI <https://pypi.org/project/pallas/>`_.
 Documentation
 -------------
 
-Documentation can be found in the ``docs/`` directory.
+Documentation in the ``docs/`` directory can be read online
+at `Read the Docs <https://pallas.readthedocs.io/>`_
 
 
 License
