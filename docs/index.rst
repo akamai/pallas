@@ -43,6 +43,7 @@ Table of Contents
     develop
     alternatives
     license
+    changelog
 
 
 Indices and tables
