@@ -40,7 +40,7 @@ Documentation
 -------------
 
 Documentation in the ``docs/`` directory can be read online
-at `Read the Docs <https://pallas.readthedocs.io/>`_
+at `Read the Docs <https://pallas.readthedocs.io/>`_.
 
 
 License

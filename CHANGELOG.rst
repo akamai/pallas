@@ -2,8 +2,8 @@
 Changelog
 =========
 
-v0.4.dev
---------
+v0.4 (2020-08-18)
+-----------------
 
 * Add support for parametrized queries.
 * More options for cache configuration.

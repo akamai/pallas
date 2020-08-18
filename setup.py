@@ -21,7 +21,7 @@ with open("README.rst", "r") as fp:
 
 setup(
     name="pallas",
-    version="0.4.dev",
+    version="0.4",
     author="Miloslav Pojman",
     author_email="mpojman@akamai.com",
     description="AWS Athena client",
