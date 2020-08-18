@@ -163,7 +163,7 @@ for selected queries only:
 
 .. code-block:: python
 
-    athena.using(cache=False).execute(...)
+    athena.using(cache_enabled=False).execute(...)
 
 
 Only SELECT queries are cached.
