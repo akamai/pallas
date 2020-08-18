@@ -7,9 +7,9 @@ AWS credentials
 
 Pallas uses boto3_ internally, so it reads `AWS credentials`_ from the standard locations:
 
- * Shared credential file (``~/.aws/credentials``)
- * Environment variables (``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``)
- * Instance metadata service when run on an Amazon EC2 instance
+* Shared credential file (``~/.aws/credentials``)
+* Environment variables (``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``)
+* Instance metadata service when run on an Amazon EC2 instance
 
 The ``~/.aws/credentials`` file can be generated using the AWS CLI.
 
@@ -123,18 +123,18 @@ To retrieve results of a past query, an ID of the query execution is needed.
 
 Pallas can cache in two modes - remote and local:
 
-- In the remote mode, Pallas stores IDs of query executions.
+* In the remote mode, Pallas stores IDs of query executions.
   Using that, it can download previous results from S3 when they are available.
-- In the local mode, it copies query results. Thanks to that,
+* In the local mode, it copies query results. Thanks to that,
   locally cached queries can be executed without an internet connection.
 
 .. note::
 
     Pallas is designed to promote reproducible analyses and data pipelines:
 
-    - Using the local caching, it is possible to regularly restart Jupyter
+    * Using the local caching, it is possible to regularly restart Jupyter
       notebooks without waiting for or paying for additional Athena queries.
-    - Thanks to the remote caching, results can be reproduced at a different
+    * Thanks to the remote caching, results can be reproduced at a different
       machine by a different person.
 
     Reproducible queries should be deterministic.

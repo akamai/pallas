@@ -17,22 +17,22 @@ One client natively supports both blocking and non-blocking execution.
 
 PyAthena advantages:
 
- * PyAthena is older and more popular.
- * SQLAlchemy integration.
- * More configuration options.
- * Standard Python DB API.
+* PyAthena is older and more popular.
+* SQLAlchemy integration.
+* More configuration options.
+* Standard Python DB API.
 
 
 Pallas advantages:
 
- * Pallas offers more powerful caching. It can cache results locally,
-   and the cache is not limited to last N queries.
- * For better performance, Pallas downloads results directly from S3.
-   PyAthena can also download results from S3, but it reads them using Pandas,
-   failing to convert some data types.
- * Small helpers: smarter polling, query normalization,
-   estimated price in logs, or kill on KeyboardInterrupt.
- * API designed for analyses in Jupyter notebooks and ETL pipelines.
+* Pallas offers more powerful caching. It can cache results locally,
+  and the cache is not limited to last N queries.
+* For better performance, Pallas downloads results directly from S3.
+  PyAthena can also download results from S3, but it reads them using Pandas,
+  failing to convert some data types.
+* Small helpers: smarter polling, query normalization,
+  estimated price in logs, or kill on KeyboardInterrupt.
+* API designed for analyses in Jupyter notebooks and ETL pipelines.
 
 
 boto3

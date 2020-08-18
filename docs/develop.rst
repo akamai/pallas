@@ -9,7 +9,7 @@ Pallas can be installed with development dependencies using pip:
 
 .. code-block:: shell
 
-    $ pip install -e .[dev]
+    pip install -e .[dev]
 
 
 Configuration
