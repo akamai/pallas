@@ -50,24 +50,24 @@ class TestSetup:
 
     def test_cache_local(self):
         athena = setup(cache_local="/path")
-        assert athena.cache.local.uri == "file:/path/"
+        assert athena.cache.local == "file:/path/"
 
     def test_cache_local_from_env(self):
         athena = environ_setup(environ={"PALLAS_CACHE_LOCAL": "/path"})
-        assert athena.cache.local.uri == "file:/path/"
+        assert athena.cache.local == "file:/path/"
 
     def test_cache_remote(self):
         athena = setup(cache_remote="s3://bucket/path/")
-        assert athena.cache.remote.uri == "s3://bucket/path/"
+        assert athena.cache.remote == "s3://bucket/path/"
 
     def test_cache_remote_from_env(self):
         athena = environ_setup(environ={"PALLAS_CACHE_REMOTE": "s3://bucket/path/"})
-        assert athena.cache.remote.uri == "s3://bucket/path/"
+        assert athena.cache.remote == "s3://bucket/path/"
 
     def test_cache_local_and_remote(self):
         athena = setup(cache_remote="s3://bucket/path/", cache_local="/path")
-        assert athena.cache.local.uri == "file:/path/"
-        assert athena.cache.remote.uri == "s3://bucket/path/"
+        assert athena.cache.local == "file:/path/"
+        assert athena.cache.remote == "s3://bucket/path/"
 
     def test_cache_local_and_remote_from_env(self):
         athena = environ_setup(
@@ -76,5 +76,5 @@ class TestSetup:
                 "PALLAS_CACHE_LOCAL": "/path",
             }
         )
-        assert athena.cache.local.uri == "file:/path/"
-        assert athena.cache.remote.uri == "s3://bucket/path/"
+        assert athena.cache.local == "file:/path/"
+        assert athena.cache.remote == "s3://bucket/path/"

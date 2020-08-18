@@ -35,7 +35,9 @@ SQL_SCALAR = Union[None, str, float, numbers.Real, Decimal, bytes, dt.date]
 #
 # Intentionally use Tuple and List instead of Sequence because
 # we do not want to accept strings.
-PARAMETERS = Union[None, Tuple[SQL_SCALAR], List[SQL_SCALAR], Mapping[str, SQL_SCALAR]]
+PARAMETERS = Union[
+    None, Tuple[SQL_SCALAR, ...], List[SQL_SCALAR], Mapping[str, SQL_SCALAR]
+]
 
 
 def _quote_str(value: str) -> str:
@@ -80,10 +82,23 @@ def _quote_date(value: dt.date) -> str:
 
 def quote(value: SQL_SCALAR) -> str:
     """
-    Quote scalar method to an SQL expression.
+    Quote a scalar value for an SQL expression.
+
+    Parametrized queries should be preferred to explicit quoting.
+
+    Following Python types can be quoted to an SQL expressions:
+
+    - :data:`None` – SQL ``NULL``
+    - :class:`str`
+    - :class:`int`, including subclasses of numbers.Integral
+    - :class:`float`, including subclasses or numbers.Real
+    - :class:`Decimal` – SQL ``DECIMAL``
+    - :class:`datetime.date` – SQL ``DATE``
+    - :class:`datetime.datetime` – SQL ``TIMESTAMP``
+    - :class:`bytes` – SQL ``VARBINARY``
 
     :param value: Python value
-    :return: SQL expression
+    :return: an SQL expression
     """
     if value is None:
         return "NULL"
