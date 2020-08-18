@@ -15,7 +15,7 @@
 from setuptools import setup, find_packages
 
 
-with open("README.md", "r") as fp:
+with open("README.rst", "r") as fp:
     long_description = fp.read()
 
 
@@ -29,7 +29,7 @@ setup(
     license="Apache License 2.0",
     url="https://github.com/akamai/pallas",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     packages=find_packages("src"),
     package_dir={"": "src"},
     python_requires=">=3.7",

@@ -8,7 +8,7 @@ It is especially valuable for analyses in Jupyter Notebook,
 but it is designed to be generic and usable in any application.
 
 
-Features:
+Main features:
 
  * Friendly interface to AWS Athena.
  * Performance – Large results are downloaded directly from S3,
@@ -31,6 +31,9 @@ Features:
     athena = pallas.environ_setup()
     df = athena.execute("SELECT 'Hello world!").to_df()
 
+
+Pallas is hosted at `GitHub <http://github.com/akamai/pallas>`_ and
+it can be installed from `PyPI <https://pypi.org/project/pallas/>`_.
 
 Table of Contents
 -----------------
