@@ -280,6 +280,8 @@ class Athena:
             by *parameters*.
         :param parameters: parameters to substitute in *operation*.
             All substitute parameters are quoted appropriately.
+            See the :meth:`.quote` method for a supported parameter types.
+        :type parameters: Union[None, Tuple[SQL_SCALAR, ...], Mapping[str, SQL_SCALAR]]
         :param ignore_cache: deprecated, do not use.
         :return: query results
         """
@@ -316,6 +318,8 @@ class Athena:
             by *parameters*.
         :param parameters: parameters to substitute in *operation*.
             All substitute parameters are quoted appropriately.
+            See the :meth:`.quote` method for a supported parameter types.
+        :type parameters: Union[None, Tuple[SQL_SCALAR, ...], Mapping[str, SQL_SCALAR]]
         :param ignore_cache: deprecated, do not use.
         :return: a query instance
         """
