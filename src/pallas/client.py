@@ -102,6 +102,9 @@ class Query:
         """
         Download results of this query execution.
 
+        Cached results can be returned, if the caching was configured.
+        Only SELECT queries are cached.
+
         Waits until this query execution finishes and downloads results.
         Raises :class:`.AthenaQueryError` if the query failed.
         """
@@ -267,6 +270,9 @@ class Athena:
 
         This is a blocking method that waits until the query finishes.
 
+        Cached results or results from an existing query can be returned,
+        if the caching was configured. Only SELECT queries are cached.
+
         Raises :class:`.AthenaQueryError` if the query fails.
 
         :param operation: an SQL query to be executed
@@ -301,6 +307,9 @@ class Athena:
         This is a non-blocking method that starts a query and returns.
         Returns a :class:`Query` instance for monitoring query execution
         and downloading results later.
+
+        An existing query can be returned, if the caching was configured.
+        Only SELECT queries are cached.
 
         :param operation: an SQL query to be executed
             Can contain ``%s`` or ``%(key)s`` placeholders for substitution
