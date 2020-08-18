@@ -5,8 +5,7 @@ Tutorial
 AWS credentials
 ---------------
 
-Pallas uses boto3_ internally, so it reads `AWS credentials`_ from the standard locations.
-This includes:
+Pallas uses boto3_ internally, so it reads `AWS credentials`_ from the standard locations:
 
  * Shared credential file (``~/.aws/credentials``)
  * Environment variables (``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``)
@@ -60,8 +59,8 @@ All arguments are optional.
     )
 
 
-To avoid hardcoded configuration values,
-the :func:`.environ_setup` function can be setup from environment variables,
+To avoid hardcoded configuration values, the :func:`.environ_setup` function
+can initialize :class:`.Athena` from environment variables,
 corresponding to arguments in the previous example:
 
 .. code-block:: shell
@@ -81,8 +80,8 @@ corresponding to arguments in the previous example:
     athena = pallas.environ_setup()
 
 
-Python standard logging can be configured to monitor query status,
-including estimated query price:
+We recommend to configure Python standard logging to monitor a query status,
+including an estimated query price:
 
 .. code-block:: python
 
@@ -119,7 +118,7 @@ and can be converted to a Pandas DataFrame:
 Caching
 -------
 
-Athena stores query results in S3 and does not delete them, so all past results are cached implicitly.
+AWS Athena stores query results in S3 and does not delete them, so all past results are cached implicitly.
 To retrieve results of a past query, an ID of the query execution is needed.
 
 Pallas can cache in two modes - remote and local:
@@ -127,10 +126,29 @@ Pallas can cache in two modes - remote and local:
 - In the remote mode, Pallas stores IDs of query executions.
   Using that, it can download previous results from S3 when they are available.
 - In the local mode, it copies query results. Thanks to that,
-  queries cached locally can be executed without an internet connection.
+  locally cached queries can be executed without an internet connection.
+
+.. note::
+
+    Pallas is designed to promote reproducible analyses and data pipelines:
+
+    - Using the local caching, it is possible to regularly restart Jupyter
+      notebooks without waiting for or paying for additional Athena queries.
+    - Thanks to the remote caching, results can be reproduced at a different
+      machine by a different person.
+
+    Reproducible queries should be deterministic.
+    For example, if you query data that are ingested regularly,
+    you should always filter on the date column.
+
+    Pallas assumes that your queries are deterministic
+    and does not invalidate its cache.
+
 
 Caching configuration can passed to :func:`.setup` or :func:`.environ_setup`,
-or it can be overridden using the :attr:`.Athena.cache` property.
+as shown in the `Initialization`_ section.
+
+After the initialization, caching can be customized later using the :attr:`.Athena.cache` property:
 
 .. code-block:: python
 
@@ -141,4 +159,8 @@ or it can be overridden using the :attr:`.Athena.cache` property.
     athena.cache.remote = "s3://..."
 
 Alternatively, the :meth:`.Athena.using` method can override a configuration
-for selected queries only.
+for selected queries only:
+
+.. code-block:: python
+
+    athena.using(cache=False).execute(...)

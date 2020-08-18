@@ -78,7 +78,7 @@ Caching
 Exceptions
 ----------
 
-Pallas can raise :class:`AthenaQueryError` when a query fails.
+Pallas can raise :class:`.AthenaQueryError` when a query fails.
 For transport errors (typically connectivity problems or authorization failures),
 :mod:`boto3` exceptions bubble unmodified.
 
