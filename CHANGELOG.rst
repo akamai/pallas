@@ -2,8 +2,8 @@
 Changelog
 =========
 
-v0.5.dev
---------
+v0.5 (2020-08-19)
+-----------------
 
 * Do not substitute parameters (require quoted percent signs) when no parameters are given.
 
