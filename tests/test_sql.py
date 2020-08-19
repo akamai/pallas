@@ -63,7 +63,7 @@ def test_quote_invalid(value):
 
 class TestSubstituteParameters:
     def test_substitute_none(self):
-        sql = substitute_parameters("SELECT * FROM t WHERE x LIKE 'A%%'")
+        sql = substitute_parameters("SELECT * FROM t WHERE x LIKE 'A%'")
         assert sql == "SELECT * FROM t WHERE x LIKE 'A%'"
 
     def test_substitute_sequence(self):

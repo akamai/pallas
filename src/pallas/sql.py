@@ -124,9 +124,10 @@ def substitute_parameters(operation: str, parameters: PARAMETERS = None) -> str:
     Substitute parameters in SQL query.
     """
     if parameters is None:
-        # For consistency, run formatting even when no parameters are given.
-        # (percent signs should be always doubled, both with and without params).
-        return operation % ()
+        # When no parameters are given, no substitution happens,
+        # so no special quoting is necessary.
+        # This is consistent with psycopg2 or MySQLdb behavior.
+        return operation
     elif isinstance(parameters, Mapping):
         return operation % {name: quote(param) for name, param in parameters.items()}
     elif isinstance(parameters, (list, tuple)):

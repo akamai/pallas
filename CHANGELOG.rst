@@ -5,7 +5,7 @@ Changelog
 v0.5.dev
 --------
 
-...
+* Do not substitute parameters (require quoted percent signs) when no parameters are given.
 
 v0.4 (2020-08-18)
 -----------------
