@@ -5,7 +5,7 @@ Changelog
 v0.6.dev
 --------
 
-* ...
+* Raise custom exceptions when a database or a table is not found.
 
 
 v0.5 (2020-08-19)

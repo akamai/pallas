@@ -85,3 +85,11 @@ For transport errors (typically connectivity problems or authorization failures)
 .. module:: pallas.exceptions
 
 .. autoclass:: AthenaQueryError
+    :special-members: __str__
+    :members:
+
+.. autoclass:: DatabaseNotFoundError
+    :show-inheritance:
+
+.. autoclass:: TableNotFoundError
+    :show-inheritance:
