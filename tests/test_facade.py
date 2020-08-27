@@ -75,6 +75,20 @@ class TestAthena:
         assert query.get_info().sql == " SELECT 1 "
 
     def test_using(self, athena):
+        other_athena = athena.using(
+            database="other_database",
+            workgroup="other-workgroup",
+            output_location="s3://other-output/",
+            kill_on_interrupt=False,
+            normalize=False,
+        )
+        assert other_athena.database == "other_database"
+        assert other_athena.workgroup == "other-workgroup"
+        assert other_athena.output_location == "s3://other-output/"
+        assert other_athena.kill_on_interrupt is False
+        assert other_athena.normalize is False
+
+    def test_using_cache(self, athena):
         other_athena = athena.using(cache_enabled=False)
         assert other_athena.cache.enabled is False
         assert other_athena.cache.read is True

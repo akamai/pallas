@@ -233,6 +233,11 @@ class Athena:
     def using(
         self,
         *,
+        database: Optional[str] = None,
+        workgroup: Optional[str] = None,
+        output_location: Optional[str] = None,
+        normalize: Optional[bool] = None,
+        kill_on_interrupt: Optional[bool] = None,
         cache_enabled: Optional[bool] = None,
         cache_read: Optional[bool] = None,
         cache_write: Optional[bool] = None,
@@ -243,6 +248,11 @@ class Athena:
         This method can be useful if you need to override a configuration
         for one query, but you do not want to affect future queries.
 
+        :param database: name of Athena database to be be queried.
+        :param workgroup: name of Athena workgroup.
+        :param output_location: URI of output location on S3.
+        :param normalize: whether to normalize queries before execution.
+        :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt
         :param cache_enabled: whether a cache should be used.
         :param cache_read: whether a cache should be read.
         :param cache_write: whether a cache should be written.
@@ -250,6 +260,16 @@ class Athena:
         """
         other = copy.copy(self)
         other._cache = copy.copy(self._cache)
+        if database is not None:
+            other.database = database
+        if workgroup is not None:
+            other.workgroup = workgroup
+        if output_location is not None:
+            other.output_location = output_location
+        if normalize is not None:
+            other.normalize = normalize
+        if kill_on_interrupt is not None:
+            other.kill_on_interrupt = kill_on_interrupt
         if cache_enabled is not None:
             other._cache.enabled = cache_enabled
         if cache_read is not None:
