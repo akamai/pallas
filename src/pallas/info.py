@@ -21,7 +21,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Mapping, Optional, cast
 
-from pallas.exceptions import AthenaQueryError
+from pallas.exceptions import get_error
 
 unit_prefixes = ["k", "M", "G", "T"]
 
@@ -153,9 +153,9 @@ class QueryInfo:
 
     def check(self) -> None:
         """
-        Raises :class:`.AthenaQueryError` if the query failed.
+        Raises :class:`.AthenaQueryError` (or its subclass) if the query failed.
 
         Does not raise if the query is still running.
         """
         if self.finished and not self.succeeded:
-            raise AthenaQueryError(self.state, self.state_reason)
+            raise get_error(self.state, self.state_reason)
