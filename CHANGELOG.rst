@@ -6,6 +6,7 @@ v0.6.dev
 --------
 
 * Raise custom exceptions when a database or a table is not found.
+* Add more configuration options to the :meth:`.Athena.using` method.
 
 
 v0.5 (2020-08-19)
