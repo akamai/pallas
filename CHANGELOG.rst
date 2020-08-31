@@ -2,10 +2,10 @@
 Changelog
 =========
 
-v0.6.dev
---------
+v0.6 (2020-08-31)
+-----------------
 
-* Raise custom exceptions when a database or a table is not found.
+* Raise :class:`.AthenaQueryError` subclasses when a database or a table is not found.
 * Add more configuration options to the :meth:`.Athena.using` method.
 
 
