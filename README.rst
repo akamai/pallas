@@ -43,6 +43,13 @@ Documentation in the ``docs/`` directory can be read online
 at `Read the Docs <https://pallas.readthedocs.io/>`_.
 
 
+Changelog
+---------
+
+Changelog is the ``CHANGELOG.rst`` file. It is also available
+`online in docs <https://pallas.readthedocs.io/en/latest/changelog.html>`_.
+
+
 License
 -------
 
