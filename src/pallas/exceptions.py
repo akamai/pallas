@@ -60,11 +60,21 @@ class TableNotFoundError(AthenaQueryError):
     """
 
 
+# Athena does not return structured errors.
+# We have to map error messages to exception types.
 error_map = [
-    (re.compile("Schema (.*) does not exist"), DatabaseNotFoundError),  # Presto
-    (re.compile("Database does not exist: (.*)"), DatabaseNotFoundError),  # Hive
-    (re.compile("Table (.*) does not exist"), TableNotFoundError),  # Presto
-    (re.compile("Table not found (.*)"), TableNotFoundError),  # Hive
+    # SELECT ...
+    (re.compile("Schema (.*) does not exist"), DatabaseNotFoundError),
+    # SHOW ...
+    (re.compile("Database does not exist: (.*)"), DatabaseNotFoundError),
+    # SELECT ...
+    (re.compile("Table (.*) does not exist"), TableNotFoundError),
+    # INSERT INTO ...
+    (re.compile("Table (.*) not found in database (.*)"), TableNotFoundError),
+    # SHOW CREATE TABLE ..., SHOW PARTITIONS ..., DESCRIBE TABLE ...
+    (re.compile("Table not found (.*)"), TableNotFoundError),
+    # SHOW CREATE VIEW ..., DROP VIEW ...
+    (re.compile("View not found or not a valid presto view: (.*)"), TableNotFoundError),
 ]
 
 
