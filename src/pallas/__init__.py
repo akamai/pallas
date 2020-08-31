@@ -14,11 +14,11 @@
 
 from __future__ import annotations
 
-from pallas.assembly import environ_setup, setup
-from pallas.client import Athena, Query
-from pallas.exceptions import AthenaQueryError
-from pallas.info import QueryInfo
-from pallas.results import QueryResults
+from .assembly import environ_setup, setup
+from .client import Athena, Query
+from .exceptions import AthenaQueryError, DatabaseNotFoundError, TableNotFoundError
+from .info import QueryInfo
+from .results import QueryResults
 
 __all__ = [
     "environ_setup",
@@ -28,4 +28,6 @@ __all__ = [
     "QueryInfo",
     "QueryResults",
     "AthenaQueryError",
+    "TableNotFoundError",
+    "DatabaseNotFoundError",
 ]

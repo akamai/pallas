@@ -3,8 +3,8 @@ Changelog
 =========
 
 v0.7.dev
------------------
-...
+--------
+* Export new exceptions introduced v0.6 to the top level module.
 
 
 v0.6 (2020-08-31)
