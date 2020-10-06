@@ -20,13 +20,102 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlencode
 
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage, storage_from_uri
 
 logger = logging.getLogger("pallas")
+
+
+def _get_execution_key(database: Optional[str], sql: str) -> str:
+    parts = {}
+    if database is not None:
+        parts["database"] = database
+    parts["sql"] = sql
+    encoded = urlencode(parts).encode("utf-8")
+    digest = hashlib.sha256(encoded).hexdigest()
+    return f"query-{digest}"
+
+
+def _get_results_key(execution_id: str) -> str:
+    return f"results-{execution_id}"
+
+
+def _load_execution_id(
+    storage: Optional[Storage], database: Optional[str], sql: str
+) -> Optional[str]:
+    if storage is None:
+        return None
+    key = _get_execution_key(database, sql)
+    try:
+        execution_id = storage.get(key)
+    except NotFoundError:
+        return None
+    logger.info(
+        f"Query execution loaded from cache {storage}{key}:"
+        f" QueryExecutionId={execution_id!r}"
+    )
+    return execution_id
+
+
+def _save_execution_id(
+    storage: Optional[Storage], database: Optional[str], sql: str, execution_id: str
+) -> None:
+    if storage is None:
+        return
+    key = _get_execution_key(database, sql)
+    storage.set(key, execution_id)
+    logger.info(
+        f"Query execution saved to cache {storage}{key}:"
+        f" QueryExecutionId={execution_id!r}"
+    )
+
+
+def _has_results(storage: Optional[Storage], execution_id: str) -> bool:
+    if storage is None:
+        return False
+    key = _get_results_key(execution_id)
+    if not storage.has(key):
+        return False
+    logger.info(
+        f"Query results are available in cache {storage}{key}:"
+        f" QueryExecutionId={execution_id!r}"
+    )
+    return True
+
+
+def _load_results(
+    storage: Optional[Storage], execution_id: str
+) -> Optional[QueryResults]:
+    if storage is None:
+        return None
+    key = _get_results_key(execution_id)
+    try:
+        with storage.reader(key) as stream:
+            results = QueryResults.load(stream)
+    except NotFoundError:
+        return None
+    logger.info(
+        f"Query results loaded from cache {storage}{key}:"
+        f" QueryExecutionId={execution_id!r}: {len(results)} rows"
+    )
+    return results
+
+
+def _save_results(
+    storage: Optional[Storage], execution_id: str, results: QueryResults
+) -> None:
+    if storage is None:
+        return
+    key = _get_results_key(execution_id)
+    with storage.writer(key) as stream:
+        results.save(stream)
+    logger.info(
+        f"Query results saved to cache {storage}{key}:"
+        f" QueryExecutionId={execution_id!r}: {len(results)} rows"
+    )
 
 
 class AthenaCache:
@@ -119,16 +208,11 @@ class AthenaCache:
         """
         if not (self.enabled and self.read):
             return None
-        key = self._get_execution_key(database, sql)
-        for storage in self._execution_storages:
-            try:
-                execution_id = storage.get(key)
-            except NotFoundError:
-                continue
-            logger.info(
-                f"Query execution loaded from cache {storage}{key}:"
-                f" QueryExecutionId={execution_id!r}"
-            )
+        execution_id = _load_execution_id(self.local_storage, database, sql)
+        if execution_id is not None:
+            return execution_id
+        execution_id = _load_execution_id(self.remote_storage, database, sql)
+        if execution_id is not None:
             return execution_id
         return None
 
@@ -142,13 +226,8 @@ class AthenaCache:
         """
         if not (self.enabled and self.write):
             return
-        key = self._get_execution_key(database, sql)
-        for storage in reversed(self._execution_storages):
-            storage.set(key, execution_id)
-            logger.info(
-                f"Query execution saved to cache {storage}{key}:"
-                f" QueryExecutionId={execution_id!r}"
-            )
+        _save_execution_id(self.remote_storage, database, sql, execution_id)
+        _save_execution_id(self.local_storage, database, sql, execution_id)
 
     def has_results(self, execution_id: str) -> bool:
         """
@@ -158,16 +237,7 @@ class AthenaCache:
         """
         if not (self.enabled and self.read):
             return False
-        key = self._get_results_key(execution_id)
-        for storage in self._results_storages:
-            if not storage.has(key):
-                continue
-            logger.info(
-                f"Query results are available in cache {storage}{key}:"
-                f" QueryExecutionId={execution_id!r}"
-            )
-            return True
-        return False
+        return _has_results(self.local_storage, execution_id)
 
     def load_results(self, execution_id: str) -> Optional[QueryResults]:
         """
@@ -177,19 +247,7 @@ class AthenaCache:
         """
         if not (self.enabled and self.read):
             return None
-        key = self._get_results_key(execution_id)
-        for storage in self._results_storages:
-            try:
-                with storage.reader(key) as stream:
-                    results = QueryResults.load(stream)
-            except NotFoundError:
-                continue
-            logger.info(
-                f"Query results loaded from cache {storage}{key}:"
-                f" QueryExecutionId={execution_id!r}: {len(results)} rows"
-            )
-            return results
-        return None
+        return _load_results(self.local_storage, execution_id)
 
     def save_results(self, execution_id: str, results: QueryResults) -> None:
         """
@@ -199,33 +257,4 @@ class AthenaCache:
         """
         if not (self.enabled and self.write):
             return
-        key = self._get_results_key(execution_id)
-        for storage in reversed(self._results_storages):
-            with storage.writer(key) as stream:
-                results.save(stream)
-            logger.info(
-                f"Query results saved to cache {storage}{key}:"
-                f" QueryExecutionId={execution_id!r}: {len(results)} rows"
-            )
-
-    @property
-    def _execution_storages(self) -> List[Storage]:
-        candidates = [self.local_storage, self.remote_storage]
-        return [s for s in candidates if s is not None]
-
-    @property
-    def _results_storages(self) -> List[Storage]:
-        candidates = [self.local_storage]
-        return [s for s in candidates if s is not None]
-
-    def _get_execution_key(self, database: Optional[str], sql: str) -> str:
-        parts = {}
-        if database is not None:
-            parts["database"] = database
-        parts["sql"] = sql
-        encoded = urlencode(parts).encode("utf-8")
-        hash = hashlib.sha256(encoded).hexdigest()
-        return f"query-{hash}"
-
-    def _get_results_key(self, execution_id: str) -> str:
-        return f"results-{execution_id}"
+        _save_results(self.local_storage, execution_id, results)
