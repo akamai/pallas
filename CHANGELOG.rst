@@ -1,9 +1,11 @@
 
 Changelog
 =========
+
 v0.8.dev
 --------
 
+* Remove deprecated ignore_cache parameter.
 * Fix query execution ID not cached locally when cached remotely.
 
 

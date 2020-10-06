@@ -175,19 +175,6 @@ class TestAthenaCache:
         assert_query_results(results)
         assert storage.size() == 0
 
-    def test_execute_second_query_ignore_cache(self, athena, fake, storage):
-        """Test that cache is unique to a query."""
-        athena.execute("SELECT 1 id, 'foo' name")  # fill cache
-        fake.request_log.clear()
-        with pytest.warns(FutureWarning):
-            results = athena.execute("SELECT 1 id, 'foo' name", ignore_cache=True)
-        assert fake.request_log == [
-            "StartQueryExecution",
-            "GetQueryExecution",
-            "GetQueryResults",
-        ]
-        assert_query_results(results)
-
     def test_execute_second_query_different_sql(self, athena, fake, storage):
         """Test that cache is unique to a query."""
         athena.execute("SELECT 1 id, 'foo' name")  # fill cache
@@ -243,15 +230,6 @@ class TestAthenaCache:
         athena.submit("CREATE TABLE ...")
         assert fake.request_log == ["StartQueryExecution"]
         assert storage.size() == 0
-
-    def test_submit_second_query_ignore_cache(self, athena, fake, storage):
-        """Test that cache read can be skipped."""
-        athena.submit("SELECT 1 id, 'foo' name")
-        fake.request_log.clear()
-        with pytest.warns(FutureWarning):
-            athena.submit("SELECT 1 id, 'foo' name", ignore_cache=True)
-        assert fake.request_log == ["StartQueryExecution"]
-        assert storage.size() == 1
 
     def test_submit_second_query_different_sql(self, athena, fake, storage):
         """Test that cache is unique to a query."""
