@@ -4,7 +4,7 @@ Changelog
 v0.8.dev
 --------
 
-...
+* Fix query execution ID not cached locally when cached remotely.
 
 
 v0.7 (2020-08-31)

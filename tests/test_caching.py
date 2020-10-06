@@ -523,3 +523,20 @@ class TestAthenaCache:
         remote_athena.cache.write = False
         remote_athena.execute("SELECT 1 id, 'foo' name")
         assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+
+    def test_cached_remotely_only(self, full_athena, fake):
+        """
+        Test that remote cache is used to populate local cache.
+        """
+        # Another client populates remote cache.
+        another_athena = Athena(fake)
+        another_athena.cache.remote_storage = full_athena.cache.remote_storage
+        another_athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        # First execution uses remote cache
+        full_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == [
+            "GetQueryExecution",
+            "GetQueryResults",
+        ]
+        assert full_athena.cache.local_storage.size() == 2

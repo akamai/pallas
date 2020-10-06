@@ -213,6 +213,7 @@ class AthenaCache:
             return execution_id
         execution_id = _load_execution_id(self.remote_storage, database, sql)
         if execution_id is not None:
+            _save_execution_id(self.local_storage, database, sql, execution_id)
             return execution_id
         return None
 
