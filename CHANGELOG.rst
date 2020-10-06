@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v0.9.dev
+--------
+
+...
+
+
 v0.8 (2020-10-06)
 -----------------
 
@@ -11,6 +17,7 @@ v0.8 (2020-10-06)
 
 v0.7 (2020-08-31)
 -----------------
+
 * Export new exceptions introduced v0.6 to the top level module.
 
 
