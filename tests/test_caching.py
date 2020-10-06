@@ -42,7 +42,7 @@ def fake_athena_fixture():
 @pytest.fixture(name="local_athena")
 def local_athena_fixture(fake, storage):
     """
-    Caching wrapper in local mode.
+    Athena client caching locally.
 
     In local mode, both query execution IDs and results are cached.
     """
@@ -54,7 +54,7 @@ def local_athena_fixture(fake, storage):
 @pytest.fixture(name="remote_athena")
 def remote_athena_fixture(fake, storage):
     """
-    Caching wrapper in remote mode.
+    Athena client caching remotely.
 
     In remote mode, only query execution IDs are cached.
     """
@@ -63,7 +63,18 @@ def remote_athena_fixture(fake, storage):
     return athena
 
 
-@pytest.fixture(name="athena", params=["local", "remote"])
+@pytest.fixture(name="full_athena")
+def full_athena_fixture(fake, storage):
+    """
+    Athena client caching both locally and remotely.
+    """
+    athena = Athena(fake)
+    athena.cache.local_storage = storage
+    athena.cache.remote_storage = MemoryStorage()
+    return athena
+
+
+@pytest.fixture(name="athena", params=["local", "remote", "full"])
 def athena_fixture(request):
     """
     Yields caching wrapper in both remote and local mode.
@@ -103,6 +114,12 @@ class TestAthenaCache:
         remote_athena.execute("SELECT 1 id, 'foo' name")
         assert storage.size() == 1
 
+    def test_full_execute_one_query_cache_size(self, full_athena):
+        """Test that query ID and results are written to cache."""
+        full_athena.execute("SELECT 1 id, 'foo' name")
+        assert full_athena.cache.local_storage.size() == 2
+        assert full_athena.cache.remote_storage.size() == 1
+
     def test_execute_one_query_not_select(self, athena, fake, storage):
         """Test execution of a query that should not be cached."""
         results = athena.execute("CREATE TABLE ...")
@@ -123,7 +140,7 @@ class TestAthenaCache:
         assert_query_results(results)
         assert storage.size() == 2
 
-    def test_remote_execute_second_query_same_sql(self, remote_athena, fake, storage):
+    def test_remote_execute_second_query(self, remote_athena, fake, storage):
         """Test execution of a query in cache."""
         remote_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
         fake.request_log.clear()
@@ -134,6 +151,16 @@ class TestAthenaCache:
         ]
         assert_query_results(results)
         assert storage.size() == 1
+
+    def test_full_execute_second_query(self, full_athena, fake):
+        """Test execution of a query in cache."""
+        full_athena.execute("SELECT 1 id, 'foo' name")  # fill cache
+        fake.request_log.clear()
+        results = full_athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == []
+        assert_query_results(results)
+        assert full_athena.cache.local_storage.size() == 2
+        assert full_athena.cache.remote_storage.size() == 1
 
     def test_execute_second_query_not_select(self, athena, fake, storage):
         """Test that only SELECT queries are cached."""
