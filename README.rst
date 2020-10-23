@@ -29,7 +29,7 @@ Main features:
 
     import pallas
     athena = pallas.environ_setup()
-    df = athena.execute("SELECT 'Hello world!").to_df()
+    df = athena.execute("SELECT 'Hello world!'").to_df()
 
 
 Pallas is hosted at `GitHub <http://github.com/akamai/pallas>`_ and
