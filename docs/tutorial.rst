@@ -145,7 +145,7 @@ Pallas can cache in two modes - remote and local:
     and does not invalidate its cache.
 
 
-Caching configuration can passed to :func:`.setup` or :func:`.environ_setup`,
+Caching configuration can be passed to :func:`.setup` or :func:`.environ_setup`,
 as shown in the `Initialization`_ section.
 
 After the initialization, caching can be customized later using the :attr:`.Athena.cache` property:
