@@ -5,18 +5,19 @@ Alternatives
 PyAthena_ and `AWS Data Wrangler`_ are good alternatives to Pallas.
 They are more widespread and presumably more mature than Pallas.
 
+
+Intro
+-----
+
 The main benefit of Pallas is the powerful caching designed
 for workflows in Jypyter Notebook. Thanks to the local cache,
 it is possible to restart notebooks often without waiting for data.
 The cache in S3 allows to reproduce results from teammates
 without incurring additional costs.
 
-Pallas offers small but useful helpers:
-
-* Query normalization allows to write nicer (indented) code
-  without impact on caching.
-* Estimated price in logs and kill on KeyboardInterrupt can
-  help you to control costs.
+Pallas offers small but useful helpers.
+Query normalization allows to write nicer (indented) code without impact on caching.
+Estimated price in logs and kill on KeyboardInterrupt can help you to control costs.
 
 Pallas has an opinionated API,
 which does not implement Python DB API nor copies boto3_.
