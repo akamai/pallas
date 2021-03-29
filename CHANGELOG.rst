@@ -5,6 +5,8 @@ Changelog
 v0.9.dev
 --------
 
+* Better logging. Log summary at INFO level and details at DEBUG level.
+  Add a helper for logging configuration.
 * Fix conversion because Athena sometimes returns "real" instead of "float".
 
 
