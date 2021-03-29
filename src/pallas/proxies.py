@@ -131,41 +131,41 @@ class Boto3Proxy(AthenaProxy):
             params.update(WorkGroup=workgroup)
         if output_location is not None:
             params.update(ResultConfiguration={"OutputLocation": output_location})
-        logger.debug(f"Athena StartQueryExecution: QueryString={truncate_str(sql)!r}")
+        logger.debug(f"StartQueryExecution: QueryString={truncate_str(sql)!r}")
         response = self._athena_client.start_query_execution(**params)
         execution_id = cast(str, response["QueryExecutionId"])
-        logger.debug(f"Athena QueryExecutionId={execution_id!r} started.")
+        logger.debug(f"QueryExecutionId={execution_id!r} started.")
         return execution_id
 
     def get_query_execution(self, execution_id: str) -> QueryInfo:
-        logger.debug(f"Athena GetQueryExecution: QueryExecutionId={execution_id!r}")
+        logger.debug(f"GetQueryExecution: QueryExecutionId={execution_id!r}")
         response = self._athena_client.get_query_execution(
             QueryExecutionId=execution_id
         )
         info = QueryInfo(response["QueryExecution"])
-        logger.debug(f"Athena QueryExecution: {info}")
+        logger.debug(f"QueryExecution: {info}")
         return info
 
     def get_query_results(self, info: QueryInfo) -> QueryResults:
         execution_id = info.execution_id
         params = dict(QueryExecutionId=execution_id)
-        logger.debug(f"Athena GetQueryResults: QueryExecutionId={execution_id!r}")
+        logger.debug(f"GetQueryResults: QueryExecutionId={execution_id!r}")
         response = self._athena_client.get_query_results(**params)
         column_names = _read_column_names(response)
         column_types = _read_column_types(response)
         if response.get("NextToken"):
-            logger.debug("Athena ResultSet paginated. Will download from S3.")
+            logger.debug("ResultSet paginated. Will download from S3.")
             data = self._download_data(info)
         else:
             data = _read_data(response)
             logger.debug(
-                f"Athena ResultSet complete: {len(data)} rows (including header)"
+                f"ResultSet complete: {len(data)} rows (including header)"
             )
         fixed_data = _fix_data(column_names, data)
         return QueryResults(column_names, column_types, fixed_data)
 
     def stop_query_execution(self, execution_id: str) -> None:
-        logger.debug(f"Athena StopQueryExecution: QueryExecutionId={execution_id!r}")
+        logger.debug(f"StopQueryExecution: QueryExecutionId={execution_id!r}")
         self._athena_client.stop_query_execution(QueryExecutionId=execution_id)
 
     def _download_data(self, info: QueryInfo) -> Sequence[Row]:
