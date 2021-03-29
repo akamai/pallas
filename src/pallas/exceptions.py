@@ -31,7 +31,8 @@ class AthenaQueryError(Exception):
     #: Reason of the state of the query execution.
     state_reason: Optional[str]
 
-    def __init__(self, state: str, state_reason: Optional[str]):
+    def __init__(self, execution_id: str, state: str, state_reason: Optional[str]):
+        self.execution_id = execution_id
         self.state = state
         self.state_reason = state_reason
 
@@ -39,9 +40,10 @@ class AthenaQueryError(Exception):
         """
         Report query state with its reason.
         """
+        name = f"Athena query {self.execution_id!r}"
         if self.state_reason is not None:
-            return f"Athena query {self.state.lower()}: {self.state_reason}"
-        return f"Athena query {self.state.lower()}"
+            return f"{name} {self.state.lower()}: {self.state_reason}"
+        return f"{name} {self.state.lower()}"
 
 
 class DatabaseNotFoundError(AthenaQueryError):
@@ -78,11 +80,13 @@ error_map = [
 ]
 
 
-def get_error(state: str, state_reason: Optional[str]) -> AthenaQueryError:
+def get_error(
+    execution_id: str, state: str, state_reason: Optional[str]
+) -> AthenaQueryError:
     error = AthenaQueryError
     if state_reason is not None:
         for pattern, patter_error in error_map:
             if pattern.search(state_reason):
                 error = patter_error
                 break
-    return error(state, state_reason)
+    return error(execution_id, state, state_reason)

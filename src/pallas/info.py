@@ -158,4 +158,4 @@ class QueryInfo:
         Does not raise if the query is still running.
         """
         if self.finished and not self.succeeded:
-            raise get_error(self.state, self.state_reason)
+            raise get_error(self.execution_id, self.state, self.state_reason)
