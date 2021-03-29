@@ -79,14 +79,14 @@ corresponding to arguments in the previous example:
 
     athena = pallas.environ_setup()
 
-
-We recommend to configure Python standard logging to monitor a query status,
-including an estimated query price:
+Pallas uses Python standard logging. You can use
+:func:`.configure_logging` instead of :func:`logging.basicConfig`
+to enable logging for Pallas only. At the DEBUG level, Pallas emits
+logs with query status including an estimated price:
 
 .. code-block:: python
 
-    import logging
-    logging.basicConfig(level=logging.INFO)
+    pallas.configure_logging(level="DEBUG")
 
 
 Executing queries

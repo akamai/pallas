@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import time
 from typing import Iterable, Optional
 
@@ -30,6 +31,8 @@ from pallas.sql import (
     substitute_parameters,
 )
 from pallas.utils import Fibonacci
+
+logger = logging.getLogger(__name__)
 
 
 class Query:
@@ -64,7 +67,11 @@ class Query:
     _info: Optional[QueryInfo] = None
 
     def __init__(
-        self, execution_id: str, *, proxy: AthenaProxy, cache: AthenaCache,
+        self,
+        execution_id: str,
+        *,
+        proxy: AthenaProxy,
+        cache: AthenaCache,
     ) -> None:
         self._execution_id = execution_id
         self._proxy = proxy
@@ -112,6 +119,10 @@ class Query:
         # so whether the query is cacheable.
         results = self._cache.load_results(self._execution_id)
         if results is not None:
+            logger.info(
+                f"Query {self._execution_id!r} results loaded from cache:"
+                f" {len(results)} rows"
+            )
             return results
         self.join()
         info = self.get_info()
@@ -119,6 +130,9 @@ class Query:
         should_cache = is_select(info.sql)
         if should_cache:
             self._cache.save_results(self._execution_id, results)
+        logger.info(
+            f"Query {self._execution_id!r} results retrieved: {len(results)} rows"
+        )
         return results
 
     def kill(self) -> None:
@@ -142,6 +156,7 @@ class Query:
         for delay in self.backoff:
             info = self.get_info()
             if info.finished:
+                logger.info(f"Query {self._execution_id!r} finished: {info}")
                 info.check()
                 break
             try:
@@ -332,6 +347,7 @@ class Athena:
         if should_cache:
             execution_id = self._cache.load_execution_id(self.database, sql)
             if execution_id is not None:
+                logger.info(f"Query {execution_id!r} found in cache.")
                 return self.get_query(execution_id)
         execution_id = self._proxy.start_query_execution(
             sql,
@@ -341,6 +357,7 @@ class Athena:
         )
         if should_cache:
             self._cache.save_execution_id(self.database, sql, execution_id)
+        logger.info(f"Query {execution_id!r} submitted.")
         return self.get_query(execution_id)
 
     def get_query(self, execution_id: str) -> Query:

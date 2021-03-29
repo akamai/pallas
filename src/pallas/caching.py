@@ -26,7 +26,7 @@ from urllib.parse import urlencode
 from pallas.results import QueryResults
 from pallas.storage import NotFoundError, Storage, storage_from_uri
 
-logger = logging.getLogger("pallas")
+logger = logging.getLogger(__name__)
 
 
 def _get_execution_key(database: Optional[str], sql: str) -> str:
@@ -53,7 +53,7 @@ def _load_execution_id(
         execution_id = storage.get(key)
     except NotFoundError:
         return None
-    logger.info(
+    logger.debug(
         f"Query execution loaded from cache {storage}{key}:"
         f" QueryExecutionId={execution_id!r}"
     )
@@ -67,7 +67,7 @@ def _save_execution_id(
         return
     key = _get_execution_key(database, sql)
     storage.set(key, execution_id)
-    logger.info(
+    logger.debug(
         f"Query execution saved to cache {storage}{key}:"
         f" QueryExecutionId={execution_id!r}"
     )
@@ -79,7 +79,7 @@ def _has_results(storage: Optional[Storage], execution_id: str) -> bool:
     key = _get_results_key(execution_id)
     if not storage.has(key):
         return False
-    logger.info(
+    logger.debug(
         f"Query results are available in cache {storage}{key}:"
         f" QueryExecutionId={execution_id!r}"
     )
@@ -97,7 +97,7 @@ def _load_results(
             results = QueryResults.load(stream)
     except NotFoundError:
         return None
-    logger.info(
+    logger.debug(
         f"Query results loaded from cache {storage}{key}:"
         f" QueryExecutionId={execution_id!r}: {len(results)} rows"
     )
@@ -112,7 +112,7 @@ def _save_results(
     key = _get_results_key(execution_id)
     with storage.writer(key) as stream:
         results.save(stream)
-    logger.info(
+    logger.debug(
         f"Query results saved to cache {storage}{key}:"
         f" QueryExecutionId={execution_id!r}: {len(results)} rows"
     )

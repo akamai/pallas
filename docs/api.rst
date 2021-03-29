@@ -19,6 +19,8 @@ To construct an :class:`.Athena` client, use :func:`.setup` or :func:`.environ_s
 
 .. autofunction:: environ_setup
 
+.. autofunction:: configure_logging
+
 
 Client
 ------

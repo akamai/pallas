@@ -18,11 +18,42 @@ Methods for setting up Athena clients.
 
 from __future__ import annotations
 
+import logging
 import os
-from typing import Mapping, Optional
+import sys
+from typing import Mapping, Optional, Union, TextIO
 
 from pallas.client import Athena
 from pallas.proxies import Boto3Proxy
+
+
+def configure_logging(  # type: ignore
+    *,
+    level: Union[int, str] = logging.INFO,
+    stream: TextIO = sys.stdout,
+    **kwargs,
+) -> None:
+    """
+    Do basic configuration for the logging system.
+
+    Calls :func:`logging.basicConfig` internally, but:
+
+    - Sets *level* to the "pallas" logger only
+    - Log level default to "INFO:
+    - *stream* defaults to :attr:`sys.stdout` instead of :attr:`sys.stderr`
+
+    Can be safely called no matter whether logging was already configured:
+
+    - If logging was already configured, this function just sets
+      a level for the "pallas" logger.
+    - If logging was not configured yet, it enabled logging to stdout.
+
+    :param level: Set the "pallas" logger to the specified level.
+    :param stream: Use the specified stream to initialize the StreamHandler.
+    :param kwargs: passed to :func:`logging.basicConfig()`
+    """
+    logging.basicConfig(stream=stream, **kwargs)
+    logging.getLogger("pallas").setLevel(level)
 
 
 def setup(

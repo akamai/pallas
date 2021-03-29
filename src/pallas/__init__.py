@@ -14,13 +14,14 @@
 
 from __future__ import annotations
 
-from .assembly import environ_setup, setup
+from .assembly import configure_logging, environ_setup, setup
 from .client import Athena, Query
 from .exceptions import AthenaQueryError, DatabaseNotFoundError, TableNotFoundError
 from .info import QueryInfo
 from .results import QueryResults
 
 __all__ = [
+    "configure_logging",
     "environ_setup",
     "setup",
     "Athena",
