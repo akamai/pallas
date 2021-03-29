@@ -5,7 +5,7 @@ Changelog
 v0.9.dev
 --------
 
-...
+* Fix conversion because Athena sometimes returns "real" instead of "float".
 
 
 v0.8 (2020-10-06)

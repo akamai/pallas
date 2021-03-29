@@ -240,6 +240,8 @@ CONVERTERS: Dict[str, Converter[object]] = {
     "smallint": IntConverter(16),
     "integer": IntConverter(32),
     "bigint": IntConverter(64),
+    # We saw Athena to return both "real" and "float" for Presto REAL
+    "real": FloatConverter(32),
     "float": FloatConverter(32),
     "double": FloatConverter(64),
     "decimal": DecimalConverter(),
