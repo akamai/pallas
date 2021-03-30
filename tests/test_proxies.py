@@ -72,7 +72,9 @@ class TestBoto3Proxy:
         query = athena.submit("SELECT x")
         with pytest.raises(AthenaQueryError) as excinfo:
             query.join()
-        assert str(excinfo.value).startswith("Athena query failed: SYNTAX_ERROR: ")
+        assert str(excinfo.value).startswith(
+            f"Athena query '{query.execution_id}' failed: SYNTAX_ERROR: "
+        )
         info = query.get_info()
         assert info.finished
         assert not info.succeeded
@@ -87,7 +89,9 @@ class TestBoto3Proxy:
             query.join()
         # State change reason is sometimes missing for cancelled queries.
         # Do not assert it here to avoid a flaky test.
-        assert str(excinfo.value).startswith("Athena query cancelled")
+        assert str(excinfo.value).startswith(
+            f"Athena query '{query.execution_id}' cancelled"
+        )
         info = query.get_info()
         assert info.finished
         assert not info.succeeded
