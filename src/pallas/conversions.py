@@ -73,7 +73,9 @@ class Converter(Generic[T_co], metaclass=ABCMeta):
         """
 
     def read_array(
-        self, values: Iterable[Optional[str]], dtype: Optional[object] = None,
+        self,
+        values: Iterable[Optional[str]],
+        dtype: Optional[object] = None,
     ) -> object:  # Pandas array
         """
         Convert values returned from Athena to Pandas array.

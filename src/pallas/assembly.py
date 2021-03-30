@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Mapping, Optional, Union, TextIO
+from typing import Mapping, Optional, TextIO, Union
 
 from pallas.client import Athena
 from pallas.proxies import Boto3Proxy

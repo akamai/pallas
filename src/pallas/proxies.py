@@ -158,9 +158,7 @@ class Boto3Proxy(AthenaProxy):
             data = self._download_data(info)
         else:
             data = _read_data(response)
-            logger.debug(
-                f"ResultSet complete: {len(data)} rows (including header)"
-            )
+            logger.debug(f"ResultSet complete: {len(data)} rows (including header)")
         fixed_data = _fix_data(column_names, data)
         return QueryResults(column_names, column_types, fixed_data)
 

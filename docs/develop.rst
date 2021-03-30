@@ -32,6 +32,7 @@ Tools
 
 * Code is checked with flake8_ and Mypy_.
 * Tests are run using pytest_.
+* Code is formatted using Black_ and isort_.
 * Documentation is built using Sphinx_.
 
 Tox_ runs all of the above tools automatically:
@@ -40,7 +41,9 @@ Tox_ runs all of the above tools automatically:
 
     tox
 
+.. _Black: https://black.readthedocs.io
 .. _flake8: https://flake8.pycqa.org
+.. _isort: https://pycqa.github.io/isort/
 .. _Mypy: http://mypy-lang.org
 .. _pytest: https://docs.pytest.org/
 .. _Sphinx: https://www.sphinx-doc.org/
