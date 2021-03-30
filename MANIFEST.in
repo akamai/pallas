@@ -1,13 +1,20 @@
-recursive-include src *.py
-recursive-include tests *.py
-include src/pallas/py.typed
+
+include *.rst
+include *.ini
 include .flake8
 include .isort.cfg
 include LICENSE
 include MANIFEST.in
-include mypy.ini
 include NOTICE
-include pytest.ini
-include README.md
 include setup.py
-include tox.ini
+
+recursive-include src *.py
+include src/pallas/py.typed
+recursive-include tests *.py
+
+include README.rst CHANGELOG.rst
+recursive-include docs *.gitkeep
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs *.txt
+recursive-include docs Makefile
