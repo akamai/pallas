@@ -7,7 +7,7 @@ v0.10.dev
 Nothing yet.
 
 
-v0.9 (2020-03-03)
+v0.9 (2021-03-03)
 -----------------
 
 * Better logging. Log summary at INFO level and details at DEBUG level.
