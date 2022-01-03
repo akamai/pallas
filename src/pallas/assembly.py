@@ -23,6 +23,7 @@ import os
 import sys
 from typing import Mapping, Optional, TextIO, Union
 
+from pallas.caching import AthenaCache
 from pallas.client import Athena
 from pallas.proxies import Boto3Proxy
 
@@ -64,8 +65,9 @@ def setup(
     output_location: Optional[str] = None,
     cache_local: Optional[str] = None,
     cache_remote: Optional[str] = None,
-    normalize: bool = True,
-    kill_on_interrupt: bool = True,
+    cache_failed: bool = AthenaCache.failed,
+    normalize: bool = Athena.normalize,
+    kill_on_interrupt: bool = Athena.kill_on_interrupt,
 ) -> Athena:
     """
     Setup an :class:`.Athena` client.
@@ -86,6 +88,7 @@ def setup(
         Both results and query execution IDs are stored in the local cache.
     :param cache_remote: an URI of a remote cache.
         Query execution IDs without results are stored in the remote cache.
+    :param cache_failed: whether to cache failed queries
     :param normalize: whether to normalize queries before execution.
     :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt.
     :return: a new instance of Athena client
@@ -95,6 +98,7 @@ def setup(
         athena.cache.local = cache_local
     if cache_remote is not None:
         athena.cache.remote = cache_remote
+    athena.cache.failed = cache_failed
     athena.database = database
     athena.workgroup = workgroup
     athena.output_location = output_location
@@ -138,8 +142,11 @@ def environ_setup(
         region=config.get_str("REGION"),
         cache_remote=config.get_str("CACHE_REMOTE"),
         cache_local=config.get_str("CACHE_LOCAL"),
-        normalize=config.get_bool("NORMALIZE", True),
-        kill_on_interrupt=config.get_bool("KILL_ON_INTERRUPT", True),
+        cache_failed=config.get_bool("CACHE_FAILED", AthenaCache.failed),
+        normalize=config.get_bool("NORMALIZE", Athena.normalize),
+        kill_on_interrupt=config.get_bool(
+            "KILL_ON_INTERRUPT", Athena.kill_on_interrupt
+        ),
     )
 
 

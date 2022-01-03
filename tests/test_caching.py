@@ -201,7 +201,7 @@ class TestAthenaCache:
         ]
         assert_query_results(results)
 
-    def test_execute_second_query_first_failed(self, athena, fake):
+    def test_execute_failed_not_cached(self, athena, fake):
         """Test failed queries in cache are ignored."""
         fake.state = "FAILED"
         with pytest.raises(AthenaQueryError):
@@ -216,6 +216,17 @@ class TestAthenaCache:
             "GetQueryResults",
         ]
         assert_query_results(results)
+
+    def test_execute_failed_cached(self, athena, fake):
+        """Test failed queries can be cached if desired."""
+        athena.cache.failed = True
+        fake.state = "FAILED"
+        with pytest.raises(AthenaQueryError):
+            athena.execute("SELECT 1 id, 'foo' name")
+        fake.request_log.clear()
+        with pytest.raises(AthenaQueryError):
+            athena.execute("SELECT 1 id, 'foo' name")
+        assert fake.request_log == ["GetQueryExecution"]
 
     # Test athena.submit() method
 

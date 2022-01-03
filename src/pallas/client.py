@@ -254,6 +254,7 @@ class Athena:
         cache_enabled: Optional[bool] = None,
         cache_read: Optional[bool] = None,
         cache_write: Optional[bool] = None,
+        cache_failed: Optional[bool] = None,
     ) -> Athena:
         """
         Crate a new instance with an updated configuration.
@@ -269,6 +270,7 @@ class Athena:
         :param cache_enabled: whether a cache should be used.
         :param cache_read: whether a cache should be read.
         :param cache_write: whether a cache should be written.
+        :param cache_failed: whether to cache failed queries.
         :return: an updated copy of this client
         """
         other = copy.copy(self)
@@ -289,6 +291,8 @@ class Athena:
             other._cache.read = cache_read
         if cache_write is not None:
             other._cache.write = cache_write
+        if cache_failed is not None:
+            other._cache.failed = cache_failed
         return other
 
     def execute(
@@ -401,4 +405,8 @@ class Athena:
         if self._cache.has_results(query.execution_id):
             return True
         info = query.get_info()
-        return not info.finished or info.succeeded
+        if info.state == "CANCELLED":
+            return False
+        if info.state == "FAILED" and not self.cache.failed:
+            return False
+        return True

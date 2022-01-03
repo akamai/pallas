@@ -151,18 +151,23 @@ class AthenaCache:
 
     #: Can be set to False to disable caching completely.
     #:
-    #: Can be update to enable or disable the caching.
+    #: Can be updated to enable or disable the caching.
     enabled: bool = True
 
     #: Can be set to False to disable reading the cache.
     #:
-    #: Can be update to reconfigure the caching.
+    #: Can be updated to reconfigure the caching.
     read: bool = True
 
     #: Can be set to False to disable writing the cache.
     #:
-    #: Can be update to reconfigure the caching.
+    #: Can be updated to reconfigure the caching.
     write: bool = True
+
+    #: Whether to cache failed queries.
+    #:
+    #: When this is false, failed queries found in cache are ignored.
+    failed: bool = False
 
     @property
     def local(self) -> Optional[str]:
