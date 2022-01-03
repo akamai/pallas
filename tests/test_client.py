@@ -125,9 +125,9 @@ class TestQuery:
 
     def test_get_info_twice_not_finished(self, athena, fake):
         """Test that query info is not cached when query not finished."""
+        fake.state = "RUNNING"
         query = athena.submit("SELECT 1")
         fake.request_log.clear()
-        fake.state = "RUNNING"
         query.get_info()
         query.get_info()
         assert fake.request_log == ["GetQueryExecution", "GetQueryExecution"]

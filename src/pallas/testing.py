@@ -39,11 +39,13 @@ class FakeProxy(AthenaProxy):
 
     _sql: Dict[str, str]
     _results: Dict[str, QueryResults]
+    _states: Dict[str, str]
     _request_log: List[str]
 
     def __init__(self) -> None:
         self._sql = {}
         self._results = {}
+        self._states = {}
         self._request_log = []
 
     @property
@@ -62,6 +64,7 @@ class FakeProxy(AthenaProxy):
         results = self._fake_query_results()
         self._sql[execution_id] = sql
         self._results[execution_id] = results
+        self._states[execution_id] = self.state
         return execution_id
 
     def get_query_execution(self, execution_id: str) -> QueryInfo:
@@ -74,7 +77,7 @@ class FakeProxy(AthenaProxy):
 
     def stop_query_execution(self, execution_id: str) -> None:
         self._request_log.append("StopQueryExecution")
-        self.state = "CANCELLED"
+        self._states[execution_id] = "CANCELLED"
 
     def _fake_query_info(self, execution_id: str, sql: str) -> QueryInfo:
         data = {
@@ -83,7 +86,7 @@ class FakeProxy(AthenaProxy):
             "ResultConfiguration": {"OutputLocation": ...},
             "QueryExecutionContext": {},
             "Status": {
-                "State": self.state,
+                "State": self._states[execution_id],
                 "SubmissionDateTime": ...,
                 "CompletionDateTime": ...,
             },
