@@ -270,7 +270,7 @@ class Athena:
         :param cache_enabled: whether a cache should be used.
         :param cache_read: whether a cache should be read.
         :param cache_write: whether a cache should be written.
-        :param cache_failed: whether to cache failed queries.
+        :param cache_failed: whether to return failed queries found in cache.
         :return: an updated copy of this client
         """
         other = copy.copy(self)

@@ -88,7 +88,7 @@ def setup(
         Both results and query execution IDs are stored in the local cache.
     :param cache_remote: an URI of a remote cache.
         Query execution IDs without results are stored in the remote cache.
-    :param cache_failed: whether to cache failed queries
+    :param cache_failed: whether to return failed queries found in cache.
     :param normalize: whether to normalize queries before execution.
     :param kill_on_interrupt: whether to kill queries on KeyboardInterrupt.
     :return: a new instance of Athena client

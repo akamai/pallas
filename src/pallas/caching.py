@@ -164,7 +164,7 @@ class AthenaCache:
     #: Can be updated to reconfigure the caching.
     write: bool = True
 
-    #: Whether to cache failed queries.
+    #: Whether to return failed queries found in cache.
     #:
     #: When this is false, failed queries found in cache are ignored.
     failed: bool = False
