@@ -35,11 +35,13 @@ Tools
 * Code is formatted using Black_ and isort_.
 * Documentation is built using Sphinx_.
 
-Tox_ runs all of the above tools automatically:
+Tox_ can run the above tools:
 
 .. code-block:: shell
 
+    tox -e format
     tox --parallel
+
 
 .. _Black: https://black.readthedocs.io
 .. _flake8: https://flake8.pycqa.org
