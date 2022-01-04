@@ -39,7 +39,7 @@ Tox_ runs all of the above tools automatically:
 
 .. code-block:: shell
 
-    tox
+    tox --parallel
 
 .. _Black: https://black.readthedocs.io
 .. _flake8: https://flake8.pycqa.org

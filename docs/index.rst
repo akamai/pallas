@@ -11,8 +11,8 @@ but it is designed to be generic and usable in any application.
 Main features:
 
 * Friendly interface to AWS Athena.
-* Caching - local and remote cache for reproducible results.
-* Performance – Large results are downloaded from S3.
+* Caching – local and remote cache for reproducible results.
+* Performance – Large results are downloaded directly from S3.
 * Pandas integration - Conversion to DataFrame with appropriate dtypes.
 * Optional white space normalization for better caching.
 * Kills queries on KeyboardInterrupt.

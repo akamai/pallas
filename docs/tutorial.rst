@@ -42,7 +42,7 @@ All arguments are optional.
     athena = pallas.setup(
         # AWS region, read from ~/.aws/config if not specified.
         region=None,
-        # Athena (AWS Glue) database. Can be overridden in queries.
+        # Athena (AWS Glue) database.
         database=None,
         # Athena workgroup. Will use default workgroup if omitted.
         workgroup=None,
