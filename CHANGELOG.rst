@@ -8,6 +8,7 @@ v0.10.dev
 * Failed or cancelled queries found in cached are ignored.
   Export ``PALLAS_CACHE_FAILED=true`` to use failed queries from the cache.
 * Test with Python 3.9 and Python 3.10
+* Test environment variables consistent with runtime environment variables.
 
 
 v0.9 (2021-03-03)
