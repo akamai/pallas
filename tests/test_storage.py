@@ -33,8 +33,8 @@ def file_storage_fixture(tmp_path):
 
 
 @pytest.fixture(name="s3_storage")
-def s3_storage_fixture(s3_tmp_uri):
-    return S3Storage.from_uri(s3_tmp_uri)
+def s3_storage_fixture(output_location):
+    return S3Storage.from_uri(output_location)
 
 
 @pytest.fixture(name="storage", params=["memory", "file", "s3"])

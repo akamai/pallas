@@ -25,12 +25,12 @@ from pallas.proxies import Boto3Proxy
 
 
 @pytest.fixture
-def athena(region_name, athena_database, athena_workgroup, s3_tmp_uri):
-    proxy = Boto3Proxy(region=region_name)
+def athena(region, database, workgroup, output_location):
+    proxy = Boto3Proxy(region=region)
     athena = Athena(proxy)
-    athena.database = athena_database
-    athena.workgroup = athena_workgroup
-    athena.output_location = s3_tmp_uri
+    athena.database = database
+    athena.workgroup = workgroup
+    athena.output_location = output_location
     return athena
 
 
