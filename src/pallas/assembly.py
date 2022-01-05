@@ -132,9 +132,7 @@ def environ_setup(
     :param prefix: A prefix of environment variables
     :return: a new instance of Athena client
     """
-    if environ is None:
-        environ = os.environ
-    config = _EnvironConfig(environ, prefix)
+    config = EnvironConfig(environ, prefix=prefix)
     return setup(
         database=config.get_str("DATABASE"),
         workgroup=config.get_str("WORKGROUP"),
@@ -150,8 +148,12 @@ def environ_setup(
     )
 
 
-class _EnvironConfig:
-    def __init__(self, environ: Mapping[str, str], prefix: str) -> None:
+class EnvironConfig:
+    def __init__(
+        self, environ: Optional[Mapping[str, str]] = None, *, prefix: str
+    ) -> None:
+        if environ is None:
+            environ = os.environ
         self._environ = environ
         self._prefix = prefix
 
@@ -173,9 +175,12 @@ class _EnvironConfig:
         raise ValueError(f"{self._prefix}_{key}: invalid boolean value: {v}")
 
     def _get(self, key: str) -> str:
-        v = self._environ.get(f"{self._prefix}_{key}", "")
+        v = self._environ.get(self.key(key), "")
         if not isinstance(v, str):
             # Avoid unexpected behaviour when somebody passes something
             # like {"PALLAS_KILL_ON_INTERRUPT": False} to environ.
             raise TypeError("Environ values must be a string.")
         return v
+
+    def key(self, key: str) -> str:
+        return f"{self._prefix}_{key}"

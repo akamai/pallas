@@ -12,41 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import secrets
 from urllib.parse import urlsplit
 
 import boto3
 import pytest
 
+from pallas.assembly import EnvironConfig
 
-@pytest.fixture(name="region_name", scope="session")
-def region_name_fixture():
+config = EnvironConfig(prefix="TEST_PALLAS")
+
+
+@pytest.fixture(name="region", scope="session")
+def region_fixture():
     # Do not raise or skip tests if region is not defined.
     # Region can be defined in ~/.aws/config.
-    return os.environ.get("PALLAS_TEST_REGION")
+    return config.get_str("REGION")
 
 
-@pytest.fixture(name="athena_database", scope="session")
-def athena_database_fixture():
+@pytest.fixture(name="database", scope="session")
+def database_fixture():
     """
     Athena database.
 
     Tests depending on this fixture are skipped
     if the PALLAS_TEST_ATHENA_DATABASE environment variable is not defined.
     """
-    database = os.environ.get("PALLAS_TEST_ATHENA_DATABASE")
+    database = config.get_str("DATABASE")
     if not database:
-        pytest.skip("PALLAS_TEST_ATHENA_DATABASE not defined.")
+        pytest.skip(f"{config.key('DATABASE')} not defined.")
     return database
 
 
-@pytest.fixture(name="athena_workgroup", scope="session")
-def athena_workgroup_fixture():
+@pytest.fixture(name="workgroup", scope="session")
+def workgroup_fixture():
     """
     Athena workgroup.
     """
-    return os.environ.get("PALLAS_TEST_ATHENA_WORKGROUP")
+    return config.get_str("WORKGROUP")
 
 
 def _s3_recursive_delete(uri):
@@ -60,8 +63,8 @@ def _s3_recursive_delete(uri):
         item.delete()
 
 
-@pytest.fixture(name="s3_session_tmp_uri", scope="session")
-def s3_session_tmp_uri_fixture():
+@pytest.fixture(name="session_output_location", scope="session")
+def session_output_location_fixture():
     """
     Base URI of a temporary S3 locations.
 
@@ -70,19 +73,19 @@ def s3_session_tmp_uri_fixture():
     Tests depending on this fixture are skipped
     if the PALLAS_TEST_S3_TMP environment variable is not defined.
     """
-    base_uri = os.environ.get("PALLAS_TEST_S3_TMP")
-    if not base_uri:
-        pytest.skip("PALLAS_TEST_S3_TMP not defined.")
-    if base_uri and not base_uri.endswith("/"):
-        base_uri += "/"
+    base_output_location = config.get_str("OUTPUT_LOCATION")
+    if not base_output_location:
+        pytest.skip(f"{config.key('OUTPUT_LOCATION')} not defined.")
+    if base_output_location and not base_output_location.endswith("/"):
+        base_output_location += "/"
     token = secrets.token_hex(4)  # Unique path allows parallel test runs.
-    uri = base_uri + f"test-pallas-{token}"
-    yield uri
-    _s3_recursive_delete(uri)
+    session_output_location = base_output_location + f"test-pallas-{token}"
+    yield session_output_location
+    _s3_recursive_delete(session_output_location)
 
 
-@pytest.fixture(name="s3_tmp_uri")
-def s3_tmp_uri_fixture(s3_session_tmp_uri):
+@pytest.fixture(name="output_location")
+def output_location_fixture(session_output_location):
     """
     URI of a temporary S3 location than can be used for testing.
 
@@ -92,6 +95,6 @@ def s3_tmp_uri_fixture(s3_session_tmp_uri):
     Tests depending on this fixture are skipped
     if the PALLAS_TEST_S3_TMP environment variable is not defined.
     """
-    if s3_session_tmp_uri and not s3_session_tmp_uri.endswith("/"):
-        s3_session_tmp_uri += "/"
-    return s3_session_tmp_uri + secrets.token_hex(8)
+    if session_output_location and not session_output_location.endswith("/"):
+        session_output_location += "/"
+    return session_output_location + secrets.token_hex(8)

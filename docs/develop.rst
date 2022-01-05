@@ -19,10 +19,10 @@ For integration test to run, access to AWS resources has to be configured.
 
 .. code-block:: shell
 
-    export PALLAS_TEST_REGION=            # AWS region, can be also specified in ~/.aws/config
-    export PALLAS_TEST_ATHENA_DATABASE=   # Name of Athena database
-    export PALLAS_TEST_ATHENA_WORKGROUP=  # Optional
-    export PALLAS_TEST_S3_TMP=            # s3:// URI
+    export TEST_PALLAS_REGION=            # AWS region, can be also specified in ~/.aws/config
+    export TEST_PALLAS_DATABASE=          # Name of Athena database
+    export TEST_PALLAS_WORKGROUP=         # Optional
+    export TEST_PALLAS_OUTPUT_LOCATION=   # s3:// URI
 
 If the above environment variables are not defined, integration tests will be skipped.
 
