@@ -213,7 +213,6 @@ class Athena:
     _cache: AthenaCache
 
     def __init__(self, proxy: AthenaProxy) -> None:
-
         self._proxy = proxy
         self._cache = AthenaCache()
 
@@ -255,6 +254,7 @@ class Athena:
         cache_enabled: Optional[bool] = None,
         cache_read: Optional[bool] = None,
         cache_write: Optional[bool] = None,
+        cache_failed: Optional[bool] = None,
     ) -> Athena:
         """
         Crate a new instance with an updated configuration.
@@ -270,6 +270,7 @@ class Athena:
         :param cache_enabled: whether a cache should be used.
         :param cache_read: whether a cache should be read.
         :param cache_write: whether a cache should be written.
+        :param cache_failed: whether to return failed queries found in cache.
         :return: an updated copy of this client
         """
         other = copy.copy(self)
@@ -290,6 +291,8 @@ class Athena:
             other._cache.read = cache_read
         if cache_write is not None:
             other._cache.write = cache_write
+        if cache_failed is not None:
+            other._cache.failed = cache_failed
         return other
 
     def execute(
@@ -343,22 +346,20 @@ class Athena:
         :return: a query instance
         """
         sql = self._get_sql(operation, parameters)
-        should_cache = is_select(sql)
-        if should_cache:
-            execution_id = self._cache.load_execution_id(self.database, sql)
-            if execution_id is not None:
-                logger.info(f"Query {execution_id!r} found in cache.")
-                return self.get_query(execution_id)
+        query = self._get_cached_query(sql)
+        if query:
+            logger.info(f"Query {query.execution_id!r} found in cache.")
+            return query
         execution_id = self._proxy.start_query_execution(
             sql,
             database=self.database,
             workgroup=self.workgroup,
             output_location=self.output_location,
         )
-        if should_cache:
-            self._cache.save_execution_id(self.database, sql, execution_id)
-        logger.info(f"Query {execution_id!r} submitted.")
-        return self.get_query(execution_id)
+        self._set_cached_query(sql, execution_id)
+        query = self.get_query(execution_id)
+        logger.info(f"Query {query.execution_id!r} submitted.")
+        return query
 
     def get_query(self, execution_id: str) -> Query:
         """
@@ -380,3 +381,32 @@ class Athena:
         if self.normalize:
             sql = normalize_sql(sql)
         return sql
+
+    def _get_cached_query(self, sql: str) -> Optional[Query]:
+        if not is_select(sql):
+            return None
+        execution_id = self._cache.load_execution_id(self.database, sql)
+        if execution_id is None:
+            return None
+        query = self.get_query(execution_id)
+        if not self._cached_query_valid(query):
+            return None
+        return query
+
+    def _set_cached_query(self, sql: str, execution_id: str) -> None:
+        if not is_select(sql):
+            return
+        self._cache.save_execution_id(self.database, sql, execution_id)
+
+    def _cached_query_valid(self, query: Query) -> bool:
+        """
+        Return True if this query succeeded or can succeeded.
+        """
+        if self._cache.has_results(query.execution_id):
+            return True
+        info = query.get_info()
+        if info.state == "CANCELLED":
+            return False
+        if info.state == "FAILED" and not self.cache.failed:
+            return False
+        return True

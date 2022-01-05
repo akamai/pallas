@@ -31,6 +31,7 @@ class TestSetup:
         assert athena.kill_on_interrupt is True
         assert athena.cache.local is None
         assert athena.cache.remote is None
+        assert athena.cache.failed is False
 
     def test_do_not_normalize(self):
         athena = setup(normalize=False)
@@ -78,3 +79,11 @@ class TestSetup:
         )
         assert athena.cache.local == "file:/path/"
         assert athena.cache.remote == "s3://bucket/path/"
+
+    def test_cache_failed(self):
+        athena = setup(cache_failed=True)
+        assert athena.cache.failed is True
+
+    def test_cache_failed_from_env(self):
+        athena = environ_setup(environ={"PALLAS_CACHE_FAILED": "true"})
+        assert athena.cache.failed is True

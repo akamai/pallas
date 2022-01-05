@@ -52,6 +52,8 @@ All arguments are optional.
         cache_remote="s3://...",
         # Optional query result cache.
         cache_local="~/Notebooks/.cache/",
+        # Whether to return failed queries from cache. Defaults to False.
+        cache_failed=False,
         # Normalize white whitespace for better caching. Enabled by default.
         normalize=True,
         # Kill queries on KeybordInterrupt. Enabled by default.
@@ -73,6 +75,7 @@ corresponding to arguments in the previous example:
     export PALLAS_KILL_ON_INTERRUPT=true
     export PALLAS_CACHE_REMOTE=$PALLAS_OUTPUT_LOCATION
     export PALLAS_CACHE_LOCAL=~/Notebooks/.cache/
+    export PALLAS_CACHE_FAILED=false
 
 
 .. code-block:: python
@@ -157,6 +160,7 @@ After the initialization, caching can be customized later using the :attr:`.Athe
     athena.cache.write = True  # Can be set to False to read but not write the cache
     athena.cache.local = "~/Notebooks/.cache/"
     athena.cache.remote = "s3://..."
+    athena.cache.failed = True
 
 Alternatively, the :meth:`.Athena.using` method can override a configuration
 for selected queries only:
