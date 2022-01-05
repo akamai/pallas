@@ -18,14 +18,14 @@ from pallas import Athena
 from pallas.testing import FakeProxy
 
 
-@pytest.fixture(name="fake")
-def fake_fixture():
+@pytest.fixture(name="proxy")
+def proxy_fixture():
     return FakeProxy()
 
 
 @pytest.fixture(name="athena")
-def athena_fixture(fake):
-    athena = Athena(fake)
+def athena_fixture(proxy):
+    athena = Athena(proxy)
     athena.database = "example_database"
     athena.workgroup = "example-workgroup"
     athena.output_location = "s3://example-output/"
@@ -39,19 +39,19 @@ class TestAthena:
             " output_location='s3://example-output/'>"
         )
 
-    def test_submit(self, athena, fake):
+    def test_submit(self, athena, proxy):
         athena.submit("SELECT 1")
-        assert fake.request_log == ["StartQueryExecution"]
+        assert proxy.request_log == ["StartQueryExecution"]
 
-    def test_get_query(self, athena, fake):
+    def test_get_query(self, athena, proxy):
         orig_query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         athena.get_query(orig_query.execution_id)
-        assert fake.request_log == []
+        assert proxy.request_log == []
 
-    def test_execute(self, athena, fake):
+    def test_execute(self, athena, proxy):
         athena.execute("SELECT 1")
-        assert fake.request_log == [
+        assert proxy.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
             "GetQueryResults",
@@ -108,115 +108,115 @@ class TestQuery:
         query = athena.submit("SELECT 1")
         assert repr(query) == "<Query: execution_id='query-1'>"
 
-    def test_get_info(self, athena, fake):
+    def test_get_info(self, athena, proxy):
         """Test that query info is retrieved."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_info()
-        assert fake.request_log == ["GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution"]
 
-    def test_get_info_twice(self, athena, fake):
+    def test_get_info_twice(self, athena, proxy):
         """Test that query info is cached"""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_info()
         query.get_info()
-        assert fake.request_log == ["GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution"]
 
-    def test_get_info_twice_not_finished(self, athena, fake):
+    def test_get_info_twice_not_finished(self, athena, proxy):
         """Test that query info is not cached when query not finished."""
-        fake.state = "RUNNING"
+        proxy.state = "RUNNING"
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_info()
         query.get_info()
-        assert fake.request_log == ["GetQueryExecution", "GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution", "GetQueryExecution"]
 
-    def test_join(self, athena, fake):
+    def test_join(self, athena, proxy):
         """Test that query info is checked."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.join()
-        assert fake.request_log == ["GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution"]
 
-    def test_join_twice(self, athena, fake):
+    def test_join_twice(self, athena, proxy):
         """Test that query info is cached."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.join()
         query.join()
-        assert fake.request_log == ["GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution"]
 
-    def test_get_info_and_join(self, athena, fake):
+    def test_get_info_and_join(self, athena, proxy):
         """Test that query info is cached."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_info()
         query.join()
-        assert fake.request_log == ["GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution"]
 
-    def test_join_and_get_info(self, athena, fake):
+    def test_join_and_get_info(self, athena, proxy):
         """Test that query info is cached."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.join()
         query.get_info()
-        assert fake.request_log == ["GetQueryExecution"]
+        assert proxy.request_log == ["GetQueryExecution"]
 
-    def test_get_results(self, athena, fake):
+    def test_get_results(self, athena, proxy):
         """Test that get_results check query info."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_results()
-        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert proxy.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    def test_get_results_twice(self, athena, fake):
+    def test_get_results_twice(self, athena, proxy):
         """Test that get_results caches query info but not results."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_results()
         query.get_results()
-        assert fake.request_log == [
+        assert proxy.request_log == [
             "GetQueryExecution",
             "GetQueryResults",
             "GetQueryResults",
         ]
 
-    def test_get_info_and_get_results(self, athena, fake):
+    def test_get_info_and_get_results(self, athena, proxy):
         """Test that get_results use cached query info."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_info()
         query.get_results()
-        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert proxy.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    def test_join_and_get_results(self, athena, fake):
+    def test_join_and_get_results(self, athena, proxy):
         """Test that get_results use cached query info."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.join()
         query.get_results()
-        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert proxy.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    def test_get_results_and_get_info(self, athena, fake):
+    def test_get_results_and_get_info(self, athena, proxy):
         """Test that get_results cache query info."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_results()
         query.get_info()
-        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert proxy.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    def test_get_results_and_join(self, athena, fake):
+    def test_get_results_and_join(self, athena, proxy):
         """Test that get_results cache query info."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.get_results()
         query.join()
-        assert fake.request_log == ["GetQueryExecution", "GetQueryResults"]
+        assert proxy.request_log == ["GetQueryExecution", "GetQueryResults"]
 
-    def test_kill(self, athena, fake):
+    def test_kill(self, athena, proxy):
         """Test that query is killed."""
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         query.kill()
-        assert fake.request_log == ["StopQueryExecution"]
+        assert proxy.request_log == ["StopQueryExecution"]
