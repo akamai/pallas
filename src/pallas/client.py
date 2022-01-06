@@ -124,8 +124,7 @@ class Query:
                 f" {len(results)} rows"
             )
             return results
-        self.join()
-        info = self.get_info()
+        info = self._join_proxy()
         results = self._proxy.get_query_results(info)
         should_cache = is_select(info.sql)
         if should_cache:
@@ -153,14 +152,18 @@ class Query:
         # When we have results locally, exit without calling any AWS API.
         if self._cache.has_results(self._execution_id):
             return
-        for delay in self.backoff:
+        self._join_proxy()
+
+    def _join_proxy(self) -> QueryInfo:
+        backoff = iter(self.backoff)
+        while True:
             info = self.get_info()
             if info.finished:
                 logger.info(f"Query {self._execution_id!r} finished: {info}")
                 info.check()
-                break
+                return info
             try:
-                time.sleep(delay)
+                time.sleep(next(backoff))
             except KeyboardInterrupt:
                 if not self.kill_on_interrupt:
                     raise

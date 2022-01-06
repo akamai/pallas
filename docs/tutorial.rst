@@ -108,7 +108,7 @@ Pallas also support non-blocking query execution:
 
     query = athena.submit(sql)  # Submit a query and return
     query.join()  # Wait for query completion.
-    results = query.get_results()  # Retrieve results. Calls query.join() internally.
+    results = query.get_results()  # Retrieve results. Joins the query internally.
 
 The result objects provides a list-like interface
 and can be converted to a Pandas DataFrame:
