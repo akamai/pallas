@@ -17,7 +17,7 @@ from __future__ import annotations
 import copy
 import logging
 import time
-from typing import Iterable, Optional
+from typing import Iterable
 
 from pallas.caching import AthenaCache
 from pallas.info import QueryInfo
@@ -64,7 +64,7 @@ class Query:
     _proxy: AthenaProxy
     _cache: AthenaCache
 
-    _info: Optional[QueryInfo] = None
+    _info: QueryInfo | None = None
 
     def __init__(
         self,
@@ -193,18 +193,18 @@ class Athena:
     #: Name of Athena database to be be queried.
     #:
     #: Can be overridden in SQL.
-    database: Optional[str] = None
+    database: str | None = None
 
     #: Name of Athena workgroup.
     #:
     #: Workgroup can set resource limits or override output location.
     #: When None, defaults to the Athena default workgroup.
-    workgroup: Optional[str] = None
+    workgroup: str | None = None
 
     #: URI of output location on S3.
     #:
     #: Optional if an output location is specified for :attr:`.workgroup`.
-    output_location: Optional[str] = None
+    output_location: str | None = None
 
     #: Whether to normalize queries before execution.
     normalize: bool = True
@@ -249,15 +249,15 @@ class Athena:
     def using(
         self,
         *,
-        database: Optional[str] = None,
-        workgroup: Optional[str] = None,
-        output_location: Optional[str] = None,
-        normalize: Optional[bool] = None,
-        kill_on_interrupt: Optional[bool] = None,
-        cache_enabled: Optional[bool] = None,
-        cache_read: Optional[bool] = None,
-        cache_write: Optional[bool] = None,
-        cache_failed: Optional[bool] = None,
+        database: str | None = None,
+        workgroup: str | None = None,
+        output_location: str | None = None,
+        normalize: bool | None = None,
+        kill_on_interrupt: bool | None = None,
+        cache_enabled: bool | None = None,
+        cache_read: bool | None = None,
+        cache_write: bool | None = None,
+        cache_failed: bool | None = None,
     ) -> Athena:
         """
         Crate a new instance with an updated configuration.
@@ -385,7 +385,7 @@ class Athena:
             sql = normalize_sql(sql)
         return sql
 
-    def _get_cached_query(self, sql: str) -> Optional[Query]:
+    def _get_cached_query(self, sql: str) -> Query | None:
         if not is_select(sql):
             return None
         execution_id = self._cache.load_execution_id(self.database, sql)

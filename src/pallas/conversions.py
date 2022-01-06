@@ -22,7 +22,7 @@ import datetime as dt
 import json
 from abc import ABCMeta, abstractmethod
 from decimal import Decimal
-from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar
+from typing import Dict, Generic, Iterable, List, Sequence, TypeVar
 
 from pallas._compat import numpy as np
 from pallas._compat import pandas as pd
@@ -52,7 +52,7 @@ class Converter(Generic[T_co], metaclass=ABCMeta):
     def dtype(self) -> object:
         """Pandas dtype"""
 
-    def read(self, value: Optional[str]) -> Optional[T_co]:
+    def read(self, value: str | None) -> T_co | None:
         """
         Read value returned from Athena.
 
@@ -74,8 +74,8 @@ class Converter(Generic[T_co], metaclass=ABCMeta):
 
     def read_array(
         self,
-        values: Iterable[Optional[str]],
-        dtype: Optional[object] = None,
+        values: Iterable[str | None],
+        dtype: object | None = None,
     ) -> object:  # Pandas array
         """
         Convert values returned from Athena to Pandas array.
@@ -188,7 +188,7 @@ class ArrayConverter(Converter[List[str]]):
     def dtype(self) -> object:
         return "object"
 
-    def read_str(self, value: str) -> List[str]:
+    def read_str(self, value: str) -> list[str]:
         if not value.startswith("[") or not value.endswith("]"):
             raise ValueError(f"Invalid array value: {value!r}")
         content = value[1:-1]
@@ -215,7 +215,7 @@ class MapConverter(Converter[Dict[str, str]]):
     def dtype(self) -> object:
         return "object"
 
-    def read_str(self, value: str) -> Dict[str, str]:
+    def read_str(self, value: str) -> dict[str, str]:
         if not value.startswith("{") or not value.endswith("}"):
             raise ValueError(f"Invalid map value: {value!r}")
         content = value[1:-1]
@@ -236,7 +236,7 @@ class JSONConverter(Converter[object]):
 
 default_converter = TextConverter()
 
-CONVERTERS: Dict[str, Converter[object]] = {
+CONVERTERS: dict[str, Converter[object]] = {
     "boolean": BooleanConverter(),
     "tinyint": IntConverter(8),
     "smallint": IntConverter(16),

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Optional
 from urllib.parse import urlencode
 
 from pallas.results import QueryResults
@@ -29,7 +28,7 @@ from pallas.storage import NotFoundError, Storage, storage_from_uri
 logger = logging.getLogger(__name__)
 
 
-def _get_execution_key(database: Optional[str], sql: str) -> str:
+def _get_execution_key(database: str | None, sql: str) -> str:
     parts = {}
     if database is not None:
         parts["database"] = database
@@ -44,8 +43,8 @@ def _get_results_key(execution_id: str) -> str:
 
 
 def _load_execution_id(
-    storage: Optional[Storage], database: Optional[str], sql: str
-) -> Optional[str]:
+    storage: Storage | None, database: str | None, sql: str
+) -> str | None:
     if storage is None:
         return None
     key = _get_execution_key(database, sql)
@@ -61,7 +60,7 @@ def _load_execution_id(
 
 
 def _save_execution_id(
-    storage: Optional[Storage], database: Optional[str], sql: str, execution_id: str
+    storage: Storage | None, database: str | None, sql: str, execution_id: str
 ) -> None:
     if storage is None:
         return
@@ -73,7 +72,7 @@ def _save_execution_id(
     )
 
 
-def _has_results(storage: Optional[Storage], execution_id: str) -> bool:
+def _has_results(storage: Storage | None, execution_id: str) -> bool:
     if storage is None:
         return False
     key = _get_results_key(execution_id)
@@ -86,9 +85,7 @@ def _has_results(storage: Optional[Storage], execution_id: str) -> bool:
     return True
 
 
-def _load_results(
-    storage: Optional[Storage], execution_id: str
-) -> Optional[QueryResults]:
+def _load_results(storage: Storage | None, execution_id: str) -> QueryResults | None:
     if storage is None:
         return None
     key = _get_results_key(execution_id)
@@ -105,7 +102,7 @@ def _load_results(
 
 
 def _save_results(
-    storage: Optional[Storage], execution_id: str, results: QueryResults
+    storage: Storage | None, execution_id: str, results: QueryResults
 ) -> None:
     if storage is None:
         return
@@ -146,8 +143,8 @@ class AthenaCache:
     It can be updated to reconfigure the caching.
     """
 
-    local_storage: Optional[Storage] = None
-    remote_storage: Optional[Storage] = None
+    local_storage: Storage | None = None
+    remote_storage: Storage | None = None
 
     #: Can be set to False to disable caching completely.
     #:
@@ -170,7 +167,7 @@ class AthenaCache:
     failed: bool = False
 
     @property
-    def local(self) -> Optional[str]:
+    def local(self) -> str | None:
         """
         URI of storage for local cache.
 
@@ -181,14 +178,14 @@ class AthenaCache:
         return self.local_storage.uri
 
     @local.setter
-    def local(self, uri: Optional[str]) -> None:
+    def local(self, uri: str | None) -> None:
         if uri is None:
             self.local_storage = None
         else:
             self.local_storage = storage_from_uri(uri)
 
     @property
-    def remote(self) -> Optional[str]:
+    def remote(self) -> str | None:
         """
         URI of storage for remote cache.
 
@@ -199,13 +196,13 @@ class AthenaCache:
         return self.remote_storage.uri
 
     @remote.setter
-    def remote(self, uri: Optional[str]) -> None:
+    def remote(self, uri: str | None) -> None:
         if uri is None:
             self.remote_storage = None
         else:
             self.remote_storage = storage_from_uri(uri)
 
-    def load_execution_id(self, database: Optional[str], sql: str) -> Optional[str]:
+    def load_execution_id(self, database: str | None, sql: str) -> str | None:
         """
         Retrieve cached query execution ID for the given SQL.
 
@@ -223,7 +220,7 @@ class AthenaCache:
         return None
 
     def save_execution_id(
-        self, database: Optional[str], sql: str, execution_id: str
+        self, database: str | None, sql: str, execution_id: str
     ) -> None:
         """
         Store cached query execution ID for the given SQL.
@@ -245,7 +242,7 @@ class AthenaCache:
             return False
         return _has_results(self.local_storage, execution_id)
 
-    def load_results(self, execution_id: str) -> Optional[QueryResults]:
+    def load_results(self, execution_id: str) -> QueryResults | None:
         """
         Retrieve cached results for the given execution ID.
 

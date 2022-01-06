@@ -19,7 +19,6 @@ Exceptions raised when querying Athena.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 
 class AthenaQueryError(Exception):
@@ -29,9 +28,9 @@ class AthenaQueryError(Exception):
     state: str
 
     #: Reason of the state of the query execution.
-    state_reason: Optional[str]
+    state_reason: str | None
 
-    def __init__(self, execution_id: str, state: str, state_reason: Optional[str]):
+    def __init__(self, execution_id: str, state: str, state_reason: str | None):
         self.execution_id = execution_id
         self.state = state
         self.state_reason = state_reason
@@ -81,7 +80,7 @@ error_map = [
 
 
 def get_error(
-    execution_id: str, state: str, state_reason: Optional[str]
+    execution_id: str, state: str, state_reason: str | None
 ) -> AthenaQueryError:
     error = AthenaQueryError
     if state_reason is not None:

@@ -107,7 +107,7 @@ class QueryInfo:
         return cast(str, rv)
 
     @property
-    def database(self) -> Optional[str]:
+    def database(self) -> str | None:
         """Name of database."""
         rv = self._data["QueryExecutionContext"].get("Database")
         return cast(Optional[str], rv)
@@ -129,7 +129,7 @@ class QueryInfo:
         return cast(str, rv)
 
     @property
-    def state_reason(self) -> Optional[str]:
+    def state_reason(self) -> str | None:
         """Reason of the state of the query execution."""
         rv = self._data["Status"].get("StateChangeReason")
         return cast(Optional[str], rv)

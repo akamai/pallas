@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import io
-from typing import Any, Dict, Optional, TextIO, Tuple
+from typing import Any, TextIO
 from urllib.parse import urlsplit
 
 import boto3
@@ -24,7 +24,7 @@ import botocore
 from pallas.storage.base import NotFoundError, Storage, UnsupportedURIError
 
 
-def s3_parse_uri(uri: str) -> Tuple[str, str]:
+def s3_parse_uri(uri: str) -> tuple[str, str]:
     """
     Get bucket name and path from an S3 uri.
     """
@@ -59,7 +59,7 @@ class S3Storage(Storage):
     _client: Any  # boto3 S3 client
 
     def __init__(
-        self, bucket: str, prefix: str = "", *, client: Optional[Any] = None
+        self, bucket: str, prefix: str = "", *, client: Any | None = None
     ) -> None:
         if client is None:
             client = boto3.client("s3")
@@ -113,5 +113,5 @@ class S3Storage(Storage):
             raise NotFoundError(key) from None
         return s3_wrap_body(response["Body"])
 
-    def _get_params(self, key: str) -> Dict[str, Any]:
+    def _get_params(self, key: str) -> dict[str, Any]:
         return dict(Bucket=self.bucket, Key=self.prefix + key)

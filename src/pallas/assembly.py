@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Mapping, Optional, TextIO, Union
+from typing import Mapping, TextIO
 
 from pallas.caching import AthenaCache
 from pallas.client import Athena
@@ -30,7 +30,7 @@ from pallas.proxies import Boto3Proxy
 
 def configure_logging(  # type: ignore
     *,
-    level: Union[int, str] = logging.INFO,
+    level: int | str = logging.INFO,
     stream: TextIO = sys.stdout,
     **kwargs,
 ) -> None:
@@ -59,12 +59,12 @@ def configure_logging(  # type: ignore
 
 def setup(
     *,
-    region: Optional[str] = None,
-    database: Optional[str] = None,
-    workgroup: Optional[str] = None,
-    output_location: Optional[str] = None,
-    cache_local: Optional[str] = None,
-    cache_remote: Optional[str] = None,
+    region: str | None = None,
+    database: str | None = None,
+    workgroup: str | None = None,
+    output_location: str | None = None,
+    cache_local: str | None = None,
+    cache_remote: str | None = None,
     cache_failed: bool = AthenaCache.failed,
     normalize: bool = Athena.normalize,
     kill_on_interrupt: bool = Athena.kill_on_interrupt,
@@ -108,7 +108,7 @@ def setup(
 
 
 def environ_setup(
-    environ: Optional[Mapping[str, str]] = None, *, prefix: str = "PALLAS"
+    environ: Mapping[str, str] | None = None, *, prefix: str = "PALLAS"
 ) -> Athena:
     """
     Setup an :class:`.Athena` client from environment variables.
@@ -150,14 +150,14 @@ def environ_setup(
 
 class EnvironConfig:
     def __init__(
-        self, environ: Optional[Mapping[str, str]] = None, *, prefix: str
+        self, environ: Mapping[str, str] | None = None, *, prefix: str
     ) -> None:
         if environ is None:
             environ = os.environ
         self._environ = environ
         self._prefix = prefix
 
-    def get_str(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_str(self, key: str, default: str | None = None) -> str | None:
         v = self._get(key)
         if not v:
             return default

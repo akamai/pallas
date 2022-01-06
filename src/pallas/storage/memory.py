@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Dict
 from urllib.parse import urlsplit
 
 from pallas.storage.base import NotFoundError, Storage, UnsupportedURIError
@@ -38,7 +37,7 @@ class MemoryStorage(Storage):
     Useful mainly for testing.
     """
 
-    _data: Dict[str, str]
+    _data: dict[str, str]
 
     def __init__(self) -> None:
         self._data = {}

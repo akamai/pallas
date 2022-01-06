@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TextIO, Union
+from typing import TextIO
 from urllib.parse import urlsplit
 
 from pallas.storage.base import NotFoundError, Storage, UnsupportedURIError
@@ -45,7 +45,7 @@ class FileSystemStorage(Storage):
     _initialized: bool = False
     _base_dir: pathlib.Path
 
-    def __init__(self, base_dir: Union[str, pathlib.Path]) -> None:
+    def __init__(self, base_dir: str | pathlib.Path) -> None:
         self._base_dir = pathlib.Path(base_dir).expanduser().absolute()
 
     @classmethod

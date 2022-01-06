@@ -18,7 +18,7 @@ Storage implementations for caching results.
 
 from __future__ import annotations
 
-from typing import Mapping, Type
+from typing import Mapping
 from urllib.parse import urlsplit
 
 from pallas.storage.base import NotFoundError, Storage, UnsupportedURIError
@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-STORAGE_REGISTRY: Mapping[str, Type[Storage]] = {
+STORAGE_REGISTRY: Mapping[str, type[Storage]] = {
     "memory": MemoryStorage,
     "file": FileSystemStorage,
     "s3": S3Storage,
