@@ -45,13 +45,13 @@ def _quote_str(value: str) -> str:
     return f"'{escaped}'"
 
 
-def _quote_integral(value: Union[int, numbers.Integral]) -> str:
+def _quote_integral(value: int | numbers.Integral) -> str:
     if not isinstance(value, int):
         value = int(value)
     return str(value)
 
 
-def _quote_real(value: Union[float, numbers.Real]) -> str:
+def _quote_real(value: float | numbers.Real) -> str:
     if not isinstance(value, float):
         value = float(value)
     if math.isnan(value):

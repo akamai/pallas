@@ -18,7 +18,7 @@ Encapsulation of results returned from Athena.
 
 from __future__ import annotations
 
-from typing import Dict, Mapping, Optional, Sequence, TextIO, Union, cast, overload
+from typing import Dict, Mapping, Sequence, TextIO, cast, overload
 
 from pallas._compat import pandas as pd
 from pallas.conversions import Converter, get_converter
@@ -38,13 +38,13 @@ class QueryResults(Sequence[QueryRecord]):
 
     _column_names: Sequence[str]
     _column_types: Sequence[str]
-    _data: Sequence[Sequence[Optional[str]]]
+    _data: Sequence[Sequence[str | None]]
 
     def __init__(
         self,
         column_names: Sequence[str],
         column_types: Sequence[str],
-        data: Sequence[Sequence[Optional[str]]],
+        data: Sequence[Sequence[str | None]],
     ) -> None:
         self._column_names = column_names
         self._column_types = column_types
@@ -67,8 +67,8 @@ class QueryResults(Sequence[QueryRecord]):
         ...
 
     def __getitem__(  # noqa: F811
-        self, index: Union[int, slice]
-    ) -> Union[QueryRecord, Sequence[QueryRecord]]:
+        self, index: int | slice
+    ) -> QueryRecord | Sequence[QueryRecord]:
         """
         Return one result or slice of results.
 
@@ -126,7 +126,7 @@ class QueryResults(Sequence[QueryRecord]):
     def _converters(self) -> Sequence[Converter[object]]:
         return list(map(get_converter, self.column_types))
 
-    def to_df(self, dtypes: Optional[Mapping[str, object]] = None) -> pd.DataFrame:
+    def to_df(self, dtypes: Mapping[str, object] | None = None) -> pd.DataFrame:
         """
         Convert this results to :class:`pandas.DataFrame`.
         """

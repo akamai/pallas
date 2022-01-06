@@ -18,14 +18,14 @@ Assorted helpers.
 
 from __future__ import annotations
 
-from typing import Iterator, Optional
+from typing import Iterator
 
 
 class Fibonacci:
 
-    max_value: Optional[int]
+    max_value: int | None
 
-    def __init__(self, *, max_value: Optional[int] = None) -> None:
+    def __init__(self, *, max_value: int | None = None) -> None:
         self.max_value = max_value
 
     def __iter__(self) -> Iterator[int]:

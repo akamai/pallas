@@ -18,7 +18,7 @@ Helpers for testing.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Sequence
+from typing import Sequence
 
 from pallas.info import QueryInfo
 from pallas.proxies import AthenaProxy
@@ -32,15 +32,15 @@ class FakeProxy(AthenaProxy):
     Can replace :class:`.Boto3Proxy` for testing.
     """
 
-    column_names: Optional[Sequence[str]] = None
-    column_types: Optional[Sequence[str]] = None
+    column_names: Sequence[str] | None = None
+    column_types: Sequence[str] | None = None
     state = "SUCCEEDED"
-    data: Optional[Sequence[Sequence[str]]] = None
+    data: Sequence[Sequence[str]] | None = None
 
-    _sql: Dict[str, str]
-    _results: Dict[str, QueryResults]
-    _states: Dict[str, str]
-    _request_log: List[str]
+    _sql: dict[str, str]
+    _results: dict[str, QueryResults]
+    _states: dict[str, str]
+    _request_log: list[str]
 
     def __init__(self) -> None:
         self._sql = {}
@@ -49,15 +49,15 @@ class FakeProxy(AthenaProxy):
         self._request_log = []
 
     @property
-    def request_log(self) -> List[str]:
+    def request_log(self) -> list[str]:
         return self._request_log
 
     def start_query_execution(
         self,
         sql: str,
-        database: Optional[str] = None,
-        workgroup: Optional[str] = None,
-        output_location: Optional[str] = None,
+        database: str | None = None,
+        workgroup: str | None = None,
+        output_location: str | None = None,
     ) -> str:
         execution_id = f"query-{len(self._results) + 1}"
         self._request_log.append("StartQueryExecution")

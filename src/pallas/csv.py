@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import io
 import re
-from typing import Iterable, Iterator, Optional, Sequence, TextIO, Tuple
+from typing import Iterable, Iterator, Optional, Sequence, TextIO
 
 CSVValue = Optional[str]
 CSVRow = Sequence[CSVValue]
@@ -54,7 +54,7 @@ def _decode_value(raw: str) -> CSVValue:
     return '"'.join(parts)
 
 
-def _tokenize(stream: TextIO) -> Iterator[Tuple[str, str]]:
+def _tokenize(stream: TextIO) -> Iterator[tuple[str, str]]:
     """
     Tokenize CSV input.
 

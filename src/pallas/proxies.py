@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Mapping, Optional, Sequence, cast
+from typing import Any, Mapping, Optional, Sequence, cast
 
 import boto3
 
@@ -55,9 +55,9 @@ class AthenaProxy(metaclass=ABCMeta):
         self,
         sql: str,
         *,
-        database: Optional[str] = None,
-        workgroup: Optional[str] = None,
-        output_location: Optional[str] = None,
+        database: str | None = None,
+        workgroup: str | None = None,
+        output_location: str | None = None,
     ) -> str:
         """
         Submit a query.
@@ -106,9 +106,9 @@ class Boto3Proxy(AthenaProxy):
     def __init__(
         self,
         *,
-        region: Optional[str] = None,
-        athena_client: Optional[Any] = None,
-        s3_client: Optional[Any] = None,
+        region: str | None = None,
+        athena_client: Any | None = None,
+        s3_client: Any | None = None,
     ) -> None:
         if athena_client is None:
             athena_client = boto3.client("athena", region_name=region)
@@ -120,11 +120,11 @@ class Boto3Proxy(AthenaProxy):
     def start_query_execution(
         self,
         sql: str,
-        database: Optional[str] = None,
-        workgroup: Optional[str] = None,
-        output_location: Optional[str] = None,
+        database: str | None = None,
+        workgroup: str | None = None,
+        output_location: str | None = None,
     ) -> str:
-        params: Dict[str, Any] = dict(QueryString=sql)
+        params: dict[str, Any] = dict(QueryString=sql)
         if database is not None:
             params.update(QueryExecutionContext={"Database": database})
         if workgroup is not None:
