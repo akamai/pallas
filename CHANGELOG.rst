@@ -2,8 +2,8 @@
 Changelog
 =========
 
-v0.10.dev
----------
+v0.10 (2022-01-06)
+------------------
 
 * Failed or cancelled queries found in cached are ignored.
   Export ``PALLAS_CACHE_FAILED=true`` to use failed queries from the cache.
