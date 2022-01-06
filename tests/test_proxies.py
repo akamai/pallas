@@ -24,8 +24,8 @@ from pallas.exceptions import AthenaQueryError
 from pallas.proxies import Boto3Proxy
 
 
-@pytest.fixture
-def athena(region, database, workgroup, output_location):
+@pytest.fixture(name="athena")
+def athena_fixture(region, database, workgroup, output_location):
     proxy = Boto3Proxy(region=region)
     athena = Athena(proxy)
     athena.database = database

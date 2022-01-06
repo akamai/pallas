@@ -26,18 +26,18 @@ def fake_sleep(seconds):
     raise KeyboardInterrupt
 
 
-@pytest.fixture(name="fake")
-def fake_fixture():
-    fake = FakeProxy()
-    fake.state = "RUNNING"
-    return fake
+@pytest.fixture(name="proxy")
+def proxy_fixture():
+    proxy = FakeProxy()
+    proxy.state = "RUNNING"
+    return proxy
 
 
 @pytest.fixture(name="athena")
-def athena_fixture(fake):
+def athena_fixture(proxy):
     orig_sleep = time.sleep
     time.sleep = fake_sleep
-    athena = Athena(fake)
+    athena = Athena(proxy)
     athena.kill_on_interrupt = True
     yield athena
     time.sleep = orig_sleep
@@ -58,66 +58,66 @@ def no_keyboard_interrupt():
 
 
 class TestAthenaKillOnInterrupt:
-    def test_execute_kill_on_interrupt(self, athena, fake):
+    def test_execute_kill_on_interrupt(self, athena, proxy):
         with no_keyboard_interrupt():
             with pytest.raises(AthenaQueryError):
                 athena.execute("SELECT 1")
-            assert fake.request_log == [
+            assert proxy.request_log == [
                 "StartQueryExecution",
                 "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_execute_do_not_kill_on_interrupt(self, athena, fake):
+    def test_execute_do_not_kill_on_interrupt(self, athena, proxy):
         athena.kill_on_interrupt = False
         with pytest.raises(KeyboardInterrupt):
             athena.execute("SELECT 1")
-        assert fake.request_log == [
+        assert proxy.request_log == [
             "StartQueryExecution",
             "GetQueryExecution",
         ]
 
-    def test_get_results_kill_on_interrupt(self, athena, fake):
+    def test_get_results_kill_on_interrupt(self, athena, proxy):
         with no_keyboard_interrupt():
             query = athena.submit("SELECT 1")
-            fake.request_log.clear()
+            proxy.request_log.clear()
             with pytest.raises(AthenaQueryError):
                 query.get_results()
-            assert fake.request_log == [
+            assert proxy.request_log == [
                 "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_get_results_do_not_kill_on_interrupt(self, athena, fake):
+    def test_get_results_do_not_kill_on_interrupt(self, athena, proxy):
         athena.kill_on_interrupt = False
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         with pytest.raises(KeyboardInterrupt):
             query.get_results()
-        assert fake.request_log == [
+        assert proxy.request_log == [
             "GetQueryExecution",
         ]
 
-    def test_join_kill_on_interrupt(self, athena, fake):
+    def test_join_kill_on_interrupt(self, athena, proxy):
         with no_keyboard_interrupt():
             query = athena.submit("SELECT 1")
-            fake.request_log.clear()
+            proxy.request_log.clear()
             with pytest.raises(AthenaQueryError):
                 query.join()
-            assert fake.request_log == [
+            assert proxy.request_log == [
                 "GetQueryExecution",
                 "StopQueryExecution",
                 "GetQueryExecution",
             ]
 
-    def test_join_do_not_kill_on_interrupt(self, athena, fake):
+    def test_join_do_not_kill_on_interrupt(self, athena, proxy):
         athena.kill_on_interrupt = False
         query = athena.submit("SELECT 1")
-        fake.request_log.clear()
+        proxy.request_log.clear()
         with pytest.raises(KeyboardInterrupt):
             query.join()
-            assert fake.request_log == [
+            assert proxy.request_log == [
                 "GetQueryExecution",
             ]
